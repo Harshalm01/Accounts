@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Users</title>
+    <link rel="stylesheet" href="/public/styles.css" />
+  </head>
+  <body class="admin-page">
+    <div class="shell">
+      <div class="topbar">
+        <div>
+          <%- include('partials/brand') %>
+          <h2>User Management</h2>
+          <p class="subtitle">Create users, reset password, delete users.</p>
+        </div>
+        <a href="/admin/dashboard"><button class="btn btn-light" type="button">Back</button></a>
+      </div>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <div class="card" style="margin-bottom: 12px;">
+        <h3>Add User</h3>
+        <form method="post" action="/admin/users" class="grid-3">
+          <label>Username *<input type="text" name="username" required /></label>
+          <label>Password *<input type="password" name="password" required /></label>
+          <label>
+            Role *
+            <select name="role" required>
+              <option value="TEAM">TEAM</option>
+              <option value="ACCOUNTS">ACCOUNTS</option>
+              <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+            </select>
+          </label>
+          <label>Team Name (for TEAM role)<input type="text" name="teamName" /></label>
+          <div><button class="btn btn-primary" type="submit">Create User</button></div>
+        </form>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Team</th>
+              <th>Reset Password</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% users.forEach((u) => { %>
+              <tr>
+                <td><%= u.id %></td>
+                <td><%= u.username %></td>
+                <td><%= u.role %></td>
+                <td><%= u.team_name || '-' %></td>
+                <td>
+                  <form method="post" action="/admin/users/<%= u.id %>/reset" class="row">
+                    <input type="password" name="newPassword" placeholder="New Password" required />
+                    <button class="btn btn-dark" type="submit">Reset</button>
+                  </form>
+                </td>
+                <td>
+                  <form method="post" action="/admin/users/<%= u.id %>/delete" onsubmit="return confirm('Delete user?')">
+                    <button class="btn btn-danger" type="submit">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

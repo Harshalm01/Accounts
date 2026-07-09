@@ -1,0 +1,20 @@
+{
+  "name": "creator-invoice-portal",
+  "version": "1.0.0",
+  "description": "MVP portal for creator invoices with RBAC and PDF generation",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "multer": "^1.4.5-lts.1",
+    "pdfkit": "^0.15.0",
+    "xlsx": "^0.18.5",
+    "sqlite3": "^5.1.7"
+  }
+}

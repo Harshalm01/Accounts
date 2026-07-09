@@ -1,0 +1,500 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Creator Portal</title>
+    <link rel="stylesheet" href="/public/styles.css" />
+  </head>
+  <body class="creator-page">
+    <div class="shell">
+      <main class="portal-frame">
+        <header class="portal-hero card">
+          <div class="portal-title-block">
+            <%- include('partials/brand') %>
+            <div class="portal-kicker">Creator portal</div>
+            <h1>Creator Invoice Portal</h1>
+            <p class="subtitle">Non-GST Bill of Supply submission</p>
+          </div>
+          <div class="portal-hero-meta" aria-hidden="true">
+            <div class="meta-chip">
+              <span class="meta-chip-label">Status</span>
+              <strong>Secure submission</strong>
+            </div>
+            <div class="meta-chip">
+              <span class="meta-chip-label">Flow</span>
+              <strong>Validate, review, submit</strong>
+            </div>
+          </div>
+        </header>
+
+        <% if (error) { %>
+          <section class="notice-card notice-error" role="alert">
+            <div class="notice-icon notice-icon-error" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+              </svg>
+            </div>
+            <div class="notice-copy">
+              <p class="notice-kicker">Submission blocked</p>
+              <h2>Check the highlighted fields</h2>
+              <p><%= error %></p>
+            </div>
+          </section>
+        <% } %>
+        <% if (success) { %>
+          <section class="notice-card notice-success" role="status" aria-live="polite">
+            <div class="notice-icon notice-icon-success" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m20 6-11 11-5-5" />
+              </svg>
+            </div>
+            <div class="notice-copy">
+              <p class="notice-kicker">Submission complete</p>
+              <h2>Invoice Submitted Successfully</h2>
+              <div class="notice-grid">
+                <div>
+                  <span>Reference Number</span>
+                  <strong data-reference-number>Loading...</strong>
+                </div>
+                <div>
+                  <span>Review Timeline</span>
+                  <strong>Verification • Approval • Release</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+        <% } %>
+
+        <% if (!form.validated) { %>
+          <section class="content-card">
+            <div class="section-head">
+              <div>
+                <div class="portal-kicker">Campaign validation</div>
+                <h2 class="section-title">Confirm the campaign mapping</h2>
+              </div>
+              <p class="section-subtitle">Enter the campaign code and registered mobile number to unlock the invoice workflow.</p>
+            </div>
+
+            <form method="post" action="/creator/validate" class="portal-form">
+              <div class="grid-2">
+                <label class="field field-floating">
+                  <input type="text" name="campaignCode" value="<%= form.campaignCode || '' %>" placeholder=" " required />
+                  <span>Campaign Code *</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="text" name="mobile" value="<%= form.mobile || '' %>" placeholder=" " required />
+                  <span>Mobile Number *</span>
+                </label>
+              </div>
+              <div class="form-actions form-actions-left">
+                <button class="btn btn-primary btn-submit" type="submit">
+                  <span>Validate Campaign</span>
+                </button>
+              </div>
+            </form>
+          </section>
+        <% } %>
+
+        <% if (form.validated) { %>
+          <section class="notice-card info-card">
+            <div class="notice-icon notice-icon-info" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 16v-4" />
+                <path d="M12 8h.01" />
+                <circle cx="12" cy="12" r="9" />
+              </svg>
+            </div>
+            <div class="notice-copy">
+              <p class="notice-kicker">Campaign validated</p>
+              <h2><%= form.campaignName %></h2>
+              <div class="summary-grid">
+                <div class="summary-item">
+                  <span>Brand</span>
+                  <strong>3Folks Media</strong>
+                </div>
+                <div class="summary-item">
+                  <span>Campaign Code</span>
+                  <strong><%= form.campaignCode %></strong>
+                </div>
+                <div class="summary-item">
+                  <span>Creator</span>
+                  <strong><%= form.creatorName || '' %></strong>
+                </div>
+                <div class="summary-item">
+                  <span>Amount</span>
+                  <strong>₹<%= form.amount %></strong>
+                </div>
+                <div class="summary-item">
+                  <span>Status</span>
+                  <strong><span class="status-badge status-badge-success">Validated</span></strong>
+                </div>
+                <div class="summary-item">
+                  <span>Payment Timeline</span>
+                  <strong>Review • Approval • Payout</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <form method="post" action="/creator/submit" enctype="multipart/form-data" id="invoiceForm" class="portal-form stack-layout">
+            <input type="hidden" name="validated" value="true" />
+            <input type="hidden" name="campaignId" value="<%= form.campaignId %>" />
+            <input type="hidden" name="campaignCode" value="<%= form.campaignCode %>" />
+            <input type="hidden" name="campaignName" value="<%= form.campaignName %>" />
+            <input type="hidden" name="mobile" value="<%= form.mobile %>" />
+            <input type="hidden" name="creatorName" value="<%= form.creatorName || '' %>" />
+            <input type="hidden" name="amount" value="<%= form.amount %>" />
+            <input type="hidden" id="signatureDraw" name="signatureDraw" />
+
+            <section class="content-card">
+              <div class="section-head">
+                <div>
+                  <div class="portal-kicker">Workspace</div>
+                  <h2 class="section-title">Invoice snapshot</h2>
+                </div>
+                <p class="section-subtitle">Campaign details are locked to the validated mapping for this submission.</p>
+              </div>
+              <div class="grid-2 summary-lock-grid">
+                <label class="field field-floating field-readonly">
+                  <input type="text" value="<%= form.campaignName %>" readonly placeholder=" " />
+                  <span>Campaign Name</span>
+                </label>
+                <label class="field field-floating field-readonly">
+                  <input type="number" id="lockedAmount" value="<%= form.amount %>" readonly placeholder=" " />
+                  <span>Locked Amount</span>
+                </label>
+                <label class="field field-floating field-readonly">
+                  <input type="text" value="<%= form.mobile %>" readonly placeholder=" " />
+                  <span>Creator Mobile</span>
+                </label>
+                <label class="field field-floating field-readonly">
+                  <input type="text" value="<%= form.creatorName || '' %>" readonly placeholder=" " />
+                  <span>Mapped Creator</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="content-card">
+              <div class="section-head">
+                <div>
+                  <div class="portal-kicker">Billing identity</div>
+                  <h2 class="section-title">Bill from</h2>
+                </div>
+              </div>
+              <div class="grid-2 field-grid">
+                <label class="field field-floating">
+                  <input type="text" name="fullName" required placeholder=" " />
+                  <span>Full Name *</span>
+                </label>
+                <label class="field field-floating field-textarea">
+                  <textarea name="address" placeholder=" "></textarea>
+                  <span>Address</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="text" name="pan" placeholder=" " />
+                  <span>PAN/IT No</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="email" name="email" placeholder=" " />
+                  <span>Email</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="content-card">
+              <div class="section-head">
+                <div>
+                  <div class="portal-kicker">Document control</div>
+                  <h2 class="section-title">Invoice header</h2>
+                </div>
+              </div>
+              <div class="grid-3 field-grid">
+                <label class="field field-floating">
+                  <input type="text" name="invoiceNo" required placeholder=" " />
+                  <span>Invoice No *</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="date" name="invoiceDate" required placeholder=" " />
+                  <span>Dated *</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="text" name="paymentMode" placeholder=" " />
+                  <span>Mode/Terms of Payment</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="text" name="pocName" placeholder=" " />
+                  <span>POC Name</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="text" name="otherReferences" placeholder=" " />
+                  <span>Other References</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="content-card section-static">
+              <div class="section-head">
+                <div>
+                  <div class="portal-kicker">Recipient</div>
+                  <h2 class="section-title">To (static)</h2>
+                </div>
+                <p class="section-subtitle">Fixed recipient details, not editable.</p>
+              </div>
+              <div class="static-panel">
+                <p>
+                  3Folks Media, 1801, 18th Floor, C Wing, Lotus Corporate Park, Off. Western Express Highway,
+                  Goregaon East, Mumbai- 400063. PAN: AACFZ6393B State Name: Maharashtra, Code : 27
+                </p>
+              </div>
+            </section>
+
+            <section class="content-card">
+              <div class="section-head">
+                <div>
+                  <div class="portal-kicker">Line items</div>
+                  <h2 class="section-title">Invoice rows</h2>
+                </div>
+                <p class="section-subtitle">Add only the rows that sum exactly to the locked amount.</p>
+              </div>
+              <div class="invoice-rows" id="rowsWrap"></div>
+              <div class="form-actions form-actions-between">
+                <button type="button" class="btn btn-light" id="addRowBtn">+ Add Row</button>
+                <div class="totals-grid">
+                  <label class="field field-floating field-readonly compact-field">
+                    <input type="number" id="computedTotal" readonly placeholder=" " />
+                    <span>Auto Total</span>
+                  </label>
+                  <label class="field field-floating field-readonly compact-field">
+                    <input type="text" id="matchStatus" readonly placeholder=" " />
+                    <span>Match Status</span>
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <section class="content-card">
+              <div class="section-head">
+                <div>
+                  <div class="portal-kicker">Payout rails</div>
+                  <h2 class="section-title">Bank details</h2>
+                </div>
+              </div>
+              <div class="grid-3 field-grid">
+                <label class="field field-floating">
+                  <input type="text" name="accountName" placeholder=" " />
+                  <span>Account Name</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="text" name="bankName" placeholder=" " />
+                  <span>Bank Name</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="text" name="accountNo" placeholder=" " />
+                  <span>Account No</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="text" name="ifscCode" placeholder=" " />
+                  <span>IFSC Code</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="text" name="branch" placeholder=" " />
+                  <span>Branch</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="text" name="upiId" placeholder=" " />
+                  <span>UPI ID</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="content-card">
+              <div class="section-head">
+                <div>
+                  <div class="portal-kicker">Signature capture</div>
+                  <h2 class="section-title">E-sign</h2>
+                </div>
+                <p class="section-subtitle">Draw or upload a signature image before submission.</p>
+              </div>
+              <div class="grid-2 signature-grid">
+                <div class="signature-panel">
+                  <label class="field-label-inline">Draw Signature</label>
+                  <div class="canvas-wrap">
+                    <canvas id="signPad" width="600" height="160"></canvas>
+                  </div>
+                  <div class="form-actions form-actions-left">
+                    <button type="button" class="btn btn-light" id="clearSign">Clear Drawing</button>
+                  </div>
+                </div>
+                <label class="field field-floating field-upload">
+                  <input type="file" name="signatureFile" accept="image/*" placeholder=" " />
+                  <span>Or Upload Signature Image</span>
+                </label>
+              </div>
+            </section>
+
+            <div class="form-actions form-actions-right portal-submit-row">
+              <button class="btn btn-primary btn-submit" type="submit" id="submitBtn">
+                <span class="btn-spinner" aria-hidden="true"></span>
+                <span class="btn-label">Submit Invoice</span>
+              </button>
+            </div>
+          </form>
+        <% } %>
+      </main>
+    </div>
+
+    <% if (form.validated) { %>
+      <script>
+        const rowsWrap = document.getElementById("rowsWrap");
+        const addRowBtn = document.getElementById("addRowBtn");
+        const lockedAmount = Number(document.getElementById("lockedAmount").value || 0);
+        const computedTotal = document.getElementById("computedTotal");
+        const matchStatus = document.getElementById("matchStatus");
+        const formEl = document.getElementById("invoiceForm");
+        const submitBtn = document.getElementById("submitBtn");
+        const referenceNumber = document.querySelector("[data-reference-number]");
+
+        const storedReference = sessionStorage.getItem("creatorInvoiceReference");
+        if (referenceNumber) {
+          referenceNumber.textContent = storedReference || "Invoice No. pending";
+        }
+
+        function syncFieldState(field) {
+          const control = field.querySelector("input, textarea, select");
+          if (!control) return;
+          const hasValue = control.type === "file"
+            ? Boolean(control.files && control.files.length)
+            : Boolean(String(control.value || "").trim());
+          field.dataset.filled = hasValue ? "true" : "false";
+        }
+
+        document.querySelectorAll(".field").forEach((field) => {
+          syncFieldState(field);
+          const control = field.querySelector("input, textarea, select");
+          if (!control) return;
+          ["input", "change", "blur"].forEach((eventName) => {
+            control.addEventListener(eventName, () => syncFieldState(field));
+          });
+        });
+
+        function rowTemplate() {
+          const row = document.createElement("div");
+          row.className = "grid-3 line-item-row";
+          row.innerHTML = `
+            <label class="field field-floating field-textarea">
+              <textarea name="itemDescriptions" required placeholder=" "></textarea>
+              <span>Description of Goods *</span>
+            </label>
+            <label class="field field-floating">
+              <input type="number" name="itemQuantities" step="0.01" min="0" value="1" required placeholder=" " />
+              <span>Quantity *</span>
+            </label>
+            <label class="field field-floating">
+              <input type="number" name="itemAmounts" step="0.01" min="0" value="0" required placeholder=" " />
+              <span>Amount *</span>
+            </label>
+          `;
+          return row;
+        }
+
+        function calculateTotal() {
+          const qtyInputs = Array.from(document.querySelectorAll("input[name='itemQuantities']"));
+          const amountInputs = Array.from(document.querySelectorAll("input[name='itemAmounts']"));
+          let total = 0;
+          for (let i = 0; i < qtyInputs.length; i += 1) {
+            total += Number(amountInputs[i].value || 0);
+          }
+          computedTotal.value = total.toFixed(2);
+          if (Number(total.toFixed(2)) === Number(lockedAmount.toFixed(2))) {
+            matchStatus.value = "Matched";
+          } else {
+            matchStatus.value = "Not Matched";
+          }
+        }
+
+        addRowBtn.addEventListener("click", () => {
+          const row = rowTemplate();
+          rowsWrap.appendChild(row);
+          row.querySelectorAll(".field").forEach((field) => syncFieldState(field));
+          row.addEventListener("input", calculateTotal);
+        });
+
+        const first = rowTemplate();
+        rowsWrap.appendChild(first);
+        first.addEventListener("input", calculateTotal);
+        calculateTotal();
+
+        const canvas = document.getElementById("signPad");
+        const ctx = canvas.getContext("2d");
+        let drawing = false;
+
+        function pointFromEvent(e) {
+          const rect = canvas.getBoundingClientRect();
+          const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+          const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+          return { x, y };
+        }
+
+        function startDraw(e) {
+          drawing = true;
+          const p = pointFromEvent(e);
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+        }
+
+        function moveDraw(e) {
+          if (!drawing) return;
+          e.preventDefault();
+          const p = pointFromEvent(e);
+          ctx.lineWidth = 2;
+          ctx.lineCap = "round";
+          ctx.strokeStyle = "#111";
+          ctx.lineTo(p.x, p.y);
+          ctx.stroke();
+        }
+
+        function endDraw() {
+          drawing = false;
+        }
+
+        canvas.addEventListener("mousedown", startDraw);
+        canvas.addEventListener("mousemove", moveDraw);
+        canvas.addEventListener("mouseup", endDraw);
+        canvas.addEventListener("mouseleave", endDraw);
+        canvas.addEventListener("touchstart", startDraw, { passive: false });
+        canvas.addEventListener("touchmove", moveDraw, { passive: false });
+        canvas.addEventListener("touchend", endDraw);
+
+        document.getElementById("clearSign").addEventListener("click", () => {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+
+        formEl.addEventListener("submit", (e) => {
+          const invoiceNoInput = formEl.querySelector("input[name='invoiceNo']");
+          if (invoiceNoInput && invoiceNoInput.value.trim()) {
+            sessionStorage.setItem("creatorInvoiceReference", invoiceNoInput.value.trim());
+          }
+          if (submitBtn) {
+            submitBtn.dataset.loading = "true";
+            submitBtn.disabled = true;
+          }
+          const total = Number(computedTotal.value || 0);
+          if (Number(total.toFixed(2)) !== Number(lockedAmount.toFixed(2))) {
+            e.preventDefault();
+            if (submitBtn) {
+              submitBtn.dataset.loading = "false";
+              submitBtn.disabled = false;
+            }
+            alert("Row total must exactly match predefined creator amount.");
+            return;
+          }
+          const signatureDraw = document.getElementById("signatureDraw");
+          signatureDraw.value = canvas.toDataURL("image/png");
+        });
+      </script>
+    <% } %>
+  </body>
+  </html>

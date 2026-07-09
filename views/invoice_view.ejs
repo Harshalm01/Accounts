@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Invoice View</title>
+    <link rel="stylesheet" href="/public/styles.css" />
+  </head>
+  <body class="admin-page">
+    <div class="shell">
+      <div class="topbar hero-banner">
+        <div>
+          <%- include('partials/brand') %>
+          <div class="eyebrow">Invoice details</div>
+          <h2>Invoice #<%= invoice.id %></h2>
+          <div class="pill">Status: <%= invoice.status %></div>
+        </div>
+        <a href="/admin/dashboard"><button class="btn btn-light" type="button">Back</button></a>
+      </div>
+
+      <div class="card glass-panel" style="margin-bottom: 12px;">
+        <div class="grid-3">
+          <div><strong>Campaign:</strong> <%= invoice.campaign_name %> (<%= invoice.campaign_code %>)</div>
+          <div><strong>Creator:</strong> <%= invoice.creator_name %> / <%= invoice.creator_mobile %></div>
+          <div><strong>Total:</strong> <%= Number(invoice.total_amount || 0).toFixed(2) %></div>
+          <div><strong>Invoice No:</strong> <%= invoice.invoice_no %></div>
+          <div><strong>Date:</strong> <%= invoice.invoice_date %></div>
+          <div><strong>PDF:</strong> <% if (invoice.pdf_path) { %><a href="<%= invoice.pdf_path %>" target="_blank">Download</a><% } else { %>Not generated<% } %></div>
+        </div>
+      </div>
+
+      <div class="card glass-panel" style="margin-bottom: 12px;">
+        <div class="section-head">
+          <div>
+            <h3>Rows</h3>
+            <p class="subtitle">Invoice line items captured from the creator portal.</p>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Description</th>
+              <th>Qty</th>
+              <th>Rate</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% items.forEach((it, idx) => { %>
+              <tr>
+                <td><%= idx + 1 %></td>
+                <td><%= it.description %></td>
+                <td><%= it.quantity %></td>
+                <td><%= Number(it.rate || 0).toFixed(2) %></td>
+                <td><%= Number(it.amount || 0).toFixed(2) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <% if (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN') { %>
+        <div class="card glass-panel">
+          <div class="row">
+            <a href="/admin/invoices/<%= invoice.id %>/edit"><button class="btn btn-dark" type="button">Edit Invoice</button></a>
+            <form method="post" action="/admin/invoices/<%= invoice.id %>/status">
+              <input type="hidden" name="action" value="accept" />
+              <button class="btn btn-primary" type="submit">Accept</button>
+            </form>
+            <form method="post" action="/admin/invoices/<%= invoice.id %>/status">
+              <input type="hidden" name="action" value="reject" />
+              <button class="btn btn-danger" type="submit">Reject</button>
+            </form>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </body>
+</html>

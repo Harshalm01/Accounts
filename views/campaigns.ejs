@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Campaigns</title>
+    <link rel="stylesheet" href="/public/styles.css" />
+  </head>
+  <body class="admin-page">
+    <div class="shell">
+      <div class="topbar">
+        <div>
+          <%- include('partials/brand') %>
+          <h2>Campaigns</h2>
+          <p class="subtitle">Create campaign with predefined amount and map creators by mobile.</p>
+        </div>
+        <a href="/admin/dashboard"><button class="btn btn-light" type="button">Back</button></a>
+      </div>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+      <% if (success) { %>
+        <div class="alert alert-success"><%= success %></div>
+      <% } %>
+
+      <div class="card" style="margin-bottom: 12px;">
+        <h3>Add Campaign</h3>
+        <form method="post" action="/admin/campaigns" class="grid-3">
+          <label>Campaign Name *<input type="text" name="campaignName" required /></label>
+          <label>Campaign Code *<input type="text" name="campaignCode" required /></label>
+          <% if (user.role === 'SUPER_ADMIN') { %>
+            <label>Team Name<input type="text" name="teamName" placeholder="TEAM_1" /></label>
+          <% } %>
+          <div>
+            <button class="btn btn-primary" type="submit">Create Campaign</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card" style="margin-bottom: 12px;">
+        <h3>Filter Campaigns</h3>
+        <p class="subtitle" style="margin-top: -6px;">Use search to narrow the list, for example by campaign name like Kaamil.</p>
+        <form method="get" action="/admin/campaigns" class="grid-3">
+          <label>
+            Search by campaign name / code / team
+            <input type="text" name="search" value="<%= search || '' %>" placeholder="Kaamil" />
+          </label>
+          <div style="align-self: end;">
+            <button class="btn btn-dark" type="submit">Filter</button>
+            <a href="/admin/campaigns"><button class="btn btn-light" type="button">Clear</button></a>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Code</th>
+              <th>Team</th>
+              <th>Creators</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!campaigns.length) { %>
+              <tr><td colspan="6">No campaigns match your filter.</td></tr>
+            <% } %>
+            <% campaigns.forEach((c) => { %>
+              <tr>
+                <td><%= c.id %></td>
+                <td><%= c.campaign_name %></td>
+                <td><%= c.campaign_code %></td>
+                <td><%= c.team_name %></td>
+                <td><%= c.creator_count || 0 %></td>
+                <td><a href="/admin/campaigns/<%= c.id %>/creators">Manage Creators</a></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
