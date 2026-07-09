@@ -8,6 +8,14 @@
   </head>
   <body class="admin-page">
     <div class="shell">
+      <% function gstBreakup(inv) { %>
+      <%   const isGst = inv.invoice_type === 'gst'; %>
+      <%   const taxable = Number(inv.taxable_amount ?? inv.locked_amount ?? inv.total_amount ?? 0); %>
+      <%   const cgst = Number(inv.cgst_amount ?? (taxable * 0.09).toFixed(2)); %>
+      <%   const sgst = Number(inv.sgst_amount ?? (taxable * 0.09).toFixed(2)); %>
+      <%   const gst = Number(inv.gst_amount ?? (cgst + sgst).toFixed(2)); %>
+      <%   return Number(inv.final_amount ?? (isGst ? (taxable + gst) : inv.total_amount ?? taxable)); %>
+      <% } %>
       <div class="topbar hero-banner">
         <div>
           <%- include('partials/brand') %>
@@ -45,6 +53,7 @@
               <th>Campaign</th>
               <th>Creator</th>
               <th>Invoice No</th>
+              <th>Type</th>
               <th>Total</th>
               <th>Status</th>
               <th>Action</th>
@@ -52,7 +61,7 @@
           </thead>
           <tbody>
             <% if (!invoices.length) { %>
-              <tr><td colspan="7">No invoices yet.</td></tr>
+              <tr><td colspan="8">No invoices yet.</td></tr>
             <% } %>
             <% invoices.forEach((inv) => { %>
               <tr>
@@ -60,7 +69,8 @@
                 <td><%= inv.campaign_name %> (<%= inv.campaign_code %>)</td>
                 <td><%= inv.creator_name %> / <%= inv.creator_mobile %></td>
                 <td><%= inv.invoice_no %></td>
-                <td><%= Number(inv.total_amount || 0).toFixed(2) %></td>
+                <td><%= inv.invoice_type === 'gst' ? 'GST' : 'Non-GST' %></td>
+                <td><%= gstBreakup(inv).toFixed(2) %></td>
                 <td><%= inv.status %></td>
                 <td><a href="/admin/invoices/<%= inv.id %>">Open</a></td>
               </tr>

@@ -96,6 +96,7 @@ async function init() {
     campaign_id INTEGER NOT NULL,
     creator_mobile TEXT NOT NULL,
     creator_name TEXT NOT NULL,
+    invoice_type TEXT NOT NULL DEFAULT 'non_gst',
     full_name TEXT NOT NULL,
     address TEXT,
     pan TEXT,
@@ -105,6 +106,16 @@ async function init() {
     payment_mode TEXT,
     poc_name TEXT,
     other_references TEXT,
+    po_number TEXT,
+    creator_gstin TEXT,
+    taxable_amount REAL,
+    gst_rate REAL,
+    cgst_rate REAL,
+    sgst_rate REAL,
+    cgst_amount REAL,
+    sgst_amount REAL,
+    gst_amount REAL,
+    final_amount REAL,
     account_name TEXT,
     bank_name TEXT,
     account_no TEXT,
@@ -128,10 +139,59 @@ async function init() {
   }
 
   const invoiceColumns = await all("PRAGMA table_info(invoices)");
+  if (!invoiceColumns.some((c) => c.name === "invoice_type")) {
+    await run("ALTER TABLE invoices ADD COLUMN invoice_type TEXT NOT NULL DEFAULT 'non_gst'");
+  }
+  if (!invoiceColumns.some((c) => c.name === "po_number")) {
+    await run("ALTER TABLE invoices ADD COLUMN po_number TEXT");
+  }
+  if (!invoiceColumns.some((c) => c.name === "creator_gstin")) {
+    await run("ALTER TABLE invoices ADD COLUMN creator_gstin TEXT");
+  }
+  if (!invoiceColumns.some((c) => c.name === "taxable_amount")) {
+    await run("ALTER TABLE invoices ADD COLUMN taxable_amount REAL");
+  }
+  if (!invoiceColumns.some((c) => c.name === "gst_rate")) {
+    await run("ALTER TABLE invoices ADD COLUMN gst_rate REAL");
+  }
+  if (!invoiceColumns.some((c) => c.name === "cgst_rate")) {
+    await run("ALTER TABLE invoices ADD COLUMN cgst_rate REAL");
+  }
+  if (!invoiceColumns.some((c) => c.name === "sgst_rate")) {
+    await run("ALTER TABLE invoices ADD COLUMN sgst_rate REAL");
+  }
+  if (!invoiceColumns.some((c) => c.name === "cgst_amount")) {
+    await run("ALTER TABLE invoices ADD COLUMN cgst_amount REAL");
+  }
+  if (!invoiceColumns.some((c) => c.name === "sgst_amount")) {
+    await run("ALTER TABLE invoices ADD COLUMN sgst_amount REAL");
+  }
+  if (!invoiceColumns.some((c) => c.name === "gst_amount")) {
+    await run("ALTER TABLE invoices ADD COLUMN gst_amount REAL");
+  }
+  if (!invoiceColumns.some((c) => c.name === "final_amount")) {
+    await run("ALTER TABLE invoices ADD COLUMN final_amount REAL");
+  }
   if (!invoiceColumns.some((c) => c.name === "locked_amount")) {
     await run("ALTER TABLE invoices ADD COLUMN locked_amount REAL NOT NULL DEFAULT 0");
     await run("UPDATE invoices SET locked_amount = total_amount WHERE locked_amount = 0");
   }
+
+  await run(`UPDATE invoices
+    SET
+      taxable_amount = COALESCE(taxable_amount, locked_amount, total_amount),
+      gst_rate = COALESCE(gst_rate, 18),
+      cgst_rate = COALESCE(cgst_rate, 9),
+      sgst_rate = COALESCE(sgst_rate, 9),
+      cgst_amount = COALESCE(cgst_amount, ROUND(COALESCE(taxable_amount, locked_amount, total_amount) * 0.09, 2)),
+      sgst_amount = COALESCE(sgst_amount, ROUND(COALESCE(taxable_amount, locked_amount, total_amount) * 0.09, 2)),
+      gst_amount = COALESCE(gst_amount, ROUND(COALESCE(taxable_amount, locked_amount, total_amount) * 0.18, 2)),
+      final_amount = COALESCE(final_amount, ROUND(COALESCE(taxable_amount, locked_amount, total_amount) * 1.18, 2)),
+      total_amount = CASE
+        WHEN invoice_type = 'gst' THEN COALESCE(final_amount, ROUND(COALESCE(taxable_amount, locked_amount, total_amount) * 1.18, 2))
+        ELSE total_amount
+      END
+    WHERE invoice_type = 'gst'`);
 
   await run(`CREATE TABLE IF NOT EXISTS invoice_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

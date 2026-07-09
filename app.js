@@ -133,6 +133,7 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       campaignId,
       campaignCode,
       mobile,
+      invoiceType,
       fullName,
       address,
       pan,
@@ -142,6 +143,8 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       paymentMode,
       pocName,
       otherReferences,
+      poNumber,
+      gstin,
       accountName,
       bankName,
       accountNo,
@@ -153,12 +156,24 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       itemQuantities,
       itemAmounts
     } = req.body;
+    const invoiceKind = String(invoiceType || "non_gst").toLowerCase() === "gst" ? "gst" : "non_gst";
 
     if (!campaignId || !campaignCode || !mobile || !fullName || !invoiceNo || !invoiceDate) {
       return res.render("creator_form", {
         error: "Please fill all required fields.",
         success: null,
         form: req.body
+      });
+    }
+
+    if (invoiceType === "gst" && (!String(poNumber || "").trim() || !String(gstin || "").trim())) {
+      return res.render("creator_form", {
+        error: "PO Number and GSTIN are required for GST based invoices.",
+        success: null,
+        form: {
+          validated: true,
+          ...req.body
+        }
       });
     }
 
@@ -221,6 +236,16 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       });
     }
 
+    const taxableAmount = Number(total.toFixed(2));
+    const gstRate = invoiceKind === "gst" ? 18 : 0;
+    const cgstRate = invoiceKind === "gst" ? 9 : 0;
+    const sgstRate = invoiceKind === "gst" ? 9 : 0;
+    const cgstAmount = Number((taxableAmount * (cgstRate / 100)).toFixed(2));
+    const sgstAmount = Number((taxableAmount * (sgstRate / 100)).toFixed(2));
+    const gstAmount = Number((cgstAmount + sgstAmount).toFixed(2));
+    const finalAmount = Number((taxableAmount + gstAmount).toFixed(2));
+    const savedTotalAmount = invoiceKind === "gst" ? finalAmount : taxableAmount;
+
     let signatureType = null;
     let signatureValue = null;
     if (signatureDraw && signatureDraw.startsWith("data:image")) {
@@ -250,15 +275,18 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
 
     const invoiceResult = await db.run(
       `INSERT INTO invoices (
-        campaign_id, creator_mobile, creator_name, full_name, address, pan, email,
+        campaign_id, creator_mobile, creator_name, invoice_type, full_name, address, pan, email,
         invoice_no, invoice_date, payment_mode, poc_name, other_references,
+        po_number, creator_gstin,
+        taxable_amount, gst_rate, cgst_rate, sgst_rate, cgst_amount, sgst_amount, gst_amount, final_amount,
         account_name, bank_name, account_no, ifsc_code, branch, upi_id,
         signature_type, signature_value, total_amount, locked_amount, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         campaignId,
         mobile.trim(),
         mapping.creator_name,
+        invoiceKind,
         fullName.trim(),
         address || "",
         pan || "",
@@ -268,6 +296,16 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
         paymentMode || "",
         pocName || "",
         otherReferences || "",
+        poNumber || "",
+        gstin || "",
+        taxableAmount,
+        gstRate,
+        cgstRate,
+        sgstRate,
+        cgstAmount,
+        sgstAmount,
+        gstAmount,
+        finalAmount,
         accountName || "",
         bankName || "",
         accountNo || "",
@@ -276,7 +314,7 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
         upiId || "",
         signatureType,
         signatureValue,
-        total,
+        savedTotalAmount,
         mapping.amount,
         "SUBMITTED"
       ]
@@ -285,7 +323,7 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
     for (const row of items) {
       await db.run(
         "INSERT INTO invoice_items (invoice_id, description, quantity, rate, amount) VALUES (?, ?, ?, ?, ?)",
-        [invoiceResult.lastID, row.description, row.quantity, 0, row.amount]
+        [invoiceResult.lastID, row.description, row.quantity, invoiceKind === "gst" ? 18 : 0, row.amount]
       );
     }
 
@@ -643,6 +681,7 @@ app.post("/admin/invoices/:id/edit", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), a
     itemQuantities,
     itemAmounts
   } = req.body;
+  const isGstInvoice = String(invoice.invoice_type || "non_gst") === "gst";
 
   const descriptions = Array.isArray(itemDescriptions) ? itemDescriptions : [itemDescriptions];
   const quantities = Array.isArray(itemQuantities) ? itemQuantities : [itemQuantities];
@@ -655,8 +694,8 @@ app.post("/admin/invoices/:id/edit", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), a
     }))
     .filter((x) => x.description);
 
-  const total = items.reduce((sum, row) => sum + row.quantity * row.rate, 0);
-  if (Number(total.toFixed(2)) !== Number(Number(invoice.locked_amount).toFixed(2))) {
+  const taxableAmount = Number(items.reduce((sum, row) => sum + row.amount, 0).toFixed(2));
+  if (Number(taxableAmount.toFixed(2)) !== Number(Number(invoice.locked_amount).toFixed(2))) {
     const existingItems = await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [invoice.id]);
     return res.render("invoice_edit", {
       invoice,
@@ -665,12 +704,20 @@ app.post("/admin/invoices/:id/edit", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), a
     });
   }
 
+  const gstRate = isGstInvoice ? 18 : 0;
+  const cgstRate = isGstInvoice ? 9 : 0;
+  const sgstRate = isGstInvoice ? 9 : 0;
+  const cgstAmount = Number((taxableAmount * (cgstRate / 100)).toFixed(2));
+  const sgstAmount = Number((taxableAmount * (sgstRate / 100)).toFixed(2));
+  const gstAmount = Number((cgstAmount + sgstAmount).toFixed(2));
+  const finalAmount = Number((taxableAmount + gstAmount).toFixed(2));
+
   await db.run(
     `UPDATE invoices SET
       full_name = ?, address = ?, pan = ?, email = ?, invoice_no = ?, invoice_date = ?,
       payment_mode = ?, poc_name = ?, other_references = ?,
       account_name = ?, bank_name = ?, account_no = ?, ifsc_code = ?, branch = ?, upi_id = ?,
-      total_amount = ?, updated_at = CURRENT_TIMESTAMP
+      taxable_amount = ?, gst_rate = ?, cgst_rate = ?, sgst_rate = ?, cgst_amount = ?, sgst_amount = ?, gst_amount = ?, final_amount = ?, total_amount = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?`,
     [
       fullName || "",
@@ -688,7 +735,15 @@ app.post("/admin/invoices/:id/edit", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), a
       ifscCode || "",
       branch || "",
       upiId || "",
-      total,
+      taxableAmount,
+      gstRate,
+      cgstRate,
+      sgstRate,
+      cgstAmount,
+      sgstAmount,
+      gstAmount,
+      finalAmount,
+      finalAmount,
       invoice.id
     ]
   );
@@ -697,7 +752,7 @@ app.post("/admin/invoices/:id/edit", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), a
   for (const row of items) {
     await db.run(
       "INSERT INTO invoice_items (invoice_id, description, quantity, rate, amount) VALUES (?, ?, ?, ?, ?)",
-      [invoice.id, row.description, row.quantity, 0, row.amount]
+      [invoice.id, row.description, row.quantity, isGstInvoice ? 18 : 0, row.amount]
     );
   }
 

@@ -1319,6 +1319,18 @@ body.creator-page .btn-light:hover {
   background: #1F1F22;
 }
 
+body.creator-page .flow-choice-active {
+  background: #FFFFFF;
+  color: #09090B;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.24);
+}
+
+body.creator-page .flow-choice-active:hover {
+  background: #F4F4F5;
+  color: #09090B;
+}
+
 body.creator-page .btn-submit {
   min-width: 220px;
   position: relative;

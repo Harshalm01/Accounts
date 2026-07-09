@@ -158,7 +158,6 @@
             <p class="section-subtitle" id="choiceHint">Non-GST will open the current Bill of Supply flow. GST will be added next.</p>
           </section>
 
-          <div id="nonGstFlow" hidden>
           <form method="post" action="/creator/submit" enctype="multipart/form-data" id="invoiceForm" class="portal-form stack-layout">
             <input type="hidden" name="validated" value="true" />
             <input type="hidden" name="invoiceType" id="invoiceType" value="" />
@@ -253,6 +252,37 @@
                   <input type="text" name="otherReferences" placeholder=" " />
                   <span>Other References</span>
                 </label>
+              </div>
+            </section>
+
+            <section class="content-card" id="gstDetailsSection" hidden>
+              <div class="section-head">
+                <div>
+                  <div class="portal-kicker">GST details</div>
+                  <h2 class="section-title">GST invoice requirements</h2>
+                </div>
+                <p class="section-subtitle">These fields are mandatory only for GST based submissions.</p>
+              </div>
+              <div class="static-panel" style="margin-bottom: 14px;">
+                <p><strong>Company GSTIN:</strong> 27AACFZ6393B1ZZ</p>
+                <p><strong>Company PAN:</strong> AACFZ6393B</p>
+              </div>
+              <div class="grid-2 field-grid">
+                <label class="field field-floating">
+                  <input type="text" name="poNumber" id="poNumber" placeholder=" " />
+                  <span>PO Number *</span>
+                </label>
+                <label class="field field-floating">
+                  <input type="text" name="gstin" id="gstin" placeholder=" " />
+                  <span>GSTIN of Creator *</span>
+                </label>
+              </div>
+              <div class="static-panel" style="margin-top: 14px;" id="gstSummarySection" hidden>
+                <p><strong>Taxable Amount:</strong> ₹<span id="gstTaxableAmount">0.00</span></p>
+                <p><strong>CGST @ 9%:</strong> ₹<span id="gstCgstAmount">0.00</span></p>
+                <p><strong>SGST @ 9%:</strong> ₹<span id="gstSgstAmount">0.00</span></p>
+                <p><strong>Total GST:</strong> ₹<span id="gstTotalAmount">0.00</span></p>
+                <p><strong>Final Amount:</strong> ₹<span id="gstFinalAmount">0.00</span></p>
               </div>
             </section>
 
@@ -363,19 +393,7 @@
               </button>
             </div>
           </form>
-          </div>
 
-          <section class="content-card" id="gstFlow" hidden>
-            <div class="section-head">
-              <div>
-                <div class="portal-kicker">GST flow</div>
-                <h2 class="section-title">GST based invoice</h2>
-              </div>
-            </div>
-            <div class="static-panel">
-              <p>GST-based invoice generation will be added next. For now, use Non-GST Based to continue with the current flow.</p>
-            </div>
-          </section>
         <% } %>
       </main>
     </div>
@@ -384,10 +402,17 @@
       <script>
         const nonGstChoice = document.getElementById("nonGstChoice");
         const gstChoice = document.getElementById("gstChoice");
-        const nonGstFlow = document.getElementById("nonGstFlow");
-        const gstFlow = document.getElementById("gstFlow");
+        const gstDetailsSection = document.getElementById("gstDetailsSection");
+        const gstSummarySection = document.getElementById("gstSummarySection");
         const choiceHint = document.getElementById("choiceHint");
         const invoiceType = document.getElementById("invoiceType");
+        const poNumber = document.getElementById("poNumber");
+        const gstin = document.getElementById("gstin");
+        const gstTaxableAmount = document.getElementById("gstTaxableAmount");
+        const gstCgstAmount = document.getElementById("gstCgstAmount");
+        const gstSgstAmount = document.getElementById("gstSgstAmount");
+        const gstTotalAmount = document.getElementById("gstTotalAmount");
+        const gstFinalAmount = document.getElementById("gstFinalAmount");
         const rowsWrap = document.getElementById("rowsWrap");
         const addRowBtn = document.getElementById("addRowBtn");
         const lockedAmount = Number(document.getElementById("lockedAmount").value || 0);
@@ -402,18 +427,52 @@
           referenceNumber.textContent = storedReference || "Invoice No. pending";
         }
 
+        function setChoiceState(activeChoice) {
+          if (nonGstChoice) {
+            nonGstChoice.classList.toggle("flow-choice-active", activeChoice === "non_gst");
+            nonGstChoice.setAttribute("aria-pressed", activeChoice === "non_gst" ? "true" : "false");
+          }
+          if (gstChoice) {
+            gstChoice.classList.toggle("flow-choice-active", activeChoice === "gst");
+            gstChoice.setAttribute("aria-pressed", activeChoice === "gst" ? "true" : "false");
+          }
+        }
+
         function showNonGstFlow() {
           if (invoiceType) invoiceType.value = "non_gst";
           if (choiceHint) choiceHint.textContent = "Non-GST will open the current Bill of Supply flow. Continue below.";
-          if (nonGstFlow) nonGstFlow.hidden = false;
-          if (gstFlow) gstFlow.hidden = true;
+          setChoiceState("non_gst");
+          if (gstDetailsSection) gstDetailsSection.hidden = true;
+          if (gstSummarySection) gstSummarySection.hidden = true;
+          if (poNumber) poNumber.required = false;
+          if (gstin) gstin.required = false;
+        }
+
+        function updateGstSummary() {
+          const taxable = Number(lockedAmount || 0);
+          const cgst = Number((taxable * 0.09).toFixed(2));
+          const sgst = Number((taxable * 0.09).toFixed(2));
+          const totalGst = Number((cgst + sgst).toFixed(2));
+          const final = Number((taxable + totalGst).toFixed(2));
+          if (gstTaxableAmount) gstTaxableAmount.textContent = taxable.toFixed(2);
+          if (gstCgstAmount) gstCgstAmount.textContent = cgst.toFixed(2);
+          if (gstSgstAmount) gstSgstAmount.textContent = sgst.toFixed(2);
+          if (gstTotalAmount) gstTotalAmount.textContent = totalGst.toFixed(2);
+          if (gstFinalAmount) gstFinalAmount.textContent = final.toFixed(2);
         }
 
         function showGstFlow() {
           if (invoiceType) invoiceType.value = "gst";
-          if (choiceHint) choiceHint.textContent = "GST-based invoice generation is not live yet.";
-          if (nonGstFlow) nonGstFlow.hidden = true;
-          if (gstFlow) gstFlow.hidden = false;
+          if (choiceHint) choiceHint.textContent = "GST based invoice will include PO Number and GSTIN as mandatory fields.";
+          setChoiceState("gst");
+          if (gstDetailsSection) gstDetailsSection.hidden = false;
+          if (gstSummarySection) gstSummarySection.hidden = false;
+          updateGstSummary();
+          if (poNumber) poNumber.required = true;
+          if (gstin) gstin.required = true;
+          if (gstDetailsSection && typeof gstDetailsSection.scrollIntoView === "function") {
+            gstDetailsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
         }
 
         if (nonGstChoice) {

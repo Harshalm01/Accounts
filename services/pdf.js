@@ -8,6 +8,18 @@ if (!fs.existsSync(generatedDir)) {
   fs.mkdirSync(generatedDir, { recursive: true });
 }
 
+const COMPANY = {
+  name: "3Folks Media",
+  addressLines: [
+    "1801, 18th Floor, C Wing, Lotus Corporate Park, Off. Western Express Highway,",
+    "Goregaon East, Mumbai- 400063."
+  ],
+  pan: "AACFZ6393B",
+  gstin: "27AACFZ6393B1ZZ",
+  state: "Maharashtra",
+  stateCode: "27"
+};
+
 function numberToWords(amount) {
   const num = Math.round(Number(amount));
   if (!Number.isFinite(num)) return "";
@@ -83,12 +95,29 @@ async function ensurePdfForInvoice(invoiceId) {
   const fileName = `invoice-${invoice.id}.pdf`;
   const abs = path.join(generatedDir, fileName);
   const rel = `/generated/${fileName}`;
+  const isGstInvoice = String(invoice.invoice_type || "non_gst") === "gst";
+  const taxableAmount = Number(invoice.taxable_amount ?? invoice.locked_amount ?? invoice.total_amount ?? 0);
+  const cgstRate = Number(invoice.cgst_rate ?? (isGstInvoice ? 9 : 0));
+  const sgstRate = Number(invoice.sgst_rate ?? (isGstInvoice ? 9 : 0));
+  const gstRate = Number(invoice.gst_rate ?? (isGstInvoice ? 18 : 0));
+  const cgstAmount = Number(invoice.cgst_amount ?? (taxableAmount * (cgstRate / 100)).toFixed(2));
+  const sgstAmount = Number(invoice.sgst_amount ?? (taxableAmount * (sgstRate / 100)).toFixed(2));
+  const gstAmount = Number(invoice.gst_amount ?? (cgstAmount + sgstAmount).toFixed(2));
+  const finalAmount = Number(invoice.final_amount ?? (isGstInvoice ? (taxableAmount + gstAmount) : invoice.total_amount ?? taxableAmount));
+
+  function calcGstRow(baseAmount) {
+    const base = Number(baseAmount || 0);
+    const rowCgst = Number((base * 0.09).toFixed(2));
+    const rowSgst = Number((base * 0.09).toFixed(2));
+    const rowFinal = Number((base + rowCgst + rowSgst).toFixed(2));
+    return { base, rowCgst, rowSgst, rowFinal };
+  }
 
   const doc = new PDFDocument({ margin: 32, size: "A4" });
   const stream = fs.createWriteStream(abs);
   doc.pipe(stream);
 
-  doc.fontSize(16).text("BILL OF SUPPLY", { align: "center" });
+  doc.fontSize(16).text(isGstInvoice ? "TAX INVOICE" : "BILL OF SUPPLY", { align: "center" });
   doc.moveDown(0.8);
 
   doc.fontSize(10).text("Bill from,");
@@ -100,50 +129,102 @@ async function ensurePdfForInvoice(invoiceId) {
   doc.text(`Invoice No: ${invoice.invoice_no || ""}`);
   doc.text(`Dated: ${invoice.invoice_date || ""}`);
   doc.text(`Mode/Terms of Payment: ${invoice.payment_mode || ""}`);
+  if (isGstInvoice) {
+    doc.text(`PO Number: ${invoice.po_number || ""}`);
+    doc.text(`Creator GSTIN: ${invoice.creator_gstin || ""}`);
+  }
   doc.text(`POC Name: ${invoice.poc_name || ""}`);
   doc.text(`Other References: ${invoice.other_references || ""}`);
   doc.moveDown(0.8);
 
   doc.fontSize(10).text("To,");
-  doc.text("3Folks Media");
-  doc.text("1801, 18th Floor, C Wing, Lotus Corporate Park, Off. Western Express Highway,");
-  doc.text("Goregaon East, Mumbai- 400063.");
-  doc.text("PAN: AACFZ6393B");
-  doc.text("State Name: Maharashtra, Code : 27");
+  doc.text(COMPANY.name);
+  COMPANY.addressLines.forEach((line) => doc.text(line));
+  doc.text(`PAN: ${COMPANY.pan}`);
+  doc.text(`GSTIN: ${COMPANY.gstin}`);
+  doc.text(`State Name: ${COMPANY.state}, Code : ${COMPANY.stateCode}`);
   doc.moveDown(1);
 
   doc.fontSize(9);
   const tableTop = doc.y;
-  const col = {
-    sl: 32,
-    desc: 62,
-    qty: 360,
-    amount: 470
-  };
+  const col = isGstInvoice
+    ? {
+        sl: 32,
+        desc: 62,
+        qty: 235,
+        rate: 285,
+        cgst: 340,
+        sgst: 405,
+        amount: 485
+      }
+    : {
+        sl: 32,
+        desc: 62,
+        qty: 360,
+        rate: 420,
+        amount: 485
+      };
 
   doc.text("Sl No.", col.sl, tableTop);
   doc.text("Description of Goods", col.desc, tableTop);
   doc.text("Quantity", col.qty, tableTop);
+  doc.text("Rate", col.rate, tableTop);
+  if (isGstInvoice) {
+    doc.text("CGST", col.cgst, tableTop);
+    doc.text("SGST", col.sgst, tableTop);
+  }
   doc.text("Amount", col.amount, tableTop);
 
   let y = tableTop + 18;
   items.forEach((it, idx) => {
+    const rowTax = isGstInvoice ? calcGstRow(it.amount) : null;
     doc.text(String(idx + 1), col.sl, y);
-    doc.text(it.description || "", col.desc, y, { width: 250 });
+    doc.text(it.description || "", col.desc, y, { width: isGstInvoice ? 160 : 250 });
     doc.text(String(it.quantity || 0), col.qty, y);
-    doc.text(Number(it.amount || 0).toFixed(2), col.amount, y);
+    doc.text(isGstInvoice ? "18%" : Number(it.rate || 0).toFixed(2), col.rate, y);
+    if (isGstInvoice) {
+      doc.text(`Rs ${rowTax.rowCgst.toFixed(2)}`, col.cgst, y);
+      doc.text(`Rs ${rowTax.rowSgst.toFixed(2)}`, col.sgst, y);
+      doc.text(`Rs ${rowTax.rowFinal.toFixed(2)}`, col.amount, y);
+    } else {
+      doc.text(Number(it.amount || 0).toFixed(2), col.amount, y);
+    }
     y += 42;
   });
 
   doc.moveTo(32, y).lineTo(560, y).stroke();
   y += 8;
-  doc.fontSize(10).text("Total", 420, y);
-  doc.text(`Rs ${Number(invoice.total_amount || 0).toFixed(2)}`, 470, y);
-  y += 20;
+  doc.fontSize(10);
+  if (isGstInvoice) {
+    doc.text("Taxable Amount", 395, y);
+    doc.text(`Rs ${taxableAmount.toFixed(2)}`, 470, y);
+    y += 16;
+    doc.text(`CGST @ ${cgstRate.toFixed(0)}%`, 395, y);
+    doc.text(`Rs ${cgstAmount.toFixed(2)}`, 470, y);
+    y += 16;
+    doc.text(`SGST @ ${sgstRate.toFixed(0)}%`, 395, y);
+    doc.text(`Rs ${sgstAmount.toFixed(2)}`, 470, y);
+    y += 16;
+    doc.text(`GST @ ${gstRate.toFixed(0)}%`, 395, y);
+    doc.text(`Rs ${gstAmount.toFixed(2)}`, 470, y);
+    y += 16;
+    doc.text("Grand Total", 395, y);
+    doc.text(`Rs ${finalAmount.toFixed(2)}`, 470, y);
+    y += 24;
+  } else {
+    doc.text("Total", 420, y);
+    doc.text(`Rs ${Number(invoice.total_amount || 0).toFixed(2)}`, 470, y);
+    y += 20;
+  }
 
   doc.text("Amount Chargeable (in words)", 32, y);
-  doc.text(`INR ${numberToWords(invoice.total_amount)} Only`, 32, y + 14);
+  doc.text(`INR ${numberToWords(isGstInvoice ? finalAmount : invoice.total_amount)} Only`, 32, y + 14);
   y += 40;
+
+  if (isGstInvoice) {
+    doc.text(`Invoice Type: GST Based`, 32, y);
+    y += 18;
+  }
 
   doc.text(`Campaign Name: ${invoice.campaign_name}`, 32, y);
   doc.text(`Campaign Code: ${invoice.campaign_code}`, 32, y + 14);

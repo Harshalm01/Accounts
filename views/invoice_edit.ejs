@@ -14,6 +14,7 @@
           <div class="eyebrow">Accounts edit mode</div>
           <h2>Edit Invoice #<%= invoice.id %></h2>
           <p class="subtitle">Creator amount lock: <%= Number(invoice.locked_amount || 0).toFixed(2) %></p>
+          <p class="subtitle">Invoice type: <%= invoice.invoice_type === 'gst' ? 'GST Based' : 'Non-GST Based' %></p>
         </div>
         <a href="/admin/invoices/<%= invoice.id %>"><button class="btn btn-light" type="button">Back</button></a>
       </div>
@@ -41,6 +42,12 @@
             <label>Branch<input type="text" name="branch" value="<%= invoice.branch || '' %>" /></label>
             <label>UPI ID<input type="text" name="upiId" value="<%= invoice.upi_id || '' %>" /></label>
           </div>
+
+          <% if (invoice.invoice_type === 'gst') { %>
+            <div class="alert alert-success" style="margin-top: 12px;">
+              GST is auto-calculated at 18% on the locked commercial amount. Editing rows will keep the same GST split.
+            </div>
+          <% } %>
 
           <h3 style="margin-top: 12px;">Rows</h3>
           <div id="rowsWrap"></div>
