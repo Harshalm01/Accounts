@@ -1284,6 +1284,38 @@ body.creator-page .totals-grid {
   gap: 12px;
 }
 
+body.creator-page .choice-grid {
+  gap: 12px;
+}
+
+body.creator-page .flow-choice {
+  width: 100%;
+  min-height: 56px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #111827;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: none;
+}
+
+body.creator-page .flow-choice:hover {
+  background: #FFFFFF;
+  border-color: rgba(15, 23, 42, 0.14);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+body.creator-page .flow-choice.flow-choice-active {
+  background: #111827;
+  color: #FFFFFF;
+  border-color: #111827;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.16);
+  transform: translateY(-1px);
+}
+
+body.creator-page .flow-choice.flow-choice-active:hover {
+  background: #111827;
+  color: #FFFFFF;
+}
+
 body.creator-page .btn {
   border-radius: 16px;
   height: 56px;
@@ -1403,6 +1435,125 @@ body.creator-page .summary-lock-grid {
   gap: 14px;
 }
 
+body.creator-page {
+  background: #F4F1EA;
+  color: #111827;
+}
+
+body.creator-page .portal-hero.card,
+body.creator-page .content-card,
+body.creator-page .notice-card,
+body.creator-page .card,
+body.creator-page .static-panel,
+body.creator-page .invoice-rows,
+body.creator-page .canvas-wrap,
+body.creator-page .meta-chip,
+body.creator-page .summary-item {
+  background: rgba(255, 255, 255, 0.88);
+  color: #111827;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.10);
+  backdrop-filter: blur(16px);
+}
+
+body.creator-page .portal-kicker,
+body.creator-page .section-title,
+body.creator-page .section-subtitle,
+body.creator-page .subtitle,
+body.creator-page .notice-copy p,
+body.creator-page .static-panel p,
+body.creator-page .meta-chip-label,
+body.creator-page .summary-item span,
+body.creator-page .field-label-inline,
+body.creator-page .brand-name span {
+  color: rgba(15, 23, 42, 0.66);
+}
+
+body.creator-page h1,
+body.creator-page h2,
+body.creator-page h3,
+body.creator-page .notice-copy h2,
+body.creator-page .brand-name strong,
+body.creator-page .meta-chip strong,
+body.creator-page .summary-item strong {
+  color: #111827;
+}
+
+body.creator-page .brand-mark {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+body.creator-page .field input,
+body.creator-page .field textarea,
+body.creator-page .field select,
+body.creator-page .field-readonly input {
+  background: rgba(255, 255, 255, 0.98);
+  color: #111827;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+}
+
+body.creator-page .field span {
+  color: #71717A;
+}
+
+body.creator-page .field input::placeholder,
+body.creator-page .field textarea::placeholder {
+  color: rgba(15, 23, 42, 0.36);
+}
+
+body.creator-page .field input:focus,
+body.creator-page .field textarea:focus,
+body.creator-page .field select:focus {
+  border-color: rgba(15, 23, 42, 0.22);
+  box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.06);
+}
+
+body.creator-page .btn-light {
+  background: #FFFFFF;
+  color: #111827;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+body.creator-page .btn-primary,
+body.creator-page .flow-choice-active {
+  background: #111827;
+  color: #FFFFFF;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+body.creator-page .btn-primary:hover,
+body.creator-page .flow-choice-active:hover,
+body.creator-page .btn-light:hover {
+  background: #F4F4F5;
+  color: #111827;
+}
+
+body.creator-page .notice-icon-info,
+body.creator-page .notice-icon-success,
+body.creator-page .notice-icon-error {
+  background: rgba(15, 23, 42, 0.06);
+  color: #111827;
+}
+
+body.creator-page .alert-error {
+  background: rgba(239, 68, 68, 0.08);
+  color: #991b1b;
+  border-color: rgba(239, 68, 68, 0.16);
+}
+
+body.creator-page .alert-success {
+  background: rgba(34, 197, 94, 0.08);
+  color: #166534;
+  border-color: rgba(34, 197, 94, 0.16);
+}
+
+body.creator-page .brand-row img {
+  width: 32px;
+  height: 32px;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -1469,4 +1620,257 @@ body.creator-page .summary-lock-grid {
   body.creator-page .notice-card {
     align-items: flex-start;
   }
+}
+
+body.light-theme,
+body.admin-page,
+body.creator-page,
+body.login-page {
+  background: #F4F1EA;
+  color: #171717;
+}
+
+body.light-theme::before,
+body.admin-page::before,
+body.creator-page::before,
+body.login-page::before {
+  background-image: linear-gradient(rgba(15, 23, 42, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(15, 23, 42, 0.03) 1px, transparent 1px);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 88%);
+}
+
+body.light-theme .shell,
+body.admin-page .shell,
+body.creator-page .shell {
+  max-width: 1260px;
+}
+
+body.light-theme .card,
+body.light-theme .hero-banner,
+body.light-theme .topbar,
+body.light-theme .alert,
+body.light-theme .glass-panel,
+body.admin-page .card,
+body.admin-page .hero-banner,
+body.admin-page .topbar,
+body.admin-page .alert,
+body.admin-page .glass-panel,
+body.creator-page .card,
+body.creator-page .hero-banner,
+body.creator-page .topbar,
+body.creator-page .alert,
+body.creator-page .glass-panel,
+body.login-page .login-card {
+  background: rgba(255, 255, 255, 0.88);
+  color: #171717;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.10);
+  backdrop-filter: blur(16px);
+}
+
+body.light-theme .hero-banner,
+body.admin-page .hero-banner,
+body.creator-page .hero-banner {
+  border-radius: 28px;
+}
+
+body.light-theme .subtitle,
+body.light-theme .eyebrow,
+body.light-theme .section-head p,
+body.light-theme table td,
+body.light-theme table th,
+body.light-theme .brand-name span,
+body.light-theme .pill,
+body.light-theme .card p,
+body.light-theme .topbar p,
+body.light-theme .topbar h2,
+body.admin-page .subtitle,
+body.admin-page .eyebrow,
+body.admin-page .section-head p,
+body.admin-page table td,
+body.admin-page table th,
+body.admin-page .brand-name span,
+body.admin-page .pill,
+body.admin-page .card p,
+body.admin-page .topbar p,
+body.admin-page .topbar h2,
+body.creator-page .subtitle,
+body.creator-page label,
+body.creator-page .brand-name span,
+body.creator-page .section-head p,
+body.creator-page .card p,
+body.login-page .subtitle,
+body.login-page .portal-kicker,
+body.login-page label,
+body.login-page .login-remember span {
+  color: rgba(15, 23, 42, 0.66);
+}
+
+body.light-theme h1,
+body.light-theme h2,
+body.light-theme h3,
+body.light-theme .brand-name strong,
+body.light-theme .topbar h2,
+body.admin-page h1,
+body.admin-page h2,
+body.admin-page h3,
+body.admin-page .brand-name strong,
+body.creator-page h1,
+body.creator-page h2,
+body.creator-page h3,
+body.creator-page .brand-name strong,
+body.login-page h1,
+body.login-page .brand-name strong {
+  color: #111827;
+}
+
+body.light-theme .brand-mark,
+body.admin-page .brand-mark,
+body.creator-page .brand-mark,
+body.login-page .login-brand-mark {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+body.light-theme .brand-mark img,
+body.admin-page .brand-mark img,
+body.creator-page .brand-mark img,
+body.login-page .login-brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+body.light-theme .btn-light,
+body.admin-page .btn-light,
+body.creator-page .btn-light,
+body.login-page .btn-light {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+body.light-theme .btn-dark,
+body.admin-page .btn-dark,
+body.creator-page .btn-dark {
+  background: #111827;
+  color: #ffffff;
+}
+
+body.light-theme .btn-primary,
+body.admin-page .btn-primary,
+body.creator-page .btn-primary,
+body.login-page .btn-login-cta {
+  background: #111827;
+  color: #ffffff;
+}
+
+body.light-theme .btn-danger,
+body.admin-page .btn-danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+body.light-theme input,
+body.light-theme textarea,
+body.light-theme select,
+body.admin-page input,
+body.admin-page textarea,
+body.admin-page select,
+body.creator-page input,
+body.creator-page textarea,
+body.creator-page select,
+body.login-page input[type="text"],
+body.login-page input[type="password"] {
+  background: rgba(255, 255, 255, 0.98);
+  color: #111827;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+}
+
+body.light-theme input::placeholder,
+body.light-theme textarea::placeholder,
+body.admin-page input::placeholder,
+body.admin-page textarea::placeholder,
+body.creator-page input::placeholder,
+body.creator-page textarea::placeholder,
+body.login-page input::placeholder {
+  color: rgba(15, 23, 42, 0.36);
+}
+
+body.light-theme input:focus,
+body.light-theme textarea:focus,
+body.light-theme select:focus,
+body.admin-page input:focus,
+body.admin-page textarea:focus,
+body.admin-page select:focus,
+body.creator-page input:focus,
+body.creator-page textarea:focus,
+body.creator-page select:focus,
+body.login-page input[type="text"]:focus,
+body.login-page input[type="password"]:focus {
+  border-color: rgba(15, 23, 42, 0.24);
+  box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.06);
+}
+
+body.light-theme .pill,
+body.admin-page .pill,
+body.creator-page .pill {
+  background: rgba(15, 23, 42, 0.06);
+}
+
+body.light-theme .alert-error,
+body.admin-page .alert-error,
+body.creator-page .alert-error {
+  background: rgba(220, 38, 38, 0.08);
+  color: #991b1b;
+  border-color: rgba(220, 38, 38, 0.16);
+}
+
+body.light-theme .alert-success,
+body.admin-page .alert-success,
+body.creator-page .alert-success {
+  background: rgba(34, 197, 94, 0.08);
+  color: #166534;
+  border-color: rgba(34, 197, 94, 0.16);
+}
+
+body.light-theme table,
+body.admin-page table,
+body.creator-page table {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+body.light-theme th,
+body.light-theme td,
+body.admin-page th,
+body.admin-page td,
+body.creator-page th,
+body.creator-page td {
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+
+body.login-page .login-card {
+  width: min(100%, 560px);
+  border-radius: 28px;
+  padding: 28px;
+  display: grid;
+  gap: 18px;
+}
+
+body.login-page .login-brand-mark {
+  width: 160px;
+  height: 108px;
+}
+
+body.login-page .login-header {
+  display: grid;
+  gap: 12px;
+}
+
+body.login-page .portal-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 12px;
+  font-weight: 700;
 }
