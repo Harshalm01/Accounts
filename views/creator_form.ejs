@@ -470,9 +470,6 @@
           updateGstSummary();
           if (poNumber) poNumber.required = true;
           if (gstin) gstin.required = true;
-          if (gstDetailsSection && typeof gstDetailsSection.scrollIntoView === "function") {
-            gstDetailsSection.scrollIntoView({ behavior: "smooth", block: "start" });
-          }
         }
 
         if (nonGstChoice) {
