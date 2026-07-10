@@ -2,7 +2,8 @@ const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 const bcrypt = require("bcryptjs");
 
-const dbPath = path.join(__dirname, "portal.db");
+const runtimeDir = process.env.VERCEL ? "/tmp" : __dirname;
+const dbPath = process.env.DATABASE_PATH || path.join(runtimeDir, "portal.db");
 const raw = new sqlite3.Database(dbPath);
 
 function run(sql, params = []) {

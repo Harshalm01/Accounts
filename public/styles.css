@@ -1479,6 +1479,16 @@ body.creator-page .summary-item strong {
   color: #111827;
 }
 
+body.creator-page .notice-grid div {
+  background: #000000;
+  border-color: #000000;
+}
+
+body.creator-page .notice-grid span,
+body.creator-page .notice-grid strong {
+  color: #FFFFFF;
+}
+
 body.creator-page .brand-mark {
   background: transparent;
   border: 0;

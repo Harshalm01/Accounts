@@ -11,10 +11,15 @@ const { ensurePdfForInvoice } = require("./services/pdf");
 
 const app = express();
 const START_PORT = Number(process.env.PORT || 3000);
+const runtimeDir = process.env.VERCEL ? "/tmp" : __dirname;
 
-const uploadDir = path.join(__dirname, "uploads");
+const uploadDir = path.join(runtimeDir, "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
+}
+const generatedDir = path.join(runtimeDir, "generated");
+if (!fs.existsSync(generatedDir)) {
+  fs.mkdirSync(generatedDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
@@ -74,7 +79,18 @@ app.use(
 );
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(uploadDir));
-app.use("/generated", express.static(path.join(__dirname, "generated")));
+app.use("/generated", express.static(generatedDir));
+
+const dbReady = db.init();
+app.use(async (_, res, next) => {
+  try {
+    await dbReady;
+    next();
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Database initialization failed.");
+  }
+});
 
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
@@ -828,4 +844,8 @@ async function startServer(port) {
   }
 }
 
-db.init().then(() => startServer(START_PORT));
+if (require.main === module) {
+  dbReady.then(() => startServer(START_PORT));
+}
+
+module.exports = app;

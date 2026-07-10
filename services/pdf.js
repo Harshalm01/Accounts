@@ -3,7 +3,8 @@ const fs = require("fs");
 const PDFDocument = require("pdfkit");
 const db = require("../db");
 
-const generatedDir = path.join(__dirname, "..", "generated");
+const runtimeDir = process.env.VERCEL ? "/tmp" : path.join(__dirname, "..");
+const generatedDir = path.join(runtimeDir, "generated");
 if (!fs.existsSync(generatedDir)) {
   fs.mkdirSync(generatedDir, { recursive: true });
 }
@@ -66,7 +67,7 @@ function numberToWords(amount) {
 
 function drawSignature(doc, invoice, x, y, w, h) {
   if (invoice.signature_type === "upload" && invoice.signature_value) {
-    const p = path.join(__dirname, "..", invoice.signature_value.replace(/^\//, ""));
+    const p = path.join(runtimeDir, invoice.signature_value.replace(/^\//, ""));
     if (fs.existsSync(p)) {
       doc.image(p, x, y, { fit: [w, h] });
       return;

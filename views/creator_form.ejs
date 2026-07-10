@@ -55,10 +55,6 @@
               <h2>Invoice Submitted Successfully</h2>
               <div class="notice-grid">
                 <div>
-                  <span>Reference Number</span>
-                  <strong data-reference-number>Loading...</strong>
-                </div>
-                <div>
                   <span>Review Timeline</span>
                   <strong>Verification • Approval • Release</strong>
                 </div>
@@ -419,12 +415,6 @@
         const matchStatus = document.getElementById("matchStatus");
         const formEl = document.getElementById("invoiceForm");
         const submitBtn = document.getElementById("submitBtn");
-        const referenceNumber = document.querySelector("[data-reference-number]");
-
-        const storedReference = sessionStorage.getItem("creatorInvoiceReference");
-        if (referenceNumber) {
-          referenceNumber.textContent = storedReference || "Invoice No. pending";
-        }
 
         function setChoiceState(activeChoice) {
           if (nonGstChoice) {
@@ -592,10 +582,6 @@
         });
 
         formEl.addEventListener("submit", (e) => {
-          const invoiceNoInput = formEl.querySelector("input[name='invoiceNo']");
-          if (invoiceNoInput && invoiceNoInput.value.trim()) {
-            sessionStorage.setItem("creatorInvoiceReference", invoiceNoInput.value.trim());
-          }
           if (submitBtn) {
             submitBtn.dataset.loading = "true";
             submitBtn.disabled = true;
