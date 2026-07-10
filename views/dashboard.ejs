@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/public/styles.css" />
+  </head>
+  <body class="admin-page">
+    <div class="shell">
+      <% function gstBreakup(inv) { %>
+      <%   const isGst = inv.invoice_type === 'gst'; %>
+      <%   const taxable = Number(inv.taxable_amount ?? inv.locked_amount ?? inv.total_amount ?? 0); %>
+      <%   const cgst = Number(inv.cgst_amount ?? (taxable * 0.09).toFixed(2)); %>
+      <%   const sgst = Number(inv.sgst_amount ?? (taxable * 0.09).toFixed(2)); %>
+      <%   const gst = Number(inv.gst_amount ?? (cgst + sgst).toFixed(2)); %>
+      <%   return Number(inv.final_amount ?? (isGst ? (taxable + gst) : inv.total_amount ?? taxable)); %>
+      <% } %>
+      <div class="topbar hero-banner">
+        <div>
+          <%- include('partials/brand') %>
+          <div class="eyebrow">Portal overview</div>
+          <h2>Dashboard</h2>
+          <div class="pill"><%= user.role %> • <%= user.username %></div>
+        </div>
+        <form method="post" action="/admin/logout">
+          <button class="btn btn-light" type="submit">Logout</button>
+        </form>
+      </div>
+
+      <div class="nav" style="margin-bottom: 12px;">
+        <a href="/admin/dashboard"><button class="btn btn-light" type="button">Invoices</button></a>
+        <% if (user.role === 'TEAM' || user.role === 'SUPER_ADMIN') { %>
+          <a href="/admin/campaigns"><button class="btn btn-light" type="button">Campaigns</button></a>
+        <% } %>
+        <% if (user.role === 'SUPER_ADMIN') { %>
+          <a href="/admin/users"><button class="btn btn-light" type="button">Users</button></a>
+        <% } %>
+      </div>
+
+      <div class="card glass-panel">
+        <div class="section-head">
+          <div>
+            <h3>Invoices</h3>
+            <p class="subtitle">Track submitted invoices, edits, and approval status.</p>
+          </div>
+          <div class="pill"><%= invoices.length %> items</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Campaign</th>
+              <th>Creator</th>
+              <th>Invoice No</th>
+              <th>Type</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!invoices.length) { %>
+              <tr><td colspan="8">No invoices yet.</td></tr>
+            <% } %>
+            <% invoices.forEach((inv) => { %>
+              <tr>
+                <td><%= inv.id %></td>
+                <td><%= inv.campaign_name %> (<%= inv.campaign_code %>)</td>
+                <td><%= inv.creator_name %> / <%= inv.creator_mobile %></td>
+                <td><%= inv.invoice_no %></td>
+                <td><%= inv.invoice_type === 'gst' ? 'GST' : 'Non-GST' %></td>
+                <td><%= gstBreakup(inv).toFixed(2) %></td>
+                <td><%= inv.status %></td>
+                <td><a href="/admin/invoices/<%= inv.id %>">Open</a></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>

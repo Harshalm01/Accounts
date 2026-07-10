@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Login</title>
+    <link rel="stylesheet" href="/public/styles.css" />
+  </head>
+  <body class="login-page">
+    <div class="login-shell">
+      <main class="login-card card">
+        <header class="login-header">
+          <div class="login-brand-art login-bounce">
+            <div class="login-brand-mark" aria-hidden="true">
+              <img src="/public/logo.png" alt="3Folks Media logo" />
+            </div>
+          </div>
+          <div class="portal-kicker">3Folks Media</div>
+          <h1>Team Sign In</h1>
+          <p class="subtitle">Enter your credentials to access the admin workspace.</p>
+        </header>
+
+        <% if (error) { %>
+          <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <form method="post" action="/admin/login" class="login-form login-form-premium">
+          <label class="field field-floating">
+            <input type="text" name="username" placeholder=" " required />
+            <span>Email, Phone, or Name</span>
+          </label>
+          <label class="field field-floating">
+            <input type="password" name="password" placeholder=" " required />
+            <span>Password</span>
+          </label>
+          <label class="login-remember">
+            <input type="checkbox" />
+            <span>Remember me</span>
+          </label>
+          <button class="btn btn-login-cta" type="submit">Sign In</button>
+        </form>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edit Invoice</title>
+    <link rel="stylesheet" href="/public/styles.css" />
+  </head>
+  <body class="admin-page">
+    <div class="shell">
+      <div class="topbar hero-banner">
+        <div>
+          <%- include('partials/brand') %>
+          <div class="eyebrow">Accounts edit mode</div>
+          <h2>Edit Invoice #<%= invoice.id %></h2>
+          <p class="subtitle">Creator amount lock: <%= Number(invoice.locked_amount || 0).toFixed(2) %></p>
+          <p class="subtitle">Invoice type: <%= invoice.invoice_type === 'gst' ? 'GST Based' : 'Non-GST Based' %></p>
+        </div>
+        <a href="/admin/invoices/<%= invoice.id %>"><button class="btn btn-light" type="button">Back</button></a>
+      </div>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+
+      <div class="card glass-panel">
+        <form method="post" action="/admin/invoices/<%= invoice.id %>/edit" id="editForm">
+          <div class="grid-2">
+            <label>Full Name<input type="text" name="fullName" value="<%= invoice.full_name || '' %>" /></label>
+            <label>Address<textarea name="address"><%= invoice.address || '' %></textarea></label>
+            <label>PAN<input type="text" name="pan" value="<%= invoice.pan || '' %>" /></label>
+            <label>Email<input type="email" name="email" value="<%= invoice.email || '' %>" /></label>
+            <label>Invoice No<input type="text" name="invoiceNo" value="<%= invoice.invoice_no || '' %>" /></label>
+            <label>Invoice Date<input type="date" name="invoiceDate" value="<%= invoice.invoice_date || '' %>" /></label>
+            <label>Payment Mode<input type="text" name="paymentMode" value="<%= invoice.payment_mode || '' %>" /></label>
+            <label>POC Name<input type="text" name="pocName" value="<%= invoice.poc_name || '' %>" /></label>
+            <label>Other References<input type="text" name="otherReferences" value="<%= invoice.other_references || '' %>" /></label>
+            <label>Account Name<input type="text" name="accountName" value="<%= invoice.account_name || '' %>" /></label>
+            <label>Bank Name<input type="text" name="bankName" value="<%= invoice.bank_name || '' %>" /></label>
+            <label>Account No<input type="text" name="accountNo" value="<%= invoice.account_no || '' %>" /></label>
+            <label>IFSC Code<input type="text" name="ifscCode" value="<%= invoice.ifsc_code || '' %>" /></label>
+            <label>Branch<input type="text" name="branch" value="<%= invoice.branch || '' %>" /></label>
+            <label>UPI ID<input type="text" name="upiId" value="<%= invoice.upi_id || '' %>" /></label>
+          </div>
+
+          <% if (invoice.invoice_type === 'gst') { %>
+            <div class="alert alert-success" style="margin-top: 12px;">
+              GST is auto-calculated at 18% on the locked commercial amount. Editing rows will keep the same GST split.
+            </div>
+          <% } %>
+
+          <h3 style="margin-top: 12px;">Rows</h3>
+          <div id="rowsWrap"></div>
+          <button type="button" class="btn btn-light" id="addRowBtn">+ Add Row</button>
+
+          <div class="grid-2" style="margin-top: 12px;">
+            <label>
+              Auto Total
+              <input type="number" id="computedTotal" readonly />
+            </label>
+            <label>
+              Match Status
+              <input type="text" id="matchStatus" readonly />
+            </label>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Save & Regenerate PDF</button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const existingItems = <%- JSON.stringify(items) %>;
+      const lockAmount = Number(<%= Number(invoice.locked_amount || 0) %>);
+      const rowsWrap = document.getElementById("rowsWrap");
+      const addRowBtn = document.getElementById("addRowBtn");
+      const computedTotal = document.getElementById("computedTotal");
+      const matchStatus = document.getElementById("matchStatus");
+
+      function makeRow(row = {}) {
+        const div = document.createElement("div");
+        div.className = "grid-3";
+        div.style.marginBottom = "8px";
+        div.innerHTML = `
+          <label>Description<input type="text" name="itemDescriptions" value="${(row.description || "").replace(/"/g, "&quot;")}" required /></label>
+          <label>Quantity<input type="number" name="itemQuantities" step="0.01" value="${Number(row.quantity || 1)}" required /></label>
+          <label>Amount<input type="number" name="itemAmounts" step="0.01" value="${Number(row.amount || 0)}" required /></label>
+        `;
+        div.addEventListener("input", recalc);
+        return div;
+      }
+
+      function recalc() {
+        const qty = Array.from(document.querySelectorAll("input[name='itemQuantities']"));
+        const amount = Array.from(document.querySelectorAll("input[name='itemAmounts']"));
+        let total = 0;
+        for (let i = 0; i < qty.length; i += 1) {
+          total += Number(amount[i].value || 0);
+        }
+        computedTotal.value = total.toFixed(2);
+        matchStatus.value = Number(total.toFixed(2)) === Number(lockAmount.toFixed(2)) ? "Matched" : "Not Matched";
+      }
+
+      if (existingItems.length) {
+        existingItems.forEach((r) => rowsWrap.appendChild(makeRow(r)));
+      } else {
+        rowsWrap.appendChild(makeRow());
+      }
+      recalc();
+
+      addRowBtn.addEventListener("click", () => {
+        rowsWrap.appendChild(makeRow());
+      });
+
+      document.getElementById("editForm").addEventListener("submit", (e) => {
+        const total = Number(computedTotal.value || 0);
+        if (Number(total.toFixed(2)) !== Number(lockAmount.toFixed(2))) {
+          e.preventDefault();
+          alert("Edited row total must match locked campaign amount.");
+        }
+      });
+    </script>
+  </body>
+</html>

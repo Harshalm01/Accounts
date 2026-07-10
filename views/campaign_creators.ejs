@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Campaign Creators</title>
+    <link rel="stylesheet" href="/public/styles.css" />
+  </head>
+  <body class="admin-page">
+    <div class="shell">
+      <div class="topbar hero-banner">
+        <div>
+          <%- include('partials/brand') %>
+          <div class="eyebrow">Campaign Influencers</div>
+          <h2><%= campaign.campaign_name %></h2>
+          <p class="subtitle"><%= campaign.campaign_code %> • Add creators one by one or bulk upload CSV/XLSX</p>
+        </div>
+        <div class="row">
+          <a href="/admin/campaigns"><button class="btn btn-light" type="button">Back</button></a>
+        </div>
+      </div>
+
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+      <% if (success) { %>
+        <div class="alert alert-success"><%= success %></div>
+      <% } %>
+
+      <div class="card glass-panel" style="margin-bottom: 12px;">
+        <div class="section-head">
+          <div>
+            <h3>Add Creator Mapping</h3>
+            <p class="subtitle">Add a single creator manually.</p>
+          </div>
+          <div class="pill">Manual</div>
+        </div>
+        <form method="post" action="/admin/campaigns/<%= campaign.id %>/creators" class="grid-3">
+          <label>Creator Name *<input type="text" name="creatorName" required /></label>
+          <label>Mobile *<input type="text" name="mobile" required /></label>
+          <label>Predefined Amount *<input type="number" step="0.01" name="amount" required /></label>
+          <div><button class="btn btn-primary" type="submit">Add Creator</button></div>
+        </form>
+      </div>
+
+      <div class="card glass-panel" style="margin-bottom: 12px;">
+        <div class="section-head">
+          <div>
+            <h3>Bulk Upload Creators</h3>
+            <p class="subtitle">Upload a CSV or Excel file with columns: Creator Name, Contact Number, Amount.</p>
+          </div>
+          <div class="pill pill-accent">Bulk Upload</div>
+        </div>
+        <form method="post" action="/admin/campaigns/<%= campaign.id %>/creators/bulk" enctype="multipart/form-data" class="bulk-upload-form">
+          <label>
+            Select CSV / Excel File
+            <input type="file" name="creatorFile" accept=".csv,.xlsx,.xls" required />
+          </label>
+          <div class="row">
+            <button class="btn btn-dark" type="submit">Upload Creators</button>
+            <a href="/public/sample-creators.csv" download><button class="btn btn-light" type="button">Download Sample CSV</button></a>
+          </div>
+        </form>
+      </div>
+
+      <div class="card glass-panel">
+        <div class="section-head">
+          <div>
+            <h3>Creators for this campaign</h3>
+            <p class="subtitle">Only creators linked to <%= campaign.campaign_name %> are shown here.</p>
+          </div>
+          <div class="pill"><%= creators.length %> creators</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Creator Name</th>
+              <th>Mobile</th>
+              <th>Predefined Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!creators.length) { %>
+              <tr><td colspan="4">No creators mapped yet.</td></tr>
+            <% } %>
+            <% creators.forEach((cr) => { %>
+              <tr>
+                <td><%= cr.id %></td>
+                <td><%= cr.creator_name %></td>
+                <td><%= cr.mobile %></td>
+                <td><%= Number(cr.amount || 0).toFixed(2) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
