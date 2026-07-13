@@ -33,7 +33,7 @@
 
         <div class="folder-grid folder-grid-square">
           <% folders.forEach((folder) => { %>
-            <a class="folder-card folder-card-square" href="/admin/campaigns/<%= folder.id %>/creators">
+            <a class="folder-card folder-card-square" href="<%= folder.latestInvoiceId ? `/admin/invoices/${folder.latestInvoiceId}` : `/admin/campaigns/${folder.id}/creators` %>">
               <div class="folder-card-tile">
                 <div class="folder-card-tile-top">
                   <span class="folder-card-label">Campaign</span>
@@ -43,7 +43,7 @@
                 <p class="folder-card-subtitle"><%= folder.campaignCode %> • <%= folder.teamName %></p>
                 <div class="folder-card-footer">
                   <span class="pill"><%= folder.invoiceCount %> invoices</span>
-                  <span class="folder-card-link">Open</span>
+                  <span class="folder-card-link"><%= folder.latestInvoiceId ? 'Open Invoice' : 'Open Creators' %></span>
                 </div>
               </div>
             </a>

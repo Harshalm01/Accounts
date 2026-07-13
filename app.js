@@ -238,6 +238,10 @@ async function loadCampaignFolderCards() {
       teamName: campaign.team_name,
       creatorCount: Number(campaign.creator_count || 0),
       invoiceCount: Number(campaign.invoice_count || 0),
+      latestInvoiceId: creators
+        .map((creator) => Number(creator.latest_invoice_id || 0))
+        .filter((invoiceId) => invoiceId > 0)
+        .sort((a, b) => b - a)[0] || null,
       folderName: campaignFolderName(campaign),
       generatedPath: `/generated/campaigns/${campaignFolderName(campaign)}`,
       uploadPath: `/uploads/campaigns/${campaignFolderName(campaign)}`,
