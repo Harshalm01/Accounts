@@ -962,7 +962,8 @@ app.post("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, r
       return res.render("campaigns", {
         campaigns,
         error: "Campaign Name and Code are required.",
-        success: null
+        success: null,
+        search: ""
       });
     }
 
@@ -971,7 +972,8 @@ app.post("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, r
       return res.render("campaigns", {
         campaigns,
         error: "Campaign Code already exists. Use a different code.",
-        success: null
+        success: null,
+        search: ""
       });
     }
 
@@ -989,7 +991,8 @@ app.post("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, r
     return res.render("campaigns", {
       campaigns,
       error: error.code === "SQLITE_CONSTRAINT" ? "Campaign Code already exists. Use a different code." : "Unable to create campaign.",
-      success: null
+      success: null,
+      search: ""
     });
   }
 });
