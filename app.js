@@ -747,11 +747,27 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       );
     }
 
-    await ensurePdfForInvoice(invoiceId);
+    const pdfPath = await ensurePdfForInvoice(invoiceId);
     await notifyInvoiceSubmission(invoiceId, campaign.id, mapping.creator_name, campaign.campaign_name, isRegenerated);
 
-    res.redirect(`/creator/submitted?invoiceId=${invoiceId}`);
+    return res.render("creator_success", {
+      invoice: {
+        id: invoiceId,
+        campaign_name: campaign.campaign_name,
+        campaign_code: campaign.campaign_code,
+        creator_name: mapping.creator_name,
+        creator_mobile: mobile.trim(),
+        invoice_no: invoiceNo.trim(),
+        invoice_date: invoiceDate,
+        status: isRegenerated ? "REGENERATED" : "SUBMITTED",
+        final_amount: finalAmount,
+        total_amount: savedTotalAmount,
+        pdf_path: pdfPath
+      },
+      items
+    });
   } catch (error) {
+    console.error("Creator submit failed:", error);
     res.render("creator_form", {
       error: "Something went wrong while submitting invoice.",
       success: null,
