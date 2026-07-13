@@ -1020,14 +1020,20 @@ app.post("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, r
   }
 });
 
-app.get("/admin/campaigns/:id/creators", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, res) => {
+app.get("/admin/campaigns/:id/creators", requireRole(["ACCOUNTS", "TEAM", "SUPER_ADMIN"]), async (req, res) => {
   const campaign = await db.get("SELECT * FROM campaigns WHERE id = ?", [req.params.id]);
   if (!campaign) {
     return res.redirect("/admin/campaigns");
   }
 
   const creators = await db.all("SELECT * FROM campaign_creators WHERE campaign_id = ? ORDER BY id DESC", [campaign.id]);
-  res.render("campaign_creators", { campaign, creators, error: null, success: null });
+  res.render("campaign_creators", {
+    campaign,
+    creators,
+    error: null,
+    success: null,
+    canEdit: req.session.user.role !== "ACCOUNTS"
+  });
 });
 
 app.post("/admin/campaigns/:id/creators", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, res) => {
