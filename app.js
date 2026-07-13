@@ -248,6 +248,76 @@ async function loadCampaignFolderCards() {
   return folders;
 }
 
+async function loadCampaignCards(user, search = "") {
+  const normalizedSearch = String(search || "").trim();
+  const like = `%${normalizedSearch}%`;
+  let campaigns;
+
+  if (user.role === "TEAM") {
+    if (normalizedSearch) {
+      campaigns = await db.all(
+        `SELECT c.*, COUNT(cc.id) AS creator_count
+         FROM campaigns c
+         LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
+         WHERE c.team_name = ? AND (c.campaign_name LIKE ? OR c.campaign_code LIKE ?)
+         GROUP BY c.id
+         ORDER BY c.id DESC`,
+        [user.teamName, like, like]
+      );
+    } else {
+      campaigns = await db.all(
+        `SELECT c.*, COUNT(cc.id) AS creator_count
+         FROM campaigns c
+         LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
+         WHERE c.team_name = ?
+         GROUP BY c.id
+         ORDER BY c.id DESC`,
+        [user.teamName]
+      );
+    }
+  } else {
+    if (normalizedSearch) {
+      campaigns = await db.all(
+        `SELECT c.*, COUNT(cc.id) AS creator_count
+         FROM campaigns c
+         LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
+         WHERE c.campaign_name LIKE ? OR c.campaign_code LIKE ? OR c.team_name LIKE ?
+         GROUP BY c.id
+         ORDER BY c.id DESC`,
+        [like, like, like]
+      );
+    } else {
+      campaigns = await db.all(
+        `SELECT c.*, COUNT(cc.id) AS creator_count
+         FROM campaigns c
+         LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
+         GROUP BY c.id
+         ORDER BY c.id DESC`
+      );
+    }
+  }
+
+  const campaignCards = [];
+  for (const campaign of campaigns) {
+    const creators = await db.all(
+      `SELECT cc.id, cc.creator_name, cc.mobile, cc.amount, COUNT(i.id) AS invoice_count
+       FROM campaign_creators cc
+       LEFT JOIN invoices i ON i.campaign_id = cc.campaign_id AND i.creator_mobile = cc.mobile
+       WHERE cc.campaign_id = ?
+       GROUP BY cc.id
+       ORDER BY cc.id DESC`,
+      [campaign.id]
+    );
+
+    campaignCards.push({
+      ...campaign,
+      creators
+    });
+  }
+
+  return campaignCards;
+}
+
 function moveUploadToCampaignFolder(file, campaign) {
   if (!file) return null;
   const folder = ensureCampaignFolders(campaign);
@@ -900,71 +970,7 @@ app.post("/admin/notifications/read", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), 
 app.get("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, res) => {
   const user = req.session.user;
   const search = (req.query.search || "").trim();
-  const like = `%${search}%`;
-  let campaigns;
-
-  if (user.role === "TEAM") {
-    if (search) {
-      campaigns = await db.all(
-        `SELECT c.*, COUNT(cc.id) AS creator_count
-         FROM campaigns c
-         LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-         WHERE c.team_name = ? AND (c.campaign_name LIKE ? OR c.campaign_code LIKE ?)
-         GROUP BY c.id
-         ORDER BY c.id DESC`,
-        [user.teamName, like, like]
-      );
-    } else {
-      campaigns = await db.all(
-        `SELECT c.*, COUNT(cc.id) AS creator_count
-         FROM campaigns c
-         LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-         WHERE c.team_name = ?
-         GROUP BY c.id
-         ORDER BY c.id DESC`,
-        [user.teamName]
-      );
-    }
-  } else {
-    if (search) {
-      campaigns = await db.all(
-        `SELECT c.*, COUNT(cc.id) AS creator_count
-         FROM campaigns c
-         LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-         WHERE c.campaign_name LIKE ? OR c.campaign_code LIKE ? OR c.team_name LIKE ?
-         GROUP BY c.id
-         ORDER BY c.id DESC`,
-        [like, like, like]
-      );
-    } else {
-      campaigns = await db.all(
-        `SELECT c.*, COUNT(cc.id) AS creator_count
-         FROM campaigns c
-         LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-         GROUP BY c.id
-         ORDER BY c.id DESC`
-      );
-    }
-  }
-
-  const campaignCards = [];
-  for (const campaign of campaigns) {
-    const creators = await db.all(
-      `SELECT cc.id, cc.creator_name, cc.mobile, cc.amount, COUNT(i.id) AS invoice_count
-       FROM campaign_creators cc
-       LEFT JOIN invoices i ON i.campaign_id = cc.campaign_id AND i.creator_mobile = cc.mobile
-       WHERE cc.campaign_id = ?
-       GROUP BY cc.id
-       ORDER BY cc.id DESC`,
-      [campaign.id]
-    );
-
-    campaignCards.push({
-      ...campaign,
-      creators
-    });
-  }
-
+  const campaignCards = await loadCampaignCards(user, search);
   res.render("campaigns", { campaigns: campaignCards, error: null, success: null, search });
 });
 
@@ -972,7 +978,7 @@ app.post("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, r
   try {
     const user = req.session.user;
     const { campaignName, campaignCode, teamName } = req.body;
-    const campaigns = await db.all("SELECT * FROM campaigns ORDER BY id DESC");
+    const campaigns = await loadCampaignCards(user, req.body.search || "");
 
     if (!campaignName || !campaignCode) {
       return res.render("campaigns", {
@@ -1003,7 +1009,7 @@ app.post("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, r
 
     res.redirect("/admin/campaigns");
   } catch (error) {
-    const campaigns = await db.all("SELECT * FROM campaigns ORDER BY id DESC");
+    const campaigns = await loadCampaignCards(req.session.user, req.body.search || "");
     return res.render("campaigns", {
       campaigns,
       error: error.code === "SQLITE_CONSTRAINT" ? "Campaign Code already exists. Use a different code." : "Unable to create campaign.",

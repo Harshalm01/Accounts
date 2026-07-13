@@ -88,10 +88,11 @@
                 </div>
 
                 <div class="creator-stack">
-                  <% if (!c.creators.length) { %>
+                  <% const creators = c.creators || []; %>
+                  <% if (!creators.length) { %>
                     <div class="empty-state empty-state-compact">No creators mapped yet.</div>
                   <% } %>
-                  <% c.creators.forEach((creator) => { %>
+                  <% creators.forEach((creator) => { %>
                     <div class="creator-card-row">
                       <div>
                         <strong><%= creator.creator_name %></strong>
