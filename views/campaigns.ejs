@@ -24,19 +24,21 @@
         <div class="alert alert-success"><%= success %></div>
       <% } %>
 
-      <div class="card" style="margin-bottom: 12px;">
-        <h3>Add Campaign</h3>
-        <form method="post" action="/admin/campaigns" class="grid-3">
-          <label>Campaign Name *<input type="text" name="campaignName" required /></label>
-          <label>Campaign Code *<input type="text" name="campaignCode" required /></label>
-          <% if (user.role === 'SUPER_ADMIN') { %>
-            <label>Team Name<input type="text" name="teamName" placeholder="TEAM_1" /></label>
-          <% } %>
-          <div>
-            <button class="btn btn-primary" type="submit">Create Campaign</button>
-          </div>
-        </form>
-      </div>
+      <% if (canEdit) { %>
+        <div class="card" style="margin-bottom: 12px;">
+          <h3>Add Campaign</h3>
+          <form method="post" action="/admin/campaigns" class="grid-3">
+            <label>Campaign Name *<input type="text" name="campaignName" required /></label>
+            <label>Campaign Code *<input type="text" name="campaignCode" required /></label>
+            <% if (user.role === 'SUPER_ADMIN') { %>
+              <label>Team Name<input type="text" name="teamName" placeholder="TEAM_1" /></label>
+            <% } %>
+            <div>
+              <button class="btn btn-primary" type="submit">Create Campaign</button>
+            </div>
+          </form>
+        </div>
+      <% } %>
 
       <div class="card" style="margin-bottom: 12px;">
         <h3>Filter Campaigns</h3>

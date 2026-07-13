@@ -968,11 +968,17 @@ app.post("/admin/notifications/read", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), 
   res.redirect(req.get("referer") || "/admin/dashboard");
 });
 
-app.get("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, res) => {
+app.get("/admin/campaigns", requireRole(["ACCOUNTS", "TEAM", "SUPER_ADMIN"]), async (req, res) => {
   const user = req.session.user;
   const search = (req.query.search || "").trim();
   const campaignCards = await loadCampaignCards(user, search);
-  res.render("campaigns", { campaigns: campaignCards, error: null, success: null, search });
+  res.render("campaigns", {
+    campaigns: campaignCards,
+    error: null,
+    success: null,
+    search,
+    canEdit: user.role !== "ACCOUNTS"
+  });
 });
 
 app.post("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, res) => {
