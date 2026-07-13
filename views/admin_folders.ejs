@@ -31,48 +31,22 @@
           <div class="empty-state">No campaign folders found yet.</div>
         <% } %>
 
-        <div class="folder-grid">
+        <div class="folder-grid folder-grid-square">
           <% folders.forEach((folder) => { %>
-            <details class="folder-card">
-              <summary class="folder-summary">
-                <h3><%= folder.campaignName %></h3>
-              </summary>
-
-              <div class="folder-card-body">
-                <div class="folder-card-head">
-                  <div>
-                    <p class="subtitle"><%= folder.campaignCode %> • <%= folder.teamName %></p>
-                    <div class="folder-metrics">
-                      <span class="pill"><%= folder.creatorCount %> creators</span>
-                      <span class="pill"><%= folder.invoiceCount %> invoices</span>
-                    </div>
-                  </div>
+            <a class="folder-card folder-card-square" href="/admin/campaigns/<%= folder.id %>/creators">
+              <div class="folder-card-tile">
+                <div class="folder-card-tile-top">
+                  <span class="folder-card-label">Campaign</span>
+                  <span class="folder-card-count"><%= folder.creatorCount %></span>
                 </div>
-
-                <div class="creator-stack">
-                  <% if (!folder.creators.length) { %>
-                    <div class="empty-state empty-state-compact">No creators mapped yet.</div>
-                  <% } %>
-                  <% folder.creators.forEach((creator) => { %>
-                    <div class="creator-card-row">
-                      <div>
-                        <strong><%= creator.creator_name %></strong>
-                        <div class="subtitle"><%= creator.mobile %></div>
-                      </div>
-                      <div class="creator-row-meta">
-                        <span>₹<%= Number(creator.amount || 0).toFixed(2) %></span>
-                        <span class="pill"><%= creator.invoice_count %> invoices</span>
-                        <% if (creator.latest_invoice_id) { %>
-                          <a class="creator-invoice-action" href="<%= creator.latest_pdf_path || `/admin/invoices/${creator.latest_invoice_id}` %>" target="<%= creator.latest_pdf_path ? '_blank' : '_self' %>">View / Download Invoice</a>
-                        <% } else { %>
-                          <span class="creator-invoice-action creator-invoice-action-disabled">No Invoice</span>
-                        <% } %>
-                      </div>
-                    </div>
-                  <% }) %>
+                <h3 class="folder-card-title"><%= folder.campaignName %></h3>
+                <p class="folder-card-subtitle"><%= folder.campaignCode %> • <%= folder.teamName %></p>
+                <div class="folder-card-footer">
+                  <span class="pill"><%= folder.invoiceCount %> invoices</span>
+                  <span class="folder-card-link">Open</span>
                 </div>
               </div>
-            </details>
+            </a>
           <% }) %>
         </div>
       </div>

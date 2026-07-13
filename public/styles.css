@@ -784,6 +784,10 @@ canvas {
   gap: 16px;
 }
 
+.folder-grid-square {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 .folder-card,
 .notification-card {
   border: 1px solid rgba(15, 23, 42, 0.08);
@@ -796,6 +800,78 @@ canvas {
 .folder-card {
   padding: 0;
   overflow: hidden;
+}
+
+.folder-card-square {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  aspect-ratio: 1 / 1;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.folder-card-square:hover {
+  transform: translateY(-3px);
+  border-color: rgba(159, 123, 58, 0.28);
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.12);
+}
+
+.folder-card-tile {
+  height: 100%;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.folder-card-tile-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.folder-card-label {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.folder-card-count {
+  min-width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(159, 123, 58, 0.12);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.folder-card-title {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.folder-card-subtitle {
+  margin: 0;
+  color: var(--muted);
+}
+
+.folder-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.folder-card-link {
+  font-weight: 700;
+  color: var(--accent);
 }
 
 .folder-summary {
