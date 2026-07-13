@@ -385,10 +385,11 @@ function itemsFromBody(body) {
     .map((desc, idx) => {
       const selected = String(desc || "").trim();
       const custom = String(customs[idx] || "").trim();
+      const quantity = Number(quantities[idx] || 0);
       return {
         description: selected === "Custom" ? custom : selected,
-        quantity: Number(quantities[idx] || 0),
-        amount: Number(amounts[idx] || 0)
+        quantity,
+        amount: Number.isFinite(Number(amounts[idx])) ? Number(amounts[idx]) : quantity
       };
     })
     .filter((x) => x.description);

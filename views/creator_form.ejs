@@ -310,21 +310,15 @@
                   <div class="portal-kicker">Line items</div>
                   <h2 class="section-title">Invoice rows</h2>
                 </div>
-                <p class="section-subtitle">Add only the rows that sum exactly to the locked amount.</p>
+                <p class="section-subtitle">Add the rows and quantities. Amounts are calculated automatically from the locked creator amount.</p>
               </div>
               <div class="invoice-rows" id="rowsWrap"></div>
               <div class="form-actions form-actions-between">
                 <button type="button" class="btn btn-light" id="addRowBtn">+ Add Row</button>
-                <div class="totals-grid">
-                  <label class="field field-floating field-readonly compact-field">
-                    <input type="number" id="computedTotal" readonly placeholder=" " />
-                    <span>Auto Total</span>
-                  </label>
-                  <label class="field field-floating field-readonly compact-field">
-                    <input type="text" id="matchStatus" readonly placeholder=" " />
-                    <span>Match Status</span>
-                  </label>
-                </div>
+                <label class="field field-floating field-readonly compact-field">
+                  <input type="number" id="computedTotal" readonly placeholder=" " />
+                  <span>Auto Total</span>
+                </label>
               </div>
             </section>
 
@@ -424,7 +418,6 @@
         const addRowBtn = document.getElementById("addRowBtn");
         const lockedAmount = Number(document.getElementById("lockedAmount").value || 0);
         const computedTotal = document.getElementById("computedTotal");
-        const matchStatus = document.getElementById("matchStatus");
         const formEl = document.getElementById("invoiceForm");
         const submitBtn = document.getElementById("submitBtn");
         const initialItems = <%- JSON.stringify(form.existingItems || []) %>;
@@ -531,6 +524,7 @@
           const isCustom = Boolean(description) && !deliverableOptions.includes(description);
           const selectedValue = isCustom ? "Custom" : (description || deliverableOptions[0] || "");
           const customValue = isCustom ? description : "";
+          const rowAmount = Number.isFinite(Number(item.amount)) ? Number(item.amount) : 0;
           const row = document.createElement("div");
           row.className = "grid-3 line-item-row";
           row.innerHTML = `
@@ -545,9 +539,9 @@
               <input type="number" name="itemQuantities" step="0.01" min="0" value="${Number(item.quantity || 1)}" required placeholder=" " />
               <span>Quantity *</span>
             </label>
-            <label class="field field-floating">
-              <input type="number" name="itemAmounts" step="0.01" min="0" value="${Number(item.amount || 0)}" required placeholder=" " />
-              <span>Amount *</span>
+            <label class="field field-floating field-readonly">
+              <input type="number" name="itemAmounts" step="0.01" min="0" value="${rowAmount.toFixed(2)}" readonly required placeholder=" " />
+              <span>Amount</span>
             </label>
             <label class="field field-floating field-textarea custom-deliverable" style="grid-column: 1 / -1; ${selectedValue === "Custom" ? "" : "display:none;"}">
               <input type="text" name="itemCustomDescriptions" value="${escapeHtml(customValue)}" placeholder=" " ${selectedValue === "Custom" ? "required" : ""} />
@@ -579,19 +573,43 @@
           return row;
         }
 
-        function calculateTotal() {
+        function distributeAmounts() {
           const qtyInputs = Array.from(document.querySelectorAll("input[name='itemQuantities']"));
           const amountInputs = Array.from(document.querySelectorAll("input[name='itemAmounts']"));
+          const quantities = qtyInputs.map((input) => Number(input.value || 0));
+          const totalQuantity = quantities.reduce((sum, value) => sum + value, 0);
+
+          if (!amountInputs.length) return;
+
+          if (totalQuantity <= 0) {
+            amountInputs.forEach((input) => {
+              input.value = Number(0).toFixed(2);
+            });
+            return;
+          }
+
+          let assigned = 0;
+          amountInputs.forEach((input, index) => {
+            if (index === amountInputs.length - 1) {
+              const finalShare = Number((lockedAmount - assigned).toFixed(2));
+              input.value = finalShare.toFixed(2);
+              return;
+            }
+
+            const share = Number(((lockedAmount * quantities[index]) / totalQuantity).toFixed(2));
+            assigned = Number((assigned + share).toFixed(2));
+            input.value = share.toFixed(2);
+          });
+        }
+
+        function calculateTotal() {
+          const amountInputs = Array.from(document.querySelectorAll("input[name='itemAmounts']"));
+          distributeAmounts();
           let total = 0;
-          for (let i = 0; i < qtyInputs.length; i += 1) {
+          for (let i = 0; i < amountInputs.length; i += 1) {
             total += Number(amountInputs[i].value || 0);
           }
           computedTotal.value = total.toFixed(2);
-          if (Number(total.toFixed(2)) === Number(lockedAmount.toFixed(2))) {
-            matchStatus.value = "Matched";
-          } else {
-            matchStatus.value = "Not Matched";
-          }
         }
 
         addRowBtn.addEventListener("click", () => {
@@ -651,6 +669,7 @@
         });
 
         formEl.addEventListener("submit", (e) => {
+          calculateTotal();
           if (submitBtn) {
             submitBtn.dataset.loading = "true";
             submitBtn.disabled = true;
