@@ -373,7 +373,7 @@ app.set("trust proxy", 1);
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; base-uri 'self'; connect-src 'self' https://vercel.live; form-action 'self'; img-src 'self' data:; object-src 'none'; script-src 'self' 'unsafe-inline' https://vercel.live; script-src-elem 'self' 'unsafe-inline' https://vercel.live; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
+    "default-src 'self'; base-uri 'self'; connect-src 'self' https://vercel.live; form-action 'self'; img-src 'self' data:; object-src 'none'; script-src 'self' 'unsafe-inline' https://vercel.live; script-src-elem 'self' 'unsafe-inline' https://vercel.live; worker-src 'self' blob:; frame-src 'self' https://vercel.live; child-src 'self' https://vercel.live; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
   );
   next();
 });
