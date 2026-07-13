@@ -12,6 +12,17 @@ const { ensurePdfForInvoice } = require("./services/pdf");
 const app = express();
 const START_PORT = Number(process.env.PORT || 3000);
 const runtimeDir = process.env.VERCEL ? "/tmp" : __dirname;
+const DELIVERABLE_OPTIONS = [
+  "Collab Reel",
+  "Non-Collab Reel",
+  "1 Month AD Rights",
+  "3 Month AD Rights",
+  "Video Story",
+  "Static Story",
+  "Carousel Post",
+  "Static Post"
+];
+const COMPANY_STATE_CODE = "27";
 
 const uploadDir = path.join(runtimeDir, "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -30,6 +41,197 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
+
+class SqliteSessionStore extends session.Store {
+  get(sid, cb) {
+    db.get("SELECT sess FROM sessions WHERE sid = ? AND expire > ?", [sid, Date.now()])
+      .then((row) => cb(null, row ? JSON.parse(row.sess) : null))
+      .catch(cb);
+  }
+
+  set(sid, sess, cb) {
+    const ttl = sess.cookie && sess.cookie.expires ? new Date(sess.cookie.expires).getTime() : Date.now() + 86400000;
+    db.run(
+      `INSERT INTO sessions (sid, sess, expire) VALUES (?, ?, ?)
+       ON CONFLICT(sid) DO UPDATE SET sess = excluded.sess, expire = excluded.expire`,
+      [sid, JSON.stringify(sess), ttl]
+    )
+      .then(() => cb && cb(null))
+      .catch((error) => cb && cb(error));
+  }
+
+  destroy(sid, cb) {
+    db.run("DELETE FROM sessions WHERE sid = ?", [sid])
+      .then(() => cb && cb(null))
+      .catch((error) => cb && cb(error));
+  }
+}
+
+function todayForInvoice() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+}
+
+function safeFolderName(value, fallback = "campaign") {
+  const safe = String(value || "")
+    .trim()
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+  return safe || fallback;
+}
+
+function campaignFolderName(campaign) {
+  return `${safeFolderName(campaign.campaign_name)}-${campaign.id}`;
+}
+
+function ensureCampaignFolders(campaign) {
+  const folder = campaignFolderName(campaign);
+  fs.mkdirSync(path.join(generatedDir, "campaigns", folder), { recursive: true });
+  fs.mkdirSync(path.join(uploadDir, "campaigns", folder), { recursive: true });
+  return folder;
+}
+
+async function loadCampaignFolderCards() {
+  const campaigns = await db.all(
+    `SELECT c.*, COUNT(DISTINCT cc.id) AS creator_count, COUNT(DISTINCT i.id) AS invoice_count
+     FROM campaigns c
+     LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
+     LEFT JOIN invoices i ON i.campaign_id = c.id
+     GROUP BY c.id
+     ORDER BY c.id DESC`
+  );
+
+  const folders = [];
+  for (const campaign of campaigns) {
+    const creators = await db.all(
+      `SELECT cc.id, cc.creator_name, cc.mobile, cc.amount, COUNT(i.id) AS invoice_count
+       , (
+         SELECT i2.id
+         FROM invoices i2
+         WHERE i2.campaign_id = cc.campaign_id AND i2.creator_mobile = cc.mobile
+         ORDER BY i2.id DESC
+         LIMIT 1
+       ) AS latest_invoice_id
+       , (
+         SELECT i2.pdf_path
+         FROM invoices i2
+         WHERE i2.campaign_id = cc.campaign_id AND i2.creator_mobile = cc.mobile
+         ORDER BY i2.id DESC
+         LIMIT 1
+       ) AS latest_pdf_path
+       FROM campaign_creators cc
+       LEFT JOIN invoices i ON i.campaign_id = cc.campaign_id AND i.creator_mobile = cc.mobile
+       WHERE cc.campaign_id = ?
+       GROUP BY cc.id
+       ORDER BY cc.id DESC`,
+      [campaign.id]
+    );
+
+    folders.push({
+      id: campaign.id,
+      campaignName: campaign.campaign_name,
+      campaignCode: campaign.campaign_code,
+      teamName: campaign.team_name,
+      creatorCount: Number(campaign.creator_count || 0),
+      invoiceCount: Number(campaign.invoice_count || 0),
+      folderName: campaignFolderName(campaign),
+      generatedPath: `/generated/campaigns/${campaignFolderName(campaign)}`,
+      uploadPath: `/uploads/campaigns/${campaignFolderName(campaign)}`,
+      creators
+    });
+  }
+
+  return folders;
+}
+
+function moveUploadToCampaignFolder(file, campaign) {
+  if (!file) return null;
+  const folder = ensureCampaignFolders(campaign);
+  const destinationDir = path.join(uploadDir, "campaigns", folder);
+  const target = path.join(destinationDir, file.filename);
+  if (file.path !== target) {
+    fs.renameSync(file.path, target);
+  }
+  return `/uploads/campaigns/${folder}/${file.filename}`;
+}
+
+function gstBreakup(invoiceKind, gstin, taxableAmount) {
+  const taxable = Number(taxableAmount || 0);
+  if (invoiceKind !== "gst") {
+    return {
+      gstRate: 0,
+      cgstRate: 0,
+      sgstRate: 0,
+      igstRate: 0,
+      cgstAmount: 0,
+      sgstAmount: 0,
+      igstAmount: 0,
+      gstAmount: 0,
+      finalAmount: taxable,
+      gstMode: "none"
+    };
+  }
+
+  const creatorStateCode = String(gstin || "").trim().slice(0, 2);
+  const isIntraState = creatorStateCode === COMPANY_STATE_CODE;
+  const cgstRate = isIntraState ? 9 : 0;
+  const sgstRate = isIntraState ? 9 : 0;
+  const igstRate = isIntraState ? 0 : 18;
+  const cgstAmount = Number((taxable * (cgstRate / 100)).toFixed(2));
+  const sgstAmount = Number((taxable * (sgstRate / 100)).toFixed(2));
+  const igstAmount = Number((taxable * (igstRate / 100)).toFixed(2));
+  const gstAmount = Number((cgstAmount + sgstAmount + igstAmount).toFixed(2));
+  return {
+    gstRate: 18,
+    cgstRate,
+    sgstRate,
+    igstRate,
+    cgstAmount,
+    sgstAmount,
+    igstAmount,
+    gstAmount,
+    finalAmount: Number((taxable + gstAmount).toFixed(2)),
+    gstMode: isIntraState ? "cgst_sgst" : "igst"
+  };
+}
+
+function arrayValue(value) {
+  if (Array.isArray(value)) return value;
+  if (value === undefined || value === null) return [];
+  return [value];
+}
+
+function itemsFromBody(body) {
+  const descriptions = arrayValue(body.itemDescriptions);
+  const customs = arrayValue(body.itemCustomDescriptions);
+  const quantities = arrayValue(body.itemQuantities);
+  const amounts = arrayValue(body.itemAmounts);
+
+  return descriptions
+    .map((desc, idx) => {
+      const selected = String(desc || "").trim();
+      const custom = String(customs[idx] || "").trim();
+      return {
+        description: selected === "Custom" ? custom : selected,
+        quantity: Number(quantities[idx] || 0),
+        amount: Number(amounts[idx] || 0)
+      };
+    })
+    .filter((x) => x.description);
+}
+
+async function notifyInvoiceSubmission(invoiceId, campaignId, creatorName, campaignName, isRegenerated) {
+  const action = isRegenerated ? "re-generated" : "submitted";
+  await db.run(
+    "INSERT INTO notifications (invoice_id, campaign_id, message) VALUES (?, ?, ?)",
+    [invoiceId, campaignId, `${creatorName} from ${campaignName} has ${action} the invoice.`]
+  );
+}
 
 function normalizeHeader(value) {
   return String(value || "")
@@ -67,20 +269,10 @@ function extractCreatorsFromSheet(filePath) {
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
+app.set("trust proxy", 1);
 
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.json({ limit: "10mb" }));
-app.use(
-  session({
-    secret: "replace-this-in-production",
-    resave: false,
-    saveUninitialized: false
-  })
-);
-app.use("/public", express.static(path.join(__dirname, "public")));
-app.use("/uploads", express.static(uploadDir));
-app.use("/generated", express.static(generatedDir));
-
 const dbReady = db.init();
 app.use(async (_, res, next) => {
   try {
@@ -91,16 +283,35 @@ app.use(async (_, res, next) => {
     res.status(500).send("Database initialization failed.");
   }
 });
+app.use(
+  session({
+    store: new SqliteSessionStore(),
+    secret: process.env.SESSION_SECRET || "replace-this-in-production",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 1000 * 60 * 60 * 24
+    }
+  })
+);
+app.use("/public", express.static(path.join(__dirname, "public")));
+app.use("/uploads", express.static(uploadDir));
+app.use("/generated", express.static(generatedDir));
 
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.error = null;
   res.locals.success = null;
+  res.locals.deliverableOptions = DELIVERABLE_OPTIONS;
+  res.locals.today = todayForInvoice();
   next();
 });
 
 app.get("/", async (req, res) => {
-  res.render("creator_form", { error: null, success: null, form: {} });
+  res.render("creator_form", { error: null, success: null, form: { ...req.query } });
 });
 
 app.post("/creator/validate", async (req, res) => {
@@ -129,6 +340,18 @@ app.post("/creator/validate", async (req, res) => {
     });
   }
 
+  const existingInvoice = await db.get(
+    `SELECT *
+     FROM invoices
+     WHERE campaign_id = ? AND creator_mobile = ?
+     ORDER BY id DESC
+     LIMIT 1`,
+    [campaign.id, mobile.trim()]
+  );
+  const existingItems = existingInvoice
+    ? await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [existingInvoice.id])
+    : [];
+
   res.render("creator_form", {
     error: null,
     success: null,
@@ -138,7 +361,9 @@ app.post("/creator/validate", async (req, res) => {
       campaignId: campaign.id,
       campaignName: campaign.campaign_name,
       amount: campaign.creator_amount,
-      creatorName: campaign.creator_name
+      creatorName: campaign.creator_name,
+      existingInvoice,
+      existingItems
     }
   });
 });
@@ -155,7 +380,6 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       pan,
       email,
       invoiceNo,
-      invoiceDate,
       paymentMode,
       pocName,
       otherReferences,
@@ -168,13 +392,14 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       branch,
       upiId,
       signatureDraw,
-      itemDescriptions,
+      existingInvoiceId,
       itemQuantities,
       itemAmounts
     } = req.body;
     const invoiceKind = String(invoiceType || "non_gst").toLowerCase() === "gst" ? "gst" : "non_gst";
+    const invoiceDate = todayForInvoice();
 
-    if (!campaignId || !campaignCode || !mobile || !fullName || !invoiceNo || !invoiceDate) {
+    if (!campaignId || !campaignCode || !mobile || !fullName || !invoiceNo) {
       return res.render("creator_form", {
         error: "Please fill all required fields.",
         success: null,
@@ -214,17 +439,15 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       });
     }
 
-    const descriptions = Array.isArray(itemDescriptions) ? itemDescriptions : [itemDescriptions];
-    const quantities = Array.isArray(itemQuantities) ? itemQuantities : [itemQuantities];
-    const amounts = Array.isArray(itemAmounts) ? itemAmounts : [itemAmounts];
+    const existingInvoice = existingInvoiceId
+      ? await db.get("SELECT * FROM invoices WHERE id = ? AND campaign_id = ? AND creator_mobile = ?", [
+          existingInvoiceId,
+          campaignId,
+          mobile.trim()
+        ])
+      : null;
 
-    const items = descriptions
-      .map((desc, idx) => ({
-        description: (desc || "").trim(),
-        quantity: Number(quantities[idx] || 0),
-        amount: Number(amounts[idx] || 0)
-      }))
-      .filter((x) => x.description);
+    const items = itemsFromBody(req.body);
 
     if (!items.length) {
       return res.render("creator_form", {
@@ -253,23 +476,31 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
     }
 
     const taxableAmount = Number(total.toFixed(2));
-    const gstRate = invoiceKind === "gst" ? 18 : 0;
-    const cgstRate = invoiceKind === "gst" ? 9 : 0;
-    const sgstRate = invoiceKind === "gst" ? 9 : 0;
-    const cgstAmount = Number((taxableAmount * (cgstRate / 100)).toFixed(2));
-    const sgstAmount = Number((taxableAmount * (sgstRate / 100)).toFixed(2));
-    const gstAmount = Number((cgstAmount + sgstAmount).toFixed(2));
-    const finalAmount = Number((taxableAmount + gstAmount).toFixed(2));
+    const taxes = gstBreakup(invoiceKind, gstin, taxableAmount);
+    const {
+      gstRate,
+      cgstRate,
+      sgstRate,
+      igstRate,
+      cgstAmount,
+      sgstAmount,
+      igstAmount,
+      gstAmount,
+      finalAmount
+    } = taxes;
     const savedTotalAmount = invoiceKind === "gst" ? finalAmount : taxableAmount;
 
     let signatureType = null;
     let signatureValue = null;
-    if (signatureDraw && signatureDraw.startsWith("data:image")) {
+    if (req.file) {
+      signatureType = "upload";
+      signatureValue = moveUploadToCampaignFolder(req.file, campaign);
+    } else if (signatureDraw && signatureDraw.startsWith("data:image")) {
       signatureType = "draw";
       signatureValue = signatureDraw;
-    } else if (req.file) {
-      signatureType = "upload";
-      signatureValue = `/uploads/${req.file.filename}`;
+    } else if (existingInvoice && existingInvoice.signature_type && existingInvoice.signature_value) {
+      signatureType = existingInvoice.signature_type;
+      signatureValue = existingInvoice.signature_value;
     }
 
     if (!signatureType) {
@@ -289,67 +520,125 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       });
     }
 
-    const invoiceResult = await db.run(
-      `INSERT INTO invoices (
-        campaign_id, creator_mobile, creator_name, invoice_type, full_name, address, pan, email,
-        invoice_no, invoice_date, payment_mode, poc_name, other_references,
-        po_number, creator_gstin,
-        taxable_amount, gst_rate, cgst_rate, sgst_rate, cgst_amount, sgst_amount, gst_amount, final_amount,
-        account_name, bank_name, account_no, ifsc_code, branch, upi_id,
-        signature_type, signature_value, total_amount, locked_amount, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        campaignId,
-        mobile.trim(),
-        mapping.creator_name,
-        invoiceKind,
-        fullName.trim(),
-        address || "",
-        pan || "",
-        email || "",
-        invoiceNo.trim(),
-        invoiceDate,
-        paymentMode || "",
-        pocName || "",
-        otherReferences || "",
-        poNumber || "",
-        gstin || "",
-        taxableAmount,
-        gstRate,
-        cgstRate,
-        sgstRate,
-        cgstAmount,
-        sgstAmount,
-        gstAmount,
-        finalAmount,
-        accountName || "",
-        bankName || "",
-        accountNo || "",
-        ifscCode || "",
-        branch || "",
-        upiId || "",
-        signatureType,
-        signatureValue,
-        savedTotalAmount,
-        mapping.amount,
-        "SUBMITTED"
-      ]
-    );
+    let invoiceId;
+    const isRegenerated = Boolean(existingInvoice);
+
+    if (existingInvoice) {
+      invoiceId = existingInvoice.id;
+      await db.run(
+        `UPDATE invoices SET
+          creator_name = ?, invoice_type = ?, full_name = ?, address = ?, pan = ?, email = ?,
+          invoice_no = ?, invoice_date = ?, payment_mode = ?, poc_name = ?, other_references = ?,
+          po_number = ?, creator_gstin = ?,
+          taxable_amount = ?, gst_rate = ?, cgst_rate = ?, sgst_rate = ?, igst_rate = ?,
+          cgst_amount = ?, sgst_amount = ?, igst_amount = ?, gst_amount = ?, final_amount = ?,
+          account_name = ?, bank_name = ?, account_no = ?, ifsc_code = ?, branch = ?, upi_id = ?,
+          signature_type = ?, signature_value = ?, total_amount = ?, locked_amount = ?,
+          status = ?, revision_count = COALESCE(revision_count, 0) + 1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+        [
+          mapping.creator_name,
+          invoiceKind,
+          fullName.trim(),
+          address || "",
+          pan || "",
+          email || "",
+          invoiceNo.trim(),
+          invoiceDate,
+          paymentMode || "",
+          pocName || "",
+          otherReferences || "",
+          poNumber || "",
+          gstin || "",
+          taxableAmount,
+          gstRate,
+          cgstRate,
+          sgstRate,
+          igstRate,
+          cgstAmount,
+          sgstAmount,
+          igstAmount,
+          gstAmount,
+          finalAmount,
+          accountName || "",
+          bankName || "",
+          accountNo || "",
+          ifscCode || "",
+          branch || "",
+          upiId || "",
+          signatureType,
+          signatureValue,
+          savedTotalAmount,
+          mapping.amount,
+          "REGENERATED",
+          invoiceId
+        ]
+      );
+      await db.run("DELETE FROM invoice_items WHERE invoice_id = ?", [invoiceId]);
+    } else {
+      const invoiceResult = await db.run(
+        `INSERT INTO invoices (
+          campaign_id, creator_mobile, creator_name, invoice_type, full_name, address, pan, email,
+          invoice_no, invoice_date, payment_mode, poc_name, other_references,
+          po_number, creator_gstin,
+          taxable_amount, gst_rate, cgst_rate, sgst_rate, igst_rate,
+          cgst_amount, sgst_amount, igst_amount, gst_amount, final_amount,
+          account_name, bank_name, account_no, ifsc_code, branch, upi_id,
+          signature_type, signature_value, total_amount, locked_amount, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          campaignId,
+          mobile.trim(),
+          mapping.creator_name,
+          invoiceKind,
+          fullName.trim(),
+          address || "",
+          pan || "",
+          email || "",
+          invoiceNo.trim(),
+          invoiceDate,
+          paymentMode || "",
+          pocName || "",
+          otherReferences || "",
+          poNumber || "",
+          gstin || "",
+          taxableAmount,
+          gstRate,
+          cgstRate,
+          sgstRate,
+          igstRate,
+          cgstAmount,
+          sgstAmount,
+          igstAmount,
+          gstAmount,
+          finalAmount,
+          accountName || "",
+          bankName || "",
+          accountNo || "",
+          ifscCode || "",
+          branch || "",
+          upiId || "",
+          signatureType,
+          signatureValue,
+          savedTotalAmount,
+          mapping.amount,
+          "SUBMITTED"
+        ]
+      );
+      invoiceId = invoiceResult.lastID;
+    }
 
     for (const row of items) {
       await db.run(
         "INSERT INTO invoice_items (invoice_id, description, quantity, rate, amount) VALUES (?, ?, ?, ?, ?)",
-        [invoiceResult.lastID, row.description, row.quantity, invoiceKind === "gst" ? 18 : 0, row.amount]
+        [invoiceId, row.description, row.quantity, invoiceKind === "gst" ? 18 : 0, row.amount]
       );
     }
 
-    await ensurePdfForInvoice(invoiceResult.lastID);
+    await ensurePdfForInvoice(invoiceId);
+    await notifyInvoiceSubmission(invoiceId, campaign.id, mapping.creator_name, campaign.campaign_name, isRegenerated);
 
-    res.render("creator_form", {
-      error: null,
-      success: "Invoice submitted successfully.",
-      form: {}
-    });
+    res.redirect(`/creator/submitted?invoiceId=${invoiceId}`);
   } catch (error) {
     res.render("creator_form", {
       error: "Something went wrong while submitting invoice.",
@@ -360,6 +649,28 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       }
     });
   }
+});
+
+app.get("/creator/submitted", async (req, res) => {
+  const invoiceId = Number(req.query.invoiceId || 0);
+  if (!invoiceId) {
+    return res.redirect("/");
+  }
+
+  const invoice = await db.get(
+    `SELECT i.*, c.campaign_name, c.campaign_code
+     FROM invoices i
+     JOIN campaigns c ON c.id = i.campaign_id
+     WHERE i.id = ?`,
+    [invoiceId]
+  );
+
+  if (!invoice) {
+    return res.redirect("/");
+  }
+
+  const items = await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [invoice.id]);
+  res.render("creator_success", { invoice, items });
 });
 
 app.get("/admin", (req, res) => {
@@ -400,6 +711,7 @@ app.use("/admin", requireAuth);
 app.get("/admin/dashboard", async (req, res) => {
   const user = req.session.user;
   let invoices;
+  let notifications = [];
 
   if (user.role === "TEAM") {
     invoices = await db.all(
@@ -419,7 +731,40 @@ app.get("/admin/dashboard", async (req, res) => {
     );
   }
 
-  res.render("dashboard", { invoices });
+  if (user.role === "ACCOUNTS" || user.role === "SUPER_ADMIN") {
+    notifications = await db.all(
+      `SELECT n.*, c.campaign_name, i.creator_name
+       FROM notifications n
+       LEFT JOIN campaigns c ON c.id = n.campaign_id
+       LEFT JOIN invoices i ON i.id = n.invoice_id
+       WHERE n.is_read = 0
+       ORDER BY n.id DESC
+       LIMIT 10`
+    );
+  }
+
+  res.render("dashboard", { invoices, notifications });
+});
+
+app.get("/admin/folders", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), async (req, res) => {
+  const folders = await loadCampaignFolderCards();
+  res.render("admin_folders", { folders });
+});
+
+app.get("/admin/notifications", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), async (req, res) => {
+  const notifications = await db.all(
+    `SELECT n.*, c.campaign_name, c.campaign_code, i.creator_name, i.creator_mobile, i.invoice_no, i.status AS invoice_status
+     FROM notifications n
+     LEFT JOIN campaigns c ON c.id = n.campaign_id
+     LEFT JOIN invoices i ON i.id = n.invoice_id
+     ORDER BY n.id DESC`
+  );
+  res.render("admin_notifications", { notifications });
+});
+
+app.post("/admin/notifications/read", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), async (req, res) => {
+  await db.run("UPDATE notifications SET is_read = 1 WHERE is_read = 0");
+  res.redirect(req.get("referer") || "/admin/dashboard");
 });
 
 app.get("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, res) => {
@@ -472,7 +817,25 @@ app.get("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, re
     }
   }
 
-  res.render("campaigns", { campaigns, error: null, success: null, search });
+  const campaignCards = [];
+  for (const campaign of campaigns) {
+    const creators = await db.all(
+      `SELECT cc.id, cc.creator_name, cc.mobile, cc.amount, COUNT(i.id) AS invoice_count
+       FROM campaign_creators cc
+       LEFT JOIN invoices i ON i.campaign_id = cc.campaign_id AND i.creator_mobile = cc.mobile
+       WHERE cc.campaign_id = ?
+       GROUP BY cc.id
+       ORDER BY cc.id DESC`,
+      [campaign.id]
+    );
+
+    campaignCards.push({
+      ...campaign,
+      creators
+    });
+  }
+
+  res.render("campaigns", { campaigns: campaignCards, error: null, success: null, search });
 });
 
 app.post("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, res) => {
@@ -500,10 +863,11 @@ app.post("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, r
 
     const appliedTeam = user.role === "TEAM" ? user.teamName : teamName;
 
-    await db.run(
+    const result = await db.run(
       "INSERT INTO campaigns (campaign_name, campaign_code, amount, team_name, created_by) VALUES (?, ?, ?, ?, ?)",
       [campaignName.trim(), campaignCode.trim(), 0, appliedTeam || "DEFAULT", user.id]
     );
+    ensureCampaignFolders({ id: result.lastID, campaign_name: campaignName.trim() });
 
     res.redirect("/admin/campaigns");
   } catch (error) {
@@ -650,130 +1014,11 @@ app.post("/admin/invoices/:id/status", requireRole(["ACCOUNTS", "SUPER_ADMIN"]),
 });
 
 app.get("/admin/invoices/:id/edit", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), async (req, res) => {
-  const invoice = await db.get(
-    `SELECT i.*, c.campaign_name, c.campaign_code
-     FROM invoices i
-     JOIN campaigns c ON c.id = i.campaign_id
-     WHERE i.id = ?`,
-    [req.params.id]
-  );
-  if (!invoice) {
-    return res.redirect("/admin/dashboard");
-  }
-
-  const items = await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [invoice.id]);
-  res.render("invoice_edit", { invoice, items, error: null });
+  return res.redirect(`/admin/invoices/${req.params.id}`);
 });
 
 app.post("/admin/invoices/:id/edit", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), async (req, res) => {
-  const invoice = await db.get(
-    `SELECT i.*
-     FROM invoices i
-     WHERE i.id = ?`,
-    [req.params.id]
-  );
-
-  if (!invoice) {
-    return res.redirect("/admin/dashboard");
-  }
-
-  const {
-    fullName,
-    address,
-    pan,
-    email,
-    invoiceNo,
-    invoiceDate,
-    paymentMode,
-    pocName,
-    otherReferences,
-    accountName,
-    bankName,
-    accountNo,
-    ifscCode,
-    branch,
-    upiId,
-    itemDescriptions,
-    itemQuantities,
-    itemAmounts
-  } = req.body;
-  const isGstInvoice = String(invoice.invoice_type || "non_gst") === "gst";
-
-  const descriptions = Array.isArray(itemDescriptions) ? itemDescriptions : [itemDescriptions];
-  const quantities = Array.isArray(itemQuantities) ? itemQuantities : [itemQuantities];
-  const amounts = Array.isArray(itemAmounts) ? itemAmounts : [itemAmounts];
-  const items = descriptions
-    .map((desc, idx) => ({
-      description: (desc || "").trim(),
-      quantity: Number(quantities[idx] || 0),
-      amount: Number(amounts[idx] || 0)
-    }))
-    .filter((x) => x.description);
-
-  const taxableAmount = Number(items.reduce((sum, row) => sum + row.amount, 0).toFixed(2));
-  if (Number(taxableAmount.toFixed(2)) !== Number(Number(invoice.locked_amount).toFixed(2))) {
-    const existingItems = await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [invoice.id]);
-    return res.render("invoice_edit", {
-      invoice,
-      items: existingItems,
-        error: "Edited total must exactly match predefined creator amount."
-    });
-  }
-
-  const gstRate = isGstInvoice ? 18 : 0;
-  const cgstRate = isGstInvoice ? 9 : 0;
-  const sgstRate = isGstInvoice ? 9 : 0;
-  const cgstAmount = Number((taxableAmount * (cgstRate / 100)).toFixed(2));
-  const sgstAmount = Number((taxableAmount * (sgstRate / 100)).toFixed(2));
-  const gstAmount = Number((cgstAmount + sgstAmount).toFixed(2));
-  const finalAmount = Number((taxableAmount + gstAmount).toFixed(2));
-
-  await db.run(
-    `UPDATE invoices SET
-      full_name = ?, address = ?, pan = ?, email = ?, invoice_no = ?, invoice_date = ?,
-      payment_mode = ?, poc_name = ?, other_references = ?,
-      account_name = ?, bank_name = ?, account_no = ?, ifsc_code = ?, branch = ?, upi_id = ?,
-      taxable_amount = ?, gst_rate = ?, cgst_rate = ?, sgst_rate = ?, cgst_amount = ?, sgst_amount = ?, gst_amount = ?, final_amount = ?, total_amount = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?`,
-    [
-      fullName || "",
-      address || "",
-      pan || "",
-      email || "",
-      invoiceNo || "",
-      invoiceDate || "",
-      paymentMode || "",
-      pocName || "",
-      otherReferences || "",
-      accountName || "",
-      bankName || "",
-      accountNo || "",
-      ifscCode || "",
-      branch || "",
-      upiId || "",
-      taxableAmount,
-      gstRate,
-      cgstRate,
-      sgstRate,
-      cgstAmount,
-      sgstAmount,
-      gstAmount,
-      finalAmount,
-      finalAmount,
-      invoice.id
-    ]
-  );
-
-  await db.run("DELETE FROM invoice_items WHERE invoice_id = ?", [invoice.id]);
-  for (const row of items) {
-    await db.run(
-      "INSERT INTO invoice_items (invoice_id, description, quantity, rate, amount) VALUES (?, ?, ?, ?, ?)",
-      [invoice.id, row.description, row.quantity, isGstInvoice ? 18 : 0, row.amount]
-    );
-  }
-
-  await ensurePdfForInvoice(invoice.id);
-  res.redirect(`/admin/invoices/${invoice.id}`);
+  return res.redirect(`/admin/invoices/${req.params.id}`);
 });
 
 app.get("/admin/users", requireRole(["SUPER_ADMIN"]), async (req, res) => {

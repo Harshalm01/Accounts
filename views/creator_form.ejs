@@ -94,6 +94,10 @@
         <% } %>
 
         <% if (form.validated) { %>
+          <% const existingInvoice = form.existingInvoice || null; %>
+          <% const existingItems = form.existingItems || []; %>
+          <% const selectedInvoiceType = existingInvoice ? existingInvoice.invoice_type : (form.invoiceType || 'non_gst'); %>
+          <% const existingInvoiceItems = existingItems; %>
           <section class="notice-card info-card">
             <div class="notice-icon notice-icon-info" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -155,7 +159,10 @@
 
           <form method="post" action="/creator/submit" enctype="multipart/form-data" id="invoiceForm" class="portal-form stack-layout">
             <input type="hidden" name="validated" value="true" />
-            <input type="hidden" name="invoiceType" id="invoiceType" value="" />
+            <input type="hidden" name="invoiceType" id="invoiceType" value="<%= selectedInvoiceType %>" />
+            <% if (existingInvoice) { %>
+              <input type="hidden" name="existingInvoiceId" value="<%= existingInvoice.id %>" />
+            <% } %>
             <input type="hidden" name="campaignId" value="<%= form.campaignId %>" />
             <input type="hidden" name="campaignCode" value="<%= form.campaignCode %>" />
             <input type="hidden" name="campaignName" value="<%= form.campaignName %>" />
@@ -201,19 +208,19 @@
               </div>
               <div class="grid-2 field-grid">
                 <label class="field field-floating">
-                  <input type="text" name="fullName" required placeholder=" " />
+                  <input type="text" name="fullName" value="<%= existingInvoice ? existingInvoice.full_name : (form.fullName || '') %>" required placeholder=" " />
                   <span>Full Name *</span>
                 </label>
                 <label class="field field-floating field-textarea">
-                  <textarea name="address" placeholder=" "></textarea>
+                  <textarea name="address" placeholder=" "><%= existingInvoice ? existingInvoice.address || '' : (form.address || '') %></textarea>
                   <span>Address</span>
                 </label>
                 <label class="field field-floating">
-                  <input type="text" name="pan" placeholder=" " />
+                  <input type="text" name="pan" value="<%= existingInvoice ? existingInvoice.pan || '' : (form.pan || '') %>" placeholder=" " />
                   <span>PAN/IT No</span>
                 </label>
                 <label class="field field-floating">
-                  <input type="email" name="email" placeholder=" " />
+                  <input type="email" name="email" value="<%= existingInvoice ? existingInvoice.email || '' : (form.email || '') %>" placeholder=" " />
                   <span>Email</span>
                 </label>
               </div>
@@ -228,23 +235,23 @@
               </div>
               <div class="grid-3 field-grid">
                 <label class="field field-floating">
-                  <input type="text" name="invoiceNo" required placeholder=" " />
+                  <input type="text" name="invoiceNo" value="<%= existingInvoice ? existingInvoice.invoice_no || '' : (form.invoiceNo || '') %>" required placeholder=" " />
                   <span>Invoice No *</span>
                 </label>
-                <label class="field field-floating">
-                  <input type="date" name="invoiceDate" required placeholder=" " />
-                  <span>Dated *</span>
+                <label class="field field-floating field-readonly">
+                  <input type="date" name="invoiceDate" value="<%= today %>" readonly required placeholder=" " />
+                  <span>Dated Today *</span>
                 </label>
                 <label class="field field-floating">
-                  <input type="text" name="paymentMode" placeholder=" " />
+                  <input type="text" name="paymentMode" value="<%= existingInvoice ? existingInvoice.payment_mode || '' : (form.paymentMode || '') %>" placeholder=" " />
                   <span>Mode/Terms of Payment</span>
                 </label>
                 <label class="field field-floating">
-                  <input type="text" name="pocName" placeholder=" " />
+                  <input type="text" name="pocName" value="<%= existingInvoice ? existingInvoice.poc_name || '' : (form.pocName || '') %>" placeholder=" " />
                   <span>POC Name</span>
                 </label>
                 <label class="field field-floating">
-                  <input type="text" name="otherReferences" placeholder=" " />
+                  <input type="text" name="otherReferences" value="<%= existingInvoice ? existingInvoice.other_references || '' : (form.otherReferences || '') %>" placeholder=" " />
                   <span>Other References</span>
                 </label>
               </div>
@@ -264,18 +271,18 @@
               </div>
               <div class="grid-2 field-grid">
                 <label class="field field-floating">
-                  <input type="text" name="poNumber" id="poNumber" placeholder=" " />
+                  <input type="text" name="poNumber" id="poNumber" value="<%= existingInvoice ? existingInvoice.po_number || '' : (form.poNumber || '') %>" placeholder=" " />
                   <span>PO Number *</span>
                 </label>
                 <label class="field field-floating">
-                  <input type="text" name="gstin" id="gstin" placeholder=" " />
+                  <input type="text" name="gstin" id="gstin" value="<%= existingInvoice ? existingInvoice.creator_gstin || '' : (form.gstin || '') %>" placeholder=" " />
                   <span>GSTIN of Creator *</span>
                 </label>
               </div>
               <div class="static-panel" style="margin-top: 14px;" id="gstSummarySection" hidden>
                 <p><strong>Taxable Amount:</strong> ₹<span id="gstTaxableAmount">0.00</span></p>
-                <p><strong>CGST @ 9%:</strong> ₹<span id="gstCgstAmount">0.00</span></p>
-                <p><strong>SGST @ 9%:</strong> ₹<span id="gstSgstAmount">0.00</span></p>
+                <p id="gstTaxLineOne"><strong id="gstTaxLabelOne">CGST @ 9%:</strong> ₹<span id="gstCgstAmount">0.00</span></p>
+                <p id="gstTaxLineTwo"><strong id="gstTaxLabelTwo">SGST @ 9%:</strong> ₹<span id="gstSgstAmount">0.00</span></p>
                 <p><strong>Total GST:</strong> ₹<span id="gstTotalAmount">0.00</span></p>
                 <p><strong>Final Amount:</strong> ₹<span id="gstFinalAmount">0.00</span></p>
               </div>
@@ -330,27 +337,27 @@
               </div>
               <div class="grid-3 field-grid">
                 <label class="field field-floating">
-                  <input type="text" name="accountName" placeholder=" " />
+                  <input type="text" name="accountName" value="<%= existingInvoice ? existingInvoice.account_name || '' : (form.accountName || '') %>" placeholder=" " />
                   <span>Account Name</span>
                 </label>
                 <label class="field field-floating">
-                  <input type="text" name="bankName" placeholder=" " />
+                  <input type="text" name="bankName" value="<%= existingInvoice ? existingInvoice.bank_name || '' : (form.bankName || '') %>" placeholder=" " />
                   <span>Bank Name</span>
                 </label>
                 <label class="field field-floating">
-                  <input type="text" name="accountNo" placeholder=" " />
+                  <input type="text" name="accountNo" value="<%= existingInvoice ? existingInvoice.account_no || '' : (form.accountNo || '') %>" placeholder=" " />
                   <span>Account No</span>
                 </label>
                 <label class="field field-floating">
-                  <input type="text" name="ifscCode" placeholder=" " />
+                  <input type="text" name="ifscCode" value="<%= existingInvoice ? existingInvoice.ifsc_code || '' : (form.ifscCode || '') %>" placeholder=" " />
                   <span>IFSC Code</span>
                 </label>
                 <label class="field field-floating">
-                  <input type="text" name="branch" placeholder=" " />
+                  <input type="text" name="branch" value="<%= existingInvoice ? existingInvoice.branch || '' : (form.branch || '') %>" placeholder=" " />
                   <span>Branch</span>
                 </label>
                 <label class="field field-floating">
-                  <input type="text" name="upiId" placeholder=" " />
+                  <input type="text" name="upiId" value="<%= existingInvoice ? existingInvoice.upi_id || '' : (form.upiId || '') %>" placeholder=" " />
                   <span>UPI ID</span>
                 </label>
               </div>
@@ -374,10 +381,11 @@
                     <button type="button" class="btn btn-light" id="clearSign">Clear Drawing</button>
                   </div>
                 </div>
-                <label class="field field-floating field-upload">
-                  <input type="file" name="signatureFile" accept="image/*" placeholder=" " />
-                  <span>Or Upload Signature Image</span>
-                </label>
+                <div class="signature-upload-panel">
+                  <label class="field-label-inline" for="signatureFile">Or Upload Signature Image</label>
+                  <input type="file" id="signatureFile" name="signatureFile" accept="image/*" />
+                  <p class="subtitle" style="margin: 6px 0 0;">PNG, JPG, or JPEG works best.</p>
+                </div>
               </div>
             </section>
 
@@ -404,6 +412,10 @@
         const poNumber = document.getElementById("poNumber");
         const gstin = document.getElementById("gstin");
         const gstTaxableAmount = document.getElementById("gstTaxableAmount");
+        const gstTaxLineOne = document.getElementById("gstTaxLineOne");
+        const gstTaxLineTwo = document.getElementById("gstTaxLineTwo");
+        const gstTaxLabelOne = document.getElementById("gstTaxLabelOne");
+        const gstTaxLabelTwo = document.getElementById("gstTaxLabelTwo");
         const gstCgstAmount = document.getElementById("gstCgstAmount");
         const gstSgstAmount = document.getElementById("gstSgstAmount");
         const gstTotalAmount = document.getElementById("gstTotalAmount");
@@ -415,6 +427,9 @@
         const matchStatus = document.getElementById("matchStatus");
         const formEl = document.getElementById("invoiceForm");
         const submitBtn = document.getElementById("submitBtn");
+        const initialItems = <%- JSON.stringify(form.existingItems || []) %>;
+        const deliverableOptions = <%- JSON.stringify(deliverableOptions) %>;
+        const companyStateCode = "27";
 
         function setChoiceState(activeChoice) {
           if (nonGstChoice) {
@@ -439,12 +454,18 @@
 
         function updateGstSummary() {
           const taxable = Number(lockedAmount || 0);
-          const cgst = Number((taxable * 0.09).toFixed(2));
-          const sgst = Number((taxable * 0.09).toFixed(2));
-          const totalGst = Number((cgst + sgst).toFixed(2));
+          const gstinValue = String(gstin ? gstin.value : "").trim();
+          const isIntraState = gstinValue.slice(0, 2) === companyStateCode;
+          const cgst = isIntraState ? Number((taxable * 0.09).toFixed(2)) : 0;
+          const sgst = isIntraState ? Number((taxable * 0.09).toFixed(2)) : 0;
+          const igst = isIntraState ? 0 : Number((taxable * 0.18).toFixed(2));
+          const totalGst = Number((cgst + sgst + igst).toFixed(2));
           const final = Number((taxable + totalGst).toFixed(2));
           if (gstTaxableAmount) gstTaxableAmount.textContent = taxable.toFixed(2);
-          if (gstCgstAmount) gstCgstAmount.textContent = cgst.toFixed(2);
+          if (gstTaxLabelOne) gstTaxLabelOne.textContent = isIntraState ? "CGST @ 9%:" : "IGST @ 18%:";
+          if (gstTaxLabelTwo) gstTaxLabelTwo.textContent = "SGST @ 9%:";
+          if (gstTaxLineTwo) gstTaxLineTwo.hidden = !isIntraState;
+          if (gstCgstAmount) gstCgstAmount.textContent = (isIntraState ? cgst : igst).toFixed(2);
           if (gstSgstAmount) gstSgstAmount.textContent = sgst.toFixed(2);
           if (gstTotalAmount) gstTotalAmount.textContent = totalGst.toFixed(2);
           if (gstFinalAmount) gstFinalAmount.textContent = final.toFixed(2);
@@ -469,7 +490,15 @@
           gstChoice.addEventListener("click", showGstFlow);
         }
 
-        showNonGstFlow();
+        if (gstin) {
+          gstin.addEventListener("input", updateGstSummary);
+        }
+
+        if (invoiceType && invoiceType.value === "gst") {
+          showGstFlow();
+        } else {
+          showNonGstFlow();
+        }
 
         function syncFieldState(field) {
           const control = field.querySelector("input, textarea, select");
@@ -489,23 +518,64 @@
           });
         });
 
-        function rowTemplate() {
+        function escapeHtml(value) {
+          return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;");
+        }
+
+        function rowTemplate(item = {}) {
+          const description = String(item.description || "").trim();
+          const isCustom = Boolean(description) && !deliverableOptions.includes(description);
+          const selectedValue = isCustom ? "Custom" : (description || deliverableOptions[0] || "");
+          const customValue = isCustom ? description : "";
           const row = document.createElement("div");
           row.className = "grid-3 line-item-row";
           row.innerHTML = `
-            <label class="field field-floating field-textarea">
-              <textarea name="itemDescriptions" required placeholder=" "></textarea>
-              <span>Description of Goods *</span>
+            <label class="field field-floating">
+              <select name="itemDescriptions" required placeholder=" ">
+                ${deliverableOptions.map((option) => `<option value="${escapeHtml(option)}" ${selectedValue === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+                <option value="Custom" ${selectedValue === "Custom" ? "selected" : ""}>Custom</option>
+              </select>
+              <span>Deliverable *</span>
             </label>
             <label class="field field-floating">
-              <input type="number" name="itemQuantities" step="0.01" min="0" value="1" required placeholder=" " />
+              <input type="number" name="itemQuantities" step="0.01" min="0" value="${Number(item.quantity || 1)}" required placeholder=" " />
               <span>Quantity *</span>
             </label>
             <label class="field field-floating">
-              <input type="number" name="itemAmounts" step="0.01" min="0" value="0" required placeholder=" " />
+              <input type="number" name="itemAmounts" step="0.01" min="0" value="${Number(item.amount || 0)}" required placeholder=" " />
               <span>Amount *</span>
             </label>
+            <label class="field field-floating field-textarea custom-deliverable" style="grid-column: 1 / -1; ${selectedValue === "Custom" ? "" : "display:none;"}">
+              <input type="text" name="itemCustomDescriptions" value="${escapeHtml(customValue)}" placeholder=" " ${selectedValue === "Custom" ? "required" : ""} />
+              <span>Custom Deliverable</span>
+            </label>
           `;
+
+          const select = row.querySelector("select[name='itemDescriptions']");
+          const customField = row.querySelector(".custom-deliverable");
+          const customInput = row.querySelector("input[name='itemCustomDescriptions']");
+
+          function syncCustomField() {
+            const showCustom = select.value === "Custom";
+            customField.style.display = showCustom ? "" : "none";
+            customInput.required = showCustom;
+          }
+
+          select.addEventListener("change", syncCustomField);
+          syncCustomField();
+          row.querySelectorAll(".field").forEach((field) => {
+            syncFieldState(field);
+            const control = field.querySelector("input, textarea, select");
+            if (!control) return;
+            ["input", "change", "blur"].forEach((eventName) => {
+              control.addEventListener(eventName, () => syncFieldState(field));
+            });
+          });
+          row.addEventListener("input", calculateTotal);
           return row;
         }
 
@@ -525,15 +595,14 @@
         }
 
         addRowBtn.addEventListener("click", () => {
-          const row = rowTemplate();
-          rowsWrap.appendChild(row);
-          row.querySelectorAll(".field").forEach((field) => syncFieldState(field));
-          row.addEventListener("input", calculateTotal);
+          rowsWrap.appendChild(rowTemplate());
         });
 
-        const first = rowTemplate();
-        rowsWrap.appendChild(first);
-        first.addEventListener("input", calculateTotal);
+        if (initialItems.length) {
+          initialItems.forEach((item) => rowsWrap.appendChild(rowTemplate(item)));
+        } else {
+          rowsWrap.appendChild(rowTemplate());
+        }
         calculateTotal();
 
         const canvas = document.getElementById("signPad");

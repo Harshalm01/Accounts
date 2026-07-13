@@ -21,6 +21,19 @@ const COMPANY = {
   stateCode: "27"
 };
 
+function safeFolderName(value, fallback = "campaign") {
+  const safe = String(value || "")
+    .trim()
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+  return safe || fallback;
+}
+
+function campaignFolderName(campaign) {
+  return `${safeFolderName(campaign.campaign_name)}-${campaign.campaign_id || campaign.id}`;
+}
+
 function numberToWords(amount) {
   const num = Math.round(Number(amount));
   if (!Number.isFinite(num)) return "";
@@ -93,25 +106,32 @@ async function ensurePdfForInvoice(invoiceId) {
 
   const items = await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [invoiceId]);
 
+  const folder = campaignFolderName(invoice);
+  const campaignGeneratedDir = path.join(generatedDir, "campaigns", folder);
+  fs.mkdirSync(campaignGeneratedDir, { recursive: true });
   const fileName = `invoice-${invoice.id}.pdf`;
-  const abs = path.join(generatedDir, fileName);
-  const rel = `/generated/${fileName}`;
+  const abs = path.join(campaignGeneratedDir, fileName);
+  const rel = `/generated/campaigns/${folder}/${fileName}`;
   const isGstInvoice = String(invoice.invoice_type || "non_gst") === "gst";
   const taxableAmount = Number(invoice.taxable_amount ?? invoice.locked_amount ?? invoice.total_amount ?? 0);
   const cgstRate = Number(invoice.cgst_rate ?? (isGstInvoice ? 9 : 0));
   const sgstRate = Number(invoice.sgst_rate ?? (isGstInvoice ? 9 : 0));
+  const igstRate = Number(invoice.igst_rate ?? 0);
   const gstRate = Number(invoice.gst_rate ?? (isGstInvoice ? 18 : 0));
   const cgstAmount = Number(invoice.cgst_amount ?? (taxableAmount * (cgstRate / 100)).toFixed(2));
   const sgstAmount = Number(invoice.sgst_amount ?? (taxableAmount * (sgstRate / 100)).toFixed(2));
-  const gstAmount = Number(invoice.gst_amount ?? (cgstAmount + sgstAmount).toFixed(2));
+  const igstAmount = Number(invoice.igst_amount ?? (taxableAmount * (igstRate / 100)).toFixed(2));
+  const gstAmount = Number(invoice.gst_amount ?? (cgstAmount + sgstAmount + igstAmount).toFixed(2));
   const finalAmount = Number(invoice.final_amount ?? (isGstInvoice ? (taxableAmount + gstAmount) : invoice.total_amount ?? taxableAmount));
+  const isIgst = isGstInvoice && igstRate > 0;
 
   function calcGstRow(baseAmount) {
     const base = Number(baseAmount || 0);
-    const rowCgst = Number((base * 0.09).toFixed(2));
-    const rowSgst = Number((base * 0.09).toFixed(2));
-    const rowFinal = Number((base + rowCgst + rowSgst).toFixed(2));
-    return { base, rowCgst, rowSgst, rowFinal };
+    const rowCgst = Number((base * (cgstRate / 100)).toFixed(2));
+    const rowSgst = Number((base * (sgstRate / 100)).toFixed(2));
+    const rowIgst = Number((base * (igstRate / 100)).toFixed(2));
+    const rowFinal = Number((base + rowCgst + rowSgst + rowIgst).toFixed(2));
+    return { base, rowCgst, rowSgst, rowIgst, rowFinal };
   }
 
   const doc = new PDFDocument({ margin: 32, size: "A4" });
@@ -154,8 +174,8 @@ async function ensurePdfForInvoice(invoiceId) {
         desc: 62,
         qty: 235,
         rate: 285,
-        cgst: 340,
-        sgst: 405,
+        tax1: 340,
+        tax2: 405,
         amount: 485
       }
     : {
@@ -171,8 +191,8 @@ async function ensurePdfForInvoice(invoiceId) {
   doc.text("Quantity", col.qty, tableTop);
   doc.text("Rate", col.rate, tableTop);
   if (isGstInvoice) {
-    doc.text("CGST", col.cgst, tableTop);
-    doc.text("SGST", col.sgst, tableTop);
+    doc.text(isIgst ? "IGST" : "CGST", col.tax1, tableTop);
+    if (!isIgst) doc.text("SGST", col.tax2, tableTop);
   }
   doc.text("Amount", col.amount, tableTop);
 
@@ -184,8 +204,8 @@ async function ensurePdfForInvoice(invoiceId) {
     doc.text(String(it.quantity || 0), col.qty, y);
     doc.text(isGstInvoice ? "18%" : Number(it.rate || 0).toFixed(2), col.rate, y);
     if (isGstInvoice) {
-      doc.text(`Rs ${rowTax.rowCgst.toFixed(2)}`, col.cgst, y);
-      doc.text(`Rs ${rowTax.rowSgst.toFixed(2)}`, col.sgst, y);
+      doc.text(`Rs ${(isIgst ? rowTax.rowIgst : rowTax.rowCgst).toFixed(2)}`, col.tax1, y);
+      if (!isIgst) doc.text(`Rs ${rowTax.rowSgst.toFixed(2)}`, col.tax2, y);
       doc.text(`Rs ${rowTax.rowFinal.toFixed(2)}`, col.amount, y);
     } else {
       doc.text(Number(it.amount || 0).toFixed(2), col.amount, y);
@@ -200,12 +220,18 @@ async function ensurePdfForInvoice(invoiceId) {
     doc.text("Taxable Amount", 395, y);
     doc.text(`Rs ${taxableAmount.toFixed(2)}`, 470, y);
     y += 16;
-    doc.text(`CGST @ ${cgstRate.toFixed(0)}%`, 395, y);
-    doc.text(`Rs ${cgstAmount.toFixed(2)}`, 470, y);
-    y += 16;
-    doc.text(`SGST @ ${sgstRate.toFixed(0)}%`, 395, y);
-    doc.text(`Rs ${sgstAmount.toFixed(2)}`, 470, y);
-    y += 16;
+    if (isIgst) {
+      doc.text(`IGST @ ${igstRate.toFixed(0)}%`, 395, y);
+      doc.text(`Rs ${igstAmount.toFixed(2)}`, 470, y);
+      y += 16;
+    } else {
+      doc.text(`CGST @ ${cgstRate.toFixed(0)}%`, 395, y);
+      doc.text(`Rs ${cgstAmount.toFixed(2)}`, 470, y);
+      y += 16;
+      doc.text(`SGST @ ${sgstRate.toFixed(0)}%`, 395, y);
+      doc.text(`Rs ${sgstAmount.toFixed(2)}`, 470, y);
+      y += 16;
+    }
     doc.text(`GST @ ${gstRate.toFixed(0)}%`, 395, y);
     doc.text(`Rs ${gstAmount.toFixed(2)}`, 470, y);
     y += 16;

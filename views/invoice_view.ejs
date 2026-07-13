@@ -9,12 +9,15 @@
   <body class="admin-page">
     <div class="shell">
       <% const isGstInvoice = invoice.invoice_type === 'gst'; %>
+      <% const creatorStateCode = String(invoice.creator_gstin || '').trim().slice(0, 2); %>
+      <% const isIntraState = creatorStateCode === '27'; %>
       <% const taxableAmount = Number(invoice.taxable_amount ?? invoice.locked_amount ?? invoice.total_amount ?? 0); %>
       <% const cgstAmount = Number(invoice.cgst_amount ?? (taxableAmount * 0.09).toFixed(2)); %>
       <% const sgstAmount = Number(invoice.sgst_amount ?? (taxableAmount * 0.09).toFixed(2)); %>
-      <% const gstAmount = Number(invoice.gst_amount ?? (cgstAmount + sgstAmount).toFixed(2)); %>
+      <% const igstAmount = Number(invoice.igst_amount ?? (taxableAmount * 0.18).toFixed(2)); %>
+      <% const gstAmount = Number(invoice.gst_amount ?? (isIntraState ? (cgstAmount + sgstAmount) : igstAmount).toFixed(2)); %>
       <% const grandTotal = Number(invoice.final_amount ?? (isGstInvoice ? (taxableAmount + gstAmount) : invoice.total_amount ?? taxableAmount)); %>
-      <% function rowBreakup(amount) { const base = Number(amount || 0); const cgst = Number((base * 0.09).toFixed(2)); const sgst = Number((base * 0.09).toFixed(2)); return { cgst, sgst, finalAmount: Number((base + cgst + sgst).toFixed(2)) }; } %>
+      <% function rowBreakup(amount) { const base = Number(amount || 0); if (isIntraState) { const cgst = Number((base * 0.09).toFixed(2)); const sgst = Number((base * 0.09).toFixed(2)); return { cgst, sgst, igst: 0, finalAmount: Number((base + cgst + sgst).toFixed(2)) }; } const igst = Number((base * 0.18).toFixed(2)); return { cgst: 0, sgst: 0, igst, finalAmount: Number((base + igst).toFixed(2)) }; } %>
       <div class="topbar hero-banner">
         <div>
           <%- include('partials/brand') %>
@@ -39,9 +42,13 @@
             <div><strong>Company GSTIN:</strong> 27AACFZ6393B1ZZ</div>
             <div><strong>Company PAN:</strong> AACFZ6393B</div>
             <div><strong>Taxable Amount:</strong> <%= taxableAmount.toFixed(2) %></div>
-            <div><strong>CGST @ 9%:</strong> <%= cgstAmount.toFixed(2) %></div>
-            <div><strong>SGST @ 9%:</strong> <%= sgstAmount.toFixed(2) %></div>
-            <div><strong>Total GST:</strong> <%= gstAmount.toFixed(2) %></div>
+                <% if (isIntraState) { %>
+                  <div><strong>CGST @ 9%:</strong> <%= cgstAmount.toFixed(2) %></div>
+                  <div><strong>SGST @ 9%:</strong> <%= sgstAmount.toFixed(2) %></div>
+                <% } else { %>
+                  <div><strong>IGST @ 18%:</strong> <%= igstAmount.toFixed(2) %></div>
+                <% } %>
+                <div><strong>Total GST:</strong> <%= gstAmount.toFixed(2) %></div>
             <div><strong>Grand Total:</strong> <%= grandTotal.toFixed(2) %></div>
           <% } %>
           <div><strong>PDF:</strong> <% if (invoice.pdf_path) { %><a href="<%= invoice.pdf_path %>" target="_blank">Download</a><% } else { %>Not generated<% } %></div>
@@ -63,8 +70,12 @@
               <th>Qty</th>
               <th>Rate</th>
               <% if (isGstInvoice) { %>
-                <th>CGST</th>
-                <th>SGST</th>
+                <% if (isIntraState) { %>
+                  <th>CGST</th>
+                  <th>SGST</th>
+                <% } else { %>
+                  <th>IGST</th>
+                <% } %>
               <% } %>
               <th>Amount</th>
             </tr>
@@ -78,8 +89,12 @@
                 <td><%= it.quantity %></td>
                 <td><%= isGstInvoice ? '18.00' : Number(it.rate || 0).toFixed(2) %></td>
                 <% if (isGstInvoice) { %>
-                  <td><%= row.cgst.toFixed(2) %></td>
-                  <td><%= row.sgst.toFixed(2) %></td>
+                  <% if (isIntraState) { %>
+                    <td><%= row.cgst.toFixed(2) %></td>
+                    <td><%= row.sgst.toFixed(2) %></td>
+                  <% } else { %>
+                    <td><%= row.igst.toFixed(2) %></td>
+                  <% } %>
                   <td><%= row.finalAmount.toFixed(2) %></td>
                 <% } else { %>
                   <td><%= Number(it.amount || 0).toFixed(2) %></td>
@@ -124,7 +139,6 @@
       <% if (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN') { %>
         <div class="card glass-panel">
           <div class="row">
-            <a href="/admin/invoices/<%= invoice.id %>/edit"><button class="btn btn-dark" type="button">Edit Invoice</button></a>
             <form method="post" action="/admin/invoices/<%= invoice.id %>/status">
               <input type="hidden" name="action" value="accept" />
               <button class="btn btn-primary" type="submit">Accept</button>

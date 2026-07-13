@@ -778,6 +778,149 @@ canvas {
   align-items: end;
 }
 
+.folder-grid,
+.notification-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.folder-card,
+.notification-card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 18px 20px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.folder-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.folder-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 18px 20px;
+}
+
+.folder-summary::-webkit-details-marker {
+  display: none;
+}
+
+.folder-summary h3 {
+  margin: 0;
+}
+
+.folder-card[open] .folder-summary {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.folder-card-body {
+  padding: 18px 20px 20px;
+}
+
+.folder-card-head,
+.notification-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.folder-metrics,
+.notification-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.folder-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+
+.creator-invoice-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #111827;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.creator-invoice-action:hover {
+  background: #1F2937;
+  color: #FFFFFF;
+}
+
+.creator-invoice-action-disabled {
+  background: rgba(148, 163, 184, 0.18);
+  color: #64748B;
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.creator-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.creator-card-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.creator-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.notification-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.notification-read {
+  opacity: 0.82;
+}
+
+.notification-unread {
+  border-color: rgba(124, 58, 237, 0.18);
+  box-shadow: 0 20px 44px rgba(124, 58, 237, 0.10);
+}
+
+.empty-state {
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: rgba(248, 250, 252, 0.9);
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  color: #64748b;
+}
+
+.empty-state-compact {
+  padding: 12px 14px;
+}
+
 .hero-banner,
 .card,
 .alert {
@@ -850,6 +993,17 @@ canvas {
   .grid-2,
   .grid-3 {
     grid-template-columns: 1fr;
+  }
+
+  .folder-card-head,
+  .notification-head,
+  .creator-card-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .notification-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .shell {
@@ -1242,6 +1396,21 @@ body.creator-page .signature-grid {
 body.creator-page .signature-panel {
   display: grid;
   gap: 12px;
+}
+
+body.creator-page .signature-upload-panel {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+body.creator-page .signature-upload-panel input[type="file"] {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.92);
+  color: #111827;
 }
 
 body.creator-page .canvas-wrap {

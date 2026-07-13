@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Notifications</title>
+    <link rel="stylesheet" href="/public/styles.css" />
+  </head>
+  <body class="admin-page">
+    <div class="shell">
+      <div class="topbar hero-banner">
+        <div>
+          <%- include('partials/brand') %>
+          <div class="eyebrow">Accounts inbox</div>
+          <h2>Notifications</h2>
+          <p class="subtitle">Submission alerts from creators appear here.</p>
+        </div>
+        <div class="row">
+          <form method="post" action="/admin/notifications/read">
+            <button class="btn btn-light" type="submit">Mark All Read</button>
+          </form>
+          <a href="/admin/dashboard"><button class="btn btn-light" type="button">Back</button></a>
+        </div>
+      </div>
+
+      <div class="card glass-panel">
+        <div class="section-head">
+          <div>
+            <h3>All notifications</h3>
+            <p class="subtitle">Newest alerts are shown first.</p>
+          </div>
+          <div class="pill"><%= notifications.length %> items</div>
+        </div>
+
+        <% if (!notifications.length) { %>
+          <div class="empty-state">No notifications yet.</div>
+        <% } %>
+
+        <div class="notification-stack">
+          <% notifications.forEach((note) => { %>
+            <article class="notification-card <%= note.is_read ? 'notification-read' : 'notification-unread' %>">
+              <div class="notification-head">
+                <div>
+                  <div class="eyebrow"><%= note.is_read ? 'Read' : 'Unread' %></div>
+                  <h3><%= note.campaign_name || 'Campaign' %></h3>
+                  <p class="subtitle"><%= note.message %></p>
+                </div>
+                <div class="notification-meta">
+                  <span class="pill"><%= note.created_at %></span>
+                  <% if (note.invoice_status) { %>
+                    <span class="pill"><%= note.invoice_status %></span>
+                  <% } %>
+                </div>
+              </div>
+
+              <div class="notification-grid">
+                <div class="summary-item">
+                  <span>Campaign Code</span>
+                  <strong><%= note.campaign_code || '-' %></strong>
+                </div>
+                <div class="summary-item">
+                  <span>Creator</span>
+                  <strong><%= note.creator_name || '-' %></strong>
+                </div>
+                <div class="summary-item">
+                  <span>Mobile</span>
+                  <strong><%= note.creator_mobile || '-' %></strong>
+                </div>
+                <div class="summary-item">
+                  <span>Invoice No</span>
+                  <strong><%= note.invoice_no || '-' %></strong>
+                </div>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

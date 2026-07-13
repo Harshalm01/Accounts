@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Invoice Submitted</title>
+    <link rel="stylesheet" href="/public/styles.css" />
+  </head>
+  <body class="creator-page">
+    <div class="shell">
+      <main class="portal-frame">
+        <header class="portal-hero card">
+          <div class="portal-title-block">
+            <%- include('partials/brand') %>
+            <div class="portal-kicker">Submission complete</div>
+            <h1>Invoice submitted successfully</h1>
+            <p class="subtitle">Your invoice is now available to the accounts team for review.</p>
+          </div>
+          <div class="portal-hero-meta" aria-hidden="true">
+            <div class="meta-chip">
+              <span class="meta-chip-label">Invoice</span>
+              <strong>#<%= invoice.id %></strong>
+            </div>
+            <div class="meta-chip">
+              <span class="meta-chip-label">Status</span>
+              <strong><%= invoice.status %></strong>
+            </div>
+          </div>
+        </header>
+
+        <section class="content-card">
+          <div class="section-head">
+            <div>
+              <div class="portal-kicker">Submitted invoice</div>
+              <h2 class="section-title"><%= invoice.campaign_name %></h2>
+            </div>
+            <p class="section-subtitle">Campaign code <%= invoice.campaign_code %></p>
+          </div>
+
+          <div class="summary-grid">
+            <div class="summary-item">
+              <span>Creator</span>
+              <strong><%= invoice.creator_name %> / <%= invoice.creator_mobile %></strong>
+            </div>
+            <div class="summary-item">
+              <span>Invoice No</span>
+              <strong><%= invoice.invoice_no %></strong>
+            </div>
+            <div class="summary-item">
+              <span>Date</span>
+              <strong><%= invoice.invoice_date %></strong>
+            </div>
+            <div class="summary-item">
+              <span>Total</span>
+              <strong>₹<%= Number(invoice.final_amount ?? invoice.total_amount ?? 0).toFixed(2) %></strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="content-card">
+          <div class="section-head">
+            <div>
+              <div class="portal-kicker">Next step</div>
+              <h2 class="section-title">What happens now</h2>
+            </div>
+            <p class="section-subtitle">The accounts team can accept or reject the invoice, and if you need corrections you can resubmit from the creator portal.</p>
+          </div>
+          <div class="form-actions form-actions-left">
+            <a href="/?campaignCode=<%= encodeURIComponent(invoice.campaign_code) %>&mobile=<%= encodeURIComponent(invoice.creator_mobile) %>"><button class="btn btn-primary btn-submit" type="button">Submit Another Invoice</button></a>
+            <% if (invoice.pdf_path) { %>
+              <a href="<%= invoice.pdf_path %>" target="_blank"><button class="btn btn-light" type="button">Open PDF</button></a>
+            <% } %>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
