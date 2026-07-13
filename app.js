@@ -2,6 +2,7 @@ const express = require("express");
 const session = require("express-session");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const multer = require("multer");
 const xlsx = require("xlsx");
@@ -23,6 +24,7 @@ const DELIVERABLE_OPTIONS = [
   "Static Post"
 ];
 const COMPANY_STATE_CODE = "27";
+const AUTH_COOKIE_NAME = "portal_auth";
 
 const uploadDir = path.join(runtimeDir, "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -74,6 +76,103 @@ function todayForInvoice() {
     month: "2-digit",
     day: "2-digit"
   }).format(new Date());
+}
+
+function isSecureRequest(req) {
+  return req.secure || req.headers["x-forwarded-proto"] === "https";
+}
+
+function authCookieOptions(req) {
+  return {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isSecureRequest(req),
+    maxAge: 1000 * 60 * 60 * 24
+  };
+}
+
+function sessionCookieOptions() {
+  return {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: "auto",
+    maxAge: 1000 * 60 * 60 * 24
+  };
+}
+
+function readCookie(req, name) {
+  const header = req.headers.cookie || "";
+  const parts = header.split(";").map((part) => part.trim());
+  for (const part of parts) {
+    const separatorIndex = part.indexOf("=");
+    if (separatorIndex === -1) continue;
+    const cookieName = part.slice(0, separatorIndex);
+    if (cookieName === name) {
+      return decodeURIComponent(part.slice(separatorIndex + 1));
+    }
+  }
+  return null;
+}
+
+function signAuthPayload(payload) {
+  const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const signature = crypto
+    .createHmac("sha256", process.env.SESSION_SECRET || "replace-this-in-production")
+    .update(data)
+    .digest("base64url");
+  return `${data}.${signature}`;
+}
+
+function verifyAuthPayload(value) {
+  if (!value) return null;
+  const [data, signature] = String(value).split(".");
+  if (!data || !signature) return null;
+
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.SESSION_SECRET || "replace-this-in-production")
+    .update(data)
+    .digest("base64url");
+
+  if (signature !== expectedSignature) return null;
+
+  try {
+    const parsed = JSON.parse(Buffer.from(data, "base64url").toString("utf8"));
+    if (!parsed || !parsed.id || !parsed.username || !parsed.role) return null;
+    return {
+      id: parsed.id,
+      username: parsed.username,
+      role: parsed.role,
+      teamName: parsed.teamName || null
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function getAuthenticatedUser(req) {
+  if (req.session.user) {
+    return req.session.user;
+  }
+  return verifyAuthPayload(readCookie(req, AUTH_COOKIE_NAME));
+}
+
+function setAuthCookie(res, req, user) {
+  res.cookie(
+    AUTH_COOKIE_NAME,
+    signAuthPayload({
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      teamName: user.teamName || null
+    }),
+    authCookieOptions(req)
+  );
+}
+
+function clearAuthCookie(res, req) {
+  res.clearCookie(AUTH_COOKIE_NAME, authCookieOptions(req));
 }
 
 function safeFolderName(value, fallback = "campaign") {
@@ -289,14 +388,19 @@ app.use(
     secret: process.env.SESSION_SECRET || "replace-this-in-production",
     resave: false,
     saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 1000 * 60 * 60 * 24
-    }
+    proxy: true,
+    cookie: sessionCookieOptions()
   })
 );
+app.use((req, _, next) => {
+  if (!req.session.user) {
+    const authUser = getAuthenticatedUser(req);
+    if (authUser) {
+      req.session.user = authUser;
+    }
+  }
+  next();
+});
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(uploadDir));
 app.use("/generated", express.static(generatedDir));
@@ -674,7 +778,7 @@ app.get("/creator/submitted", async (req, res) => {
 });
 
 app.get("/admin", (req, res) => {
-  if (req.session.user) {
+  if (getAuthenticatedUser(req)) {
     return res.redirect("/admin/dashboard");
   }
   res.render("admin_login", { error: null });
@@ -698,11 +802,13 @@ app.post("/admin/login", async (req, res) => {
     role: user.role,
     teamName: user.team_name || null
   };
+  setAuthCookie(res, req, req.session.user);
 
   res.redirect("/admin/dashboard");
 });
 
 app.post("/admin/logout", requireAuth, (req, res) => {
+  clearAuthCookie(res, req);
   req.session.destroy(() => res.redirect("/admin"));
 });
 
