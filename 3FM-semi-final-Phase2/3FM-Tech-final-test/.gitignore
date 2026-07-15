@@ -1,0 +1,115 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.log
+*.pot
+*.pyc
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/media
+/staticfiles
+/static
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# CSV Data Files (exclude large datasets)
+*.csv
+!requirements.txt
+data/raw/*.csv
+data/processed/*.csv
+WIP_Master_Data*.csv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Node (Frontend)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+.cache/
+
+# React / Vite
+.vite/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Temporary directories
+tmp/
+temp/
+*.tmp
+tmpclaude-*/
+
+# Analysis scripts output
+analyze_*.py
+attempt_*.py
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Deployment
+*.log
+railway.json
+vercel.json
+
+# Secrets
+*_secret*
+*_key*
+*.pem
+*.key
+credentials.json

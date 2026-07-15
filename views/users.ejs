@@ -3,77 +3,147 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Users</title>
-    <link rel="stylesheet" href="/public/styles.css" />
+    <title>Users — 3Folks Media</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/styles.css?v=35" />
   </head>
   <body class="admin-page">
     <div class="shell">
-      <div class="topbar">
-        <div>
+
+      <!-- Hero Banner Header -->
+      <div class="topbar hero-banner folder-header-banner">
+        <div class="header-left">
           <%- include('partials/brand') %>
-          <h2>User Management</h2>
-          <p class="subtitle">Create users, reset password, delete users.</p>
+          <div class="eyebrow">Super Admin</div>
+          <h2 style="margin: 8px 0 6px 0;">User Management</h2>
+          <p class="subtitle" style="color: #4B5563 !important;">Create users, assign roles and reset passwords.</p>
         </div>
-        <a href="/admin/dashboard"><button class="btn btn-light" type="button">Back</button></a>
+
+        <div class="header-right">
+          <div class="header-actions-row">
+            <a href="/admin/dashboard"><button class="btn btn-3d-nav" type="button">← Back</button></a>
+          </div>
+          <div class="header-stats-grid">
+            <div class="header-stat-card">
+              <span class="stat-icon">👤</span>
+              <div class="stat-info">
+                <span class="stat-value"><%= users.length %></span>
+                <span class="stat-label">Total Users</span>
+              </div>
+            </div>
+            <div class="header-stat-card">
+              <span class="stat-icon">🛡️</span>
+              <div class="stat-info">
+                <span class="stat-value"><%= users.filter(u=>u.role==='SUPER_ADMIN').length %></span>
+                <span class="stat-label">Super Admins</span>
+              </div>
+            </div>
+            <div class="header-stat-card">
+              <span class="stat-icon">🏷️</span>
+              <div class="stat-info">
+                <span class="stat-value"><%= users.filter(u=>u.role==='TEAM').length %></span>
+                <span class="stat-label">Team Users</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <% if (error) { %>
         <div class="alert alert-error"><%= error %></div>
       <% } %>
 
-      <div class="card" style="margin-bottom: 12px;">
-        <h3>Add User</h3>
+      <!-- Add User Form -->
+      <div class="card glass-panel" style="margin-bottom: 16px;">
+        <div class="section-head" style="margin-bottom: 20px;">
+          <div>
+            <h3>Add User</h3>
+            <p class="subtitle">Create a new portal user with a role and optional team assignment.</p>
+          </div>
+        </div>
         <form method="post" action="/admin/users" class="grid-3">
-          <label>Username *<input type="text" name="username" required /></label>
-          <label>Password *<input type="password" name="password" required /></label>
-          <label>
-            Role *
+          <label class="input-label">
+            <span>Username *</span>
+            <input type="text" name="username" required placeholder="e.g. john_accounts" />
+          </label>
+          <label class="input-label">
+            <span>Password *</span>
+            <input type="password" name="password" required placeholder="Min 8 characters" />
+          </label>
+          <label class="input-label">
+            <span>Role *</span>
             <select name="role" required>
               <option value="TEAM">TEAM</option>
               <option value="ACCOUNTS">ACCOUNTS</option>
               <option value="SUPER_ADMIN">SUPER_ADMIN</option>
             </select>
           </label>
-          <label>Team Name (for TEAM role)<input type="text" name="teamName" /></label>
-          <div><button class="btn btn-primary" type="submit">Create User</button></div>
+          <label class="input-label">
+            <span>Team Name (for TEAM role)</span>
+            <input type="text" name="teamName" placeholder="e.g. TEAM_1" />
+          </label>
+          <div style="align-self: end;">
+            <button class="btn btn-3d-nav" type="submit" style="width:100%;">+ Create User</button>
+          </div>
         </form>
       </div>
 
-      <div class="card">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Username</th>
-              <th>Role</th>
-              <th>Team</th>
-              <th>Reset Password</th>
-              <th>Delete</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% users.forEach((u) => { %>
+      <!-- Users Table -->
+      <div class="card glass-panel">
+        <div class="section-head" style="margin-bottom: 20px;">
+          <div>
+            <h3>All Users</h3>
+            <p class="subtitle">Manage existing portal users — reset passwords or remove access.</p>
+          </div>
+          <div class="pill"><%= users.length %> users</div>
+        </div>
+
+        <div class="users-table-wrap">
+          <table class="users-table">
+            <thead>
               <tr>
-                <td><%= u.id %></td>
-                <td><%= u.username %></td>
-                <td><%= u.role %></td>
-                <td><%= u.team_name || '-' %></td>
-                <td>
-                  <form method="post" action="/admin/users/<%= u.id %>/reset" class="row">
-                    <input type="password" name="newPassword" placeholder="New Password" required />
-                    <button class="btn btn-dark" type="submit">Reset</button>
-                  </form>
-                </td>
-                <td>
-                  <form method="post" action="/admin/users/<%= u.id %>/delete" onsubmit="return confirm('Delete user?')">
-                    <button class="btn btn-danger" type="submit">Delete</button>
-                  </form>
-                </td>
+                <th>#</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Team</th>
+                <th>Reset Password</th>
+                <th>Delete</th>
               </tr>
-            <% }) %>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <% users.forEach((u) => { %>
+                <tr>
+                  <td class="user-id-cell"><%= u.id %></td>
+                  <td>
+                    <div class="user-name-cell">
+                      <div class="user-avatar"><%= u.username.charAt(0).toUpperCase() %></div>
+                      <span><%= u.username %></span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="role-badge role-<%= u.role.toLowerCase() %>"><%= u.role %></span>
+                  </td>
+                  <td class="team-cell"><%= u.team_name || '—' %></td>
+                  <td>
+                    <form method="post" action="/admin/users/<%= u.id %>/reset" style="display:flex;gap:8px;align-items:center;">
+                      <input type="password" name="newPassword" placeholder="New password" required style="flex:1;min-width:140px;" />
+                      <button class="btn btn-3d-sm btn-3d-view" type="submit">Reset</button>
+                    </form>
+                  </td>
+                  <td>
+                    <form method="post" action="/admin/users/<%= u.id %>/delete" onsubmit="return confirm('Delete user <%= u.username %>?')">
+                      <button class="btn btn-3d-sm btn-3d-reject" type="submit">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
       </div>
+
     </div>
   </body>
 </html>

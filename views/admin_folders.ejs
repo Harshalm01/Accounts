@@ -4,22 +4,59 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Folders</title>
-    <link rel="stylesheet" href="/public/styles.css" />
+    <link rel="stylesheet" href="/public/styles.css?v=35" />
   </head>
   <body class="admin-page">
     <div class="shell">
-      <div class="topbar hero-banner">
-        <div>
+      <div class="topbar hero-banner folder-header-banner">
+        <div class="header-left">
           <%- include('partials/brand') %>
           <div class="eyebrow">Accounts storage</div>
-          <h2>Campaign Folders</h2>
-          <p class="subtitle">Campaign folders are created automatically when a campaign is added.</p>
+          <h2 style="margin: 8px 0 6px 0;">Campaign Folders</h2>
+          <p class="subtitle" style="color: #4B5563 !important;">Campaign folders are created automatically when a campaign is added.</p>
         </div>
-        <a href="/admin/dashboard"><button class="btn btn-light" type="button">Back</button></a>
+        
+        <div class="header-right">
+          <div class="header-actions-row">
+            <a href="/admin/dashboard"><button class="btn btn-3d-nav" type="button">← Back</button></a>
+          </div>
+          
+          <div class="header-stats-grid">
+            <div class="header-stat-card">
+              <span class="stat-icon">📁</span>
+              <div class="stat-info">
+                <span class="stat-value"><%= folders.length %></span>
+                <span class="stat-label">Total Folders</span>
+              </div>
+            </div>
+            
+            <div class="header-stat-card">
+              <span class="stat-icon">👥</span>
+              <div class="stat-info">
+                <% 
+                  let totalCreators = folders.reduce((sum, f) => sum + (f.creatorCount || 0), 0);
+                %>
+                <span class="stat-value"><%= totalCreators %></span>
+                <span class="stat-label">Mapped Creators</span>
+              </div>
+            </div>
+
+            <div class="header-stat-card">
+              <span class="stat-icon">📄</span>
+              <div class="stat-info">
+                <% 
+                  let totalInvoices = folders.reduce((sum, f) => sum + (f.invoiceCount || 0), 0);
+                %>
+                <span class="stat-value"><%= totalInvoices %></span>
+                <span class="stat-label">Total Invoices</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="card glass-panel">
-        <div class="section-head">
+        <div class="section-head" style="margin-bottom: 20px;">
           <div>
             <h3>Available folders</h3>
             <p class="subtitle">Each campaign folder now shows the mapped creators inside the card.</p>
@@ -27,29 +64,119 @@
           <div class="pill"><%= folders.length %> folders</div>
         </div>
 
+        <!-- Search Bar -->
+        <div class="folder-search-wrap">
+          <span class="folder-search-icon">🔍</span>
+          <input type="text" id="folderSearch" class="folder-search-input" placeholder="Search campaign name..." autocomplete="off" />
+          <div class="folder-search-kbd" id="searchKbd">/</div>
+          <button type="button" class="folder-search-clear" id="searchClearBtn" style="display: none;">×</button>
+          <span class="folder-search-feedback" id="searchFeedback" style="display: none;"></span>
+        </div>
+
         <% if (!folders.length) { %>
           <div class="empty-state">No campaign folders found yet.</div>
         <% } %>
 
-        <div class="folder-grid folder-grid-square">
+        <div class="folder-grid folder-grid-books">
           <% folders.forEach((folder) => { %>
-            <a class="folder-card folder-card-square" href="<%= folder.latestInvoiceId ? `/admin/invoices/${folder.latestInvoiceId}` : `/admin/campaigns/${folder.id}/creators` %>">
-              <div class="folder-card-tile">
-                <div class="folder-card-tile-top">
-                  <span class="folder-card-label">Campaign</span>
-                  <span class="folder-card-count"><%= folder.creatorCount %></span>
+            <div class="folder-card-wrap" data-name="<%= folder.campaignName.toLowerCase() %>">
+              <a class="book" href="/admin/campaigns/<%= folder.id %>/creators?from=folders">
+
+                <!-- Inside of Book (creators list) -->
+                <div class="inside-page">
+                  <div class="inside-header">Creators · <%= folder.creatorCount %></div>
+                  <div class="inside-creators-list">
+                    <% if (folder.creators && folder.creators.length) { %>
+                      <% folder.creators.forEach((c) => { %>
+                        <div class="inside-creator-row">
+                          <span class="inside-creator-name"><%= c.creator_name %></span>
+                          <span class="inside-creator-amount">₹<%= Number(c.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></span>
+                        </div>
+                      <% }) %>
+                    <% } else { %>
+                      <div style="color:#a78bfa;font-size:13px;margin-top:16px;text-align:center;">No creators mapped</div>
+                    <% } %>
+                  </div>
                 </div>
-                <h3 class="folder-card-title"><%= folder.campaignName %></h3>
-                <p class="folder-card-subtitle"><%= folder.campaignCode %> • <%= folder.teamName %></p>
-                <div class="folder-card-footer">
-                  <span class="pill"><%= folder.invoiceCount %> invoices</span>
-                  <span class="folder-card-link"><%= folder.latestInvoiceId ? 'Open Invoice' : 'Open Creators' %></span>
+
+                <!-- Cover of Book (campaign summary) -->
+                <div class="cover">
+                  <div>
+                    <span class="cover-tag">Campaign</span>
+                    <h3 class="cover-title"><%= folder.campaignName %></h3>
+                    <p style="font-size:12px;color:#6B7280;margin:0 0 12px 0;"><%= folder.campaignCode %> · <%= folder.teamName %></p>
+                  </div>
+                  <div class="cover-meta">
+                    <div class="meta-item">
+                      <span class="meta-icon">📄</span>
+                      <span><%= folder.invoiceCount %> invoices</span>
+                    </div>
+                    <div class="meta-item">
+                      <span class="meta-icon">👥</span>
+                      <span><%= folder.creatorCount %> creators</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </a>
+
+              </a>
+            </div>
           <% }) %>
         </div>
       </div>
     </div>
+
+    <script>
+      const searchInput = document.getElementById("folderSearch");
+      const clearBtn = document.getElementById("searchClearBtn");
+      const kbd = document.getElementById("searchKbd");
+      const feedback = document.getElementById("searchFeedback");
+      const cards = document.querySelectorAll(".folder-card-wrap");
+
+      function updateSearch() {
+        const term = searchInput.value.toLowerCase().trim();
+        let visibleCount = 0;
+
+        cards.forEach((card) => {
+          const name = card.getAttribute("data-name") || "";
+          if (name.includes(term)) {
+            card.style.display = "";
+            visibleCount++;
+          } else {
+            card.style.display = "none";
+          }
+        });
+
+        // Toggle clear button
+        if (term) {
+          clearBtn.style.display = "block";
+          feedback.style.display = "block";
+          feedback.textContent = `${visibleCount} found`;
+        } else {
+          clearBtn.style.display = "none";
+          feedback.style.display = "none";
+        }
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener("input", updateSearch);
+
+        // Keyboard Shortcut: press "/" to focus search
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "/" && document.activeElement !== searchInput) {
+            e.preventDefault();
+            searchInput.focus();
+          }
+        });
+
+        // Clear button action
+        if (clearBtn) {
+          clearBtn.addEventListener("click", () => {
+            searchInput.value = "";
+            updateSearch();
+            searchInput.focus();
+          });
+        }
+      }
+    </script>
   </body>
 </html>

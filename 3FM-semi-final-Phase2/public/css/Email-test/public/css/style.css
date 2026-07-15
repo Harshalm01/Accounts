@@ -1,0 +1,399 @@
+/* ===== Reset & Base ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* ===== Layout ===== */
+.wrapper {
+    width: 100%;
+    max-width: 440px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ===== Card ===== */
+.card {
+    background: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 30px;
+    text-align: center;
+    color: white;
+}
+
+.card-header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.card-header p {
+    font-size: 14px;
+    opacity: 0.85;
+}
+
+.card-header-verify {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.card-header-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.card-body {
+    padding: 30px;
+}
+
+/* ===== Form Elements ===== */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #e1e5eb;
+    border-radius: 10px;
+    font-size: 15px;
+    color: #333;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+.form-group input::placeholder {
+    color: #aaa;
+}
+
+/* ===== Buttons ===== */
+.btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 5px;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(17, 153, 142, 0.4);
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #667eea;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 8px 0;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+/* ===== OTP Input ===== */
+.otp-inputs {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 25px 0;
+}
+
+.otp-digit {
+    width: 50px;
+    height: 56px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    border: 2px solid #e1e5eb;
+    border-radius: 10px;
+    color: #333;
+    outline: none;
+    transition: all 0.3s;
+}
+
+.otp-digit:focus {
+    border-color: #f5576c;
+    box-shadow: 0 0 0 3px rgba(245, 87, 108, 0.15);
+}
+
+.otp-digit.filled {
+    border-color: #f5576c;
+    background: #fff5f6;
+}
+
+.sent-to {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+/* ===== Resend Row ===== */
+.resend-row {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 13px;
+    color: #999;
+}
+
+/* ===== Error Message ===== */
+.error-msg {
+    color: #e74c3c;
+    font-size: 13px;
+    text-align: center;
+    margin-top: 12px;
+    min-height: 18px;
+}
+
+/* ===== Success Screen ===== */
+.success-icon {
+    font-size: 64px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.welcome-msg {
+    text-align: center;
+    color: #333;
+    font-size: 22px;
+    margin-bottom: 10px;
+}
+
+.success-text {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+/* ===== Loading Spinner ===== */
+.btn.loading {
+    position: relative;
+    color: transparent;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 22px;
+    height: 22px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+    .otp-digit {
+        width: 42px;
+        height: 48px;
+        font-size: 20px;
+    }
+    
+    .otp-inputs {
+        gap: 6px;
+    }
+
+    .card-header h1 {
+        font-size: 22px;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .form-half {
+        width: 100% !important;
+    }
+}
+
+/* ===== Tab Bar ===== */
+.tab-bar {
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+    border-radius: 12px 12px 0 0;
+    overflow: hidden;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+}
+
+.tab {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.7);
+    backdrop-filter: blur(10px);
+}
+
+.tab.active {
+    background: #ffffff;
+    color: #667eea;
+}
+
+.tab:not(.active):hover {
+    background: rgba(255,255,255,0.35);
+    color: #fff;
+}
+
+/* Tab active -> remove top border-radius from card */
+.tab-bar + div .card,
+.tab-bar ~ div .card {
+    border-radius: 0 0 16px 16px;
+}
+
+/* ===== Notification Header ===== */
+.card-header-notify {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+/* ===== Textarea ===== */
+.form-group textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #e1e5eb;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: inherit;
+    color: #333;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    outline: none;
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-group textarea:focus {
+    border-color: #fa709a;
+    box-shadow: 0 0 0 3px rgba(250, 112, 154, 0.15);
+}
+
+.form-group textarea::placeholder {
+    color: #aaa;
+}
+
+/* ===== Form Row (side by side) ===== */
+.form-row {
+    display: flex;
+    gap: 12px;
+}
+
+.form-half {
+    width: 50%;
+}
+
+.optional {
+    font-weight: 400;
+    color: #bbb;
+    text-transform: none;
+    font-size: 11px;
+}
+
+/* ===== Notify Button ===== */
+.btn-notify {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    color: #333;
+}
+
+.btn-notify:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(250, 112, 154, 0.4);
+}
+
+/* ===== Success Message ===== */
+.success-msg {
+    color: #11998e;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 12px;
+    font-weight: 600;
+    padding: 10px;
+    background: #e6fff9;
+    border-radius: 8px;
+}

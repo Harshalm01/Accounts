@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3 Folks Media — Email OTP Verification</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Tab Navigation -->
+        <div class="tab-bar">
+            <button class="tab active" onclick="switchTab('otp')">OTP Signup</button>
+            <button class="tab" onclick="switchTab('notify')">Send Notification</button>
+        </div>
+
+        <!-- ==================== OTP SECTION ==================== -->
+        <div id="tab-otp">
+        <!-- Step 1: Enter Details -->
+        <div class="card" id="step-signup">
+            <div class="card-header">
+                <h1>3 Folks Media</h1>
+                <p>Sign up with Email OTP</p>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="name">Your Name</label>
+                    <input type="text" id="name" placeholder="Enter your name" autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="Enter your email" autocomplete="email">
+                </div>
+                <button class="btn btn-primary" id="btn-send-otp" onclick="sendOTP()">
+                    Send OTP
+                </button>
+                <div id="error-signup" class="error-msg"></div>
+            </div>
+        </div>
+
+        <!-- Step 2: Verify OTP -->
+        <div class="card hidden" id="step-verify">
+            <div class="card-header card-header-verify">
+                <h1>Enter OTP</h1>
+                <p>Check your email for the 6-digit code</p>
+            </div>
+            <div class="card-body">
+                <p class="sent-to">OTP sent to <strong id="display-email"></strong></p>
+                <div class="otp-inputs" id="otp-inputs">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="0" autofocus>
+                    <input type="text" maxlength="1" class="otp-digit" data-index="1">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="2">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="3">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="4">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="5">
+                </div>
+                <button class="btn btn-primary" id="btn-verify" onclick="verifyOTP()">
+                    Verify OTP
+                </button>
+                <div id="error-verify" class="error-msg"></div>
+                <div class="resend-row">
+                    <span id="timer">Resend in <strong id="countdown">30</strong>s</span>
+                    <button class="btn-link hidden" id="btn-resend" onclick="resendOTP()">Resend OTP</button>
+                </div>
+                <button class="btn-link" onclick="goBack()">← Change email</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Success -->
+        <div class="card hidden" id="step-success">
+            <div class="card-header card-header-success">
+                <h1>Verified! ✅</h1>
+                <p>Your account is ready</p>
+            </div>
+            <div class="card-body">
+                <div class="success-icon">🎉</div>
+                <h2 class="welcome-msg">Welcome, <span id="display-name"></span>!</h2>
+                <p class="success-text">Your email has been verified successfully. A welcome email has been sent to your inbox.</p>
+                <button class="btn btn-success" onclick="location.reload()">Start Over</button>
+            </div>
+        </div>
+        </div><!-- end tab-otp -->
+
+        <!-- ==================== NOTIFICATION SECTION ==================== -->
+        <div id="tab-notify" class="hidden">
+        <!-- Compose Notification -->
+        <div class="card" id="step-notify">
+            <div class="card-header card-header-notify">
+                <h1>Send Notification</h1>
+                <p>Send personalized emails to anyone</p>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="notify-name">Recipient Name</label>
+                    <input type="text" id="notify-name" placeholder="e.g. Rahul Sharma">
+                </div>
+                <div class="form-group">
+                    <label for="notify-email">Recipient Email</label>
+                    <input type="email" id="notify-email" placeholder="e.g. rahul@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="notify-subject">Subject</label>
+                    <input type="text" id="notify-subject" placeholder="e.g. Project Update">
+                </div>
+                <div class="form-group">
+                    <label for="notify-message">Message</label>
+                    <textarea id="notify-message" rows="5" placeholder="Write your personalized message here...&#10;&#10;You can write multiple paragraphs."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group form-half">
+                        <label for="notify-cta-text">Button Text <span class="optional">(optional)</span></label>
+                        <input type="text" id="notify-cta-text" placeholder="e.g. View Project">
+                    </div>
+                    <div class="form-group form-half">
+                        <label for="notify-cta-link">Button Link <span class="optional">(optional)</span></label>
+                        <input type="url" id="notify-cta-link" placeholder="e.g. https://example.com">
+                    </div>
+                </div>
+                <button class="btn btn-notify" id="btn-send-notify" onclick="sendNotification()">
+                    Send Notification
+                </button>
+                <div id="error-notify" class="error-msg"></div>
+                <div id="success-notify" class="success-msg hidden"></div>
+            </div>
+        </div>
+        </div><!-- end tab-notify -->
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

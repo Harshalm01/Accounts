@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard</title>
-    <link rel="stylesheet" href="/public/styles.css" />
+    <link rel="stylesheet" href="/public/styles.css?v=35" />
   </head>
   <body class="admin-page">
     <div class="shell">
@@ -16,63 +16,105 @@
       <%   const gst = Number(inv.gst_amount ?? (cgst + sgst).toFixed(2)); %>
       <%   return Number(inv.final_amount ?? (isGst ? (taxable + gst) : inv.total_amount ?? taxable)); %>
       <% } %>
-      <div class="topbar hero-banner">
-        <div>
+      <div class="topbar hero-banner folder-header-banner">
+        <div class="header-left">
           <%- include('partials/brand') %>
           <div class="eyebrow">Portal overview</div>
-          <h2>Dashboard</h2>
+          <h2 style="margin: 8px 0 6px 0;">Dashboard</h2>
           <div class="pill"><%= user.role %> • <%= user.username %></div>
         </div>
-        <form method="post" action="/admin/logout">
-          <button class="btn btn-light" type="submit">Logout</button>
-        </form>
+        
+        <div class="header-right">
+          <div class="header-actions-row">
+            <% if (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN') { %>
+              <button type="button" class="btn btn-3d-nav btn-3d-bell" id="bellBtn">
+                🔔
+                <% if (notifications.length > 0) { %>
+                  <span class="bell-badge" id="bellCount"><%= notifications.length %></span>
+                <% } %>
+              </button>
+            <% } %>
+            <form method="post" action="/admin/logout">
+              <button class="btn btn-3d-nav" type="submit">Logout</button>
+            </form>
+          </div>
+          
+          <div class="header-stats-grid">
+            <div class="header-stat-card">
+              <span class="stat-icon">📄</span>
+              <div class="stat-info">
+                <span class="stat-value"><%= invoices.length %></span>
+                <span class="stat-label">Total Invoices</span>
+              </div>
+            </div>
+            
+            <div class="header-stat-card">
+              <span class="stat-icon">⏳</span>
+              <div class="stat-info">
+                <% let pendingCount = invoices.filter(i => i.status === 'SUBMITTED' || i.status === 'REGENERATED').length; %>
+                <span class="stat-value"><%= pendingCount %></span>
+                <span class="stat-label">Pending Review</span>
+              </div>
+            </div>
+
+            <div class="header-stat-card">
+              <span class="stat-icon">💰</span>
+              <div class="stat-info">
+                <% 
+                  let totalPayout = invoices.reduce((sum, i) => sum + gstBreakup(i), 0);
+                %>
+                <span class="stat-value">₹<%= Math.round(totalPayout).toLocaleString('en-IN') %></span>
+                <span class="stat-label">Total Payout</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="nav" style="margin-bottom: 12px;">
-        <a href="/admin/dashboard"><button class="btn btn-light" type="button">Invoices</button></a>
+      <div class="nav nav-3d" style="margin-bottom: 20px;">
+        <a href="/admin/dashboard"><button class="btn btn-3d-nav" type="button">Invoices</button></a>
         <% if (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN') { %>
-          <a href="/admin/folders"><button class="btn btn-light" type="button">Folders</button></a>
-          <a href="/admin/notifications"><button class="btn btn-light" type="button">Notifications</button></a>
+          <a href="/admin/folders"><button class="btn btn-3d-nav" type="button">Folders</button></a>
+          <a href="/admin/notifications"><button class="btn btn-3d-nav" type="button">Notifications</button></a>
         <% } %>
         <% if (user.role === 'TEAM' || user.role === 'SUPER_ADMIN') { %>
-          <a href="/admin/campaigns"><button class="btn btn-light" type="button">Campaigns</button></a>
+          <a href="/admin/campaigns"><button class="btn btn-3d-nav" type="button">Campaigns</button></a>
         <% } %>
         <% if (user.role === 'SUPER_ADMIN') { %>
-          <a href="/admin/users"><button class="btn btn-light" type="button">Users</button></a>
+          <a href="/admin/users"><button class="btn btn-3d-nav" type="button">Users</button></a>
         <% } %>
       </div>
 
       <div class="card glass-panel">
-        <% if ((user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN') && notifications.length) { %>
-          <div class="section-head" style="margin-bottom: 12px;">
-            <div>
-              <h3>New Submissions</h3>
-              <p class="subtitle">Creator invoice submissions awaiting review.</p>
-            </div>
-            <form method="post" action="/admin/notifications/read">
-              <button class="btn btn-light" type="submit">Mark All Read</button>
-            </form>
-          </div>
-          <div class="notice-card info-card" style="margin-bottom: 18px;">
-            <div class="notice-copy" style="width: 100%;">
-              <div class="notice-grid" style="grid-template-columns: 1fr; gap: 10px;">
-                <% notifications.forEach((note) => { %>
-                  <div class="summary-item" style="background: rgba(255,255,255,0.92);">
-                    <span><%= note.campaign_name || 'Campaign' %></span>
-                    <strong><%= note.message %></strong>
-                  </div>
-                <% }) %>
-              </div>
-            </div>
-          </div>
-        <% } %>
-
-        <div class="section-head">
+        <div class="section-head" style="margin-bottom: 20px;">
           <div>
             <h3>Invoices</h3>
             <p class="subtitle">Track submitted invoices, edits, and approval status.</p>
           </div>
-          <div class="pill"><%= invoices.length %> items</div>
+          <div style="display: flex; align-items: center; gap: 20px;">
+            <!-- Custom 3D Toggle Switch (GST to Non-GST) -->
+            <div style="display: flex; align-items: center; gap: 12px; margin-top: 40px;">
+              <span id="labelGst" style="font-size: 13px; font-weight: 800; color: #dc2626; cursor: pointer; user-select: none;">GST</span>
+              
+              <div class="toggle-container">
+                <input class="toggle-input" id="invoiceTypeToggle" type="checkbox" />
+                <div class="toggle-handle-wrapper">
+                  <div class="toggle-handle">
+                    <div class="toggle-handle-knob"></div>
+                    <div class="toggle-handle-bar-wrapper">
+                      <div class="toggle-handle-bar"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="toggle-base">
+                  <div class="toggle-base-inside"></div>
+                </div>
+              </div>
+
+              <span id="labelNonGst" style="font-size: 13px; font-weight: 800; color: #16a34a; cursor: pointer; user-select: none;">Non-GST</span>
+            </div>
+            <div class="pill" id="invoiceCountPill" style="margin-top: 40px;"><%= invoices.length %> items</div>
+          </div>
         </div>
         <table>
           <thead>
@@ -82,30 +124,184 @@
               <th>Creator</th>
               <th>Invoice No</th>
               <th>Type</th>
-              <th>Total</th>
+              <th>Total Amount</th>
               <th>Status</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
             <% if (!invoices.length) { %>
-              <tr><td colspan="8">No invoices yet.</td></tr>
+              <tr><td colspan="8" style="text-align: center; color: #6b7280; padding: 30px;">No invoices yet.</td></tr>
             <% } %>
             <% invoices.forEach((inv) => { %>
-              <tr>
-                <td><%= inv.id %></td>
-                <td><%= inv.campaign_name %> (<%= inv.campaign_code %>)</td>
-                <td><%= inv.creator_name %> / <%= inv.creator_mobile %></td>
-                <td><%= inv.invoice_no %></td>
-                <td><%= inv.invoice_type === 'gst' ? 'GST' : 'Non-GST' %></td>
-                <td><%= gstBreakup(inv).toFixed(2) %></td>
-                <td><%= inv.status %></td>
-                <td><a href="/admin/invoices/<%= inv.id %>">Open</a></td>
+              <tr class="context-row">
+                <td style="color: #6B7280; font-weight: 600;">#<%= inv.id %></td>
+                <td class="campaign-cell">
+                  <strong><%= inv.campaign_name %></strong><br/>
+                  <span><%= inv.campaign_code %></span>
+                </td>
+                <td>
+                  <strong><%= inv.creator_name %></strong><br/>
+                  <span style="color: #6B7280; font-size: 12px;"><%= inv.creator_mobile %></span>
+                </td>
+                <td style="font-weight: 500; color: #4B5563;">#<%= inv.invoice_no %></td>
+                <td class="type-cell">
+                  <span><%= inv.invoice_type === 'gst' ? 'GST' : 'Non-GST' %></span>
+                </td>
+                <td class="total-cell">₹<%= gstBreakup(inv).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                <td>
+                  <span class="status-pill <%= inv.status %>"><%= inv.status %></span>
+                </td>
+                <td class="action-cell">
+                  <a href="/admin/invoices/<%= inv.id %>" class="btn btn-3d-sm btn-3d-open">Open</a>
+                  <div class="row-hover-overlay">
+                    <a href="/admin/invoices/<%= inv.id %>" class="btn btn-3d-sm btn-3d-view">View Details</a>
+                    <% if (inv.pdf_path) { %>
+                      <a href="<%= inv.pdf_path %>" target="_blank" class="btn btn-3d-sm btn-3d-open">Download PDF</a>
+                    <% } %>
+                  </div>
+                </td>
               </tr>
             <% }) %>
           </tbody>
         </table>
       </div>
     </div>
+
+    <!-- Sliding Notification Drawer -->
+    <% if (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN') { %>
+      <div class="notification-drawer" id="notificationDrawer">
+        <div class="drawer-header">
+          <h3>Recent Submissions</h3>
+          <button type="button" class="btn btn-3d-nav btn-3d-close" id="closeDrawerBtn">✕</button>
+        </div>
+        <div class="drawer-body">
+          <% if (!notifications.length) { %>
+            <div class="empty-state">All caught up! No pending notifications.</div>
+          <% } %>
+          <% notifications.forEach((note) => { %>
+            <div class="drawer-card">
+              <div class="drawer-card-header">
+                <span class="eyebrow"><%= note.campaign_name || 'Campaign' %></span>
+                <span class="pill status-pill <%= note.invoice_status %>" style="font-size: 10px;"><%= note.invoice_status %></span>
+              </div>
+              <p class="drawer-message"><%= note.message %></p>
+              <div class="drawer-actions">
+                <% if (note.invoice_id) { %>
+                  <a href="/admin/invoices/<%= note.invoice_id %>" class="btn btn-3d-sm btn-3d-open">Open</a>
+                  <form method="post" action="/admin/invoices/<%= note.invoice_id %>/status" style="display: inline;">
+                    <input type="hidden" name="action" value="accept" />
+                    <button type="submit" class="btn btn-3d-sm btn-3d-accept">Accept</button>
+                  </form>
+                  <form method="post" action="/admin/invoices/<%= note.invoice_id %>/status" style="display: inline;">
+                    <input type="hidden" name="action" value="reject" />
+                    <button type="submit" class="btn btn-3d-sm btn-3d-reject">Reject</button>
+                  </form>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+      <div class="drawer-overlay" id="drawerOverlay"></div>
+
+      <script>
+        const bellBtn = document.getElementById("bellBtn");
+        const closeDrawerBtn = document.getElementById("closeDrawerBtn");
+        const drawer = document.getElementById("notificationDrawer");
+        const overlay = document.getElementById("drawerOverlay");
+        const bellCount = document.getElementById("bellCount");
+
+        if (bellBtn && drawer && overlay) {
+          bellBtn.addEventListener("click", () => {
+            drawer.classList.add("active");
+            overlay.classList.add("active");
+            
+            // Hide the red badge immediately
+            if (bellCount) {
+              bellCount.style.display = "none";
+            }
+            
+            // Mark all notifications as read in the background
+            fetch("/admin/notifications/read", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+              }
+            }).catch(err => console.error("Error marking notifications as read:", err));
+          });
+
+          const closeDrawer = () => {
+            drawer.classList.remove("active");
+            overlay.classList.remove("active");
+          };
+
+          closeDrawerBtn.addEventListener("click", closeDrawer);
+          overlay.addEventListener("click", closeDrawer);
+        }
+      </script>
+    <% } %>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const typeToggle = document.getElementById('invoiceTypeToggle');
+        const invoiceRows = document.querySelectorAll('.context-row');
+        const countPill = document.getElementById('invoiceCountPill');
+
+        function filterInvoices() {
+          const showNonGst = typeToggle.checked;
+          let visibleCount = 0;
+
+          invoiceRows.forEach(row => {
+            const typeText = row.querySelector('.type-cell span').textContent.trim().toLowerCase();
+            let show = false;
+
+            if (!showNonGst && typeText === 'gst') {
+              show = true;
+            } else if (showNonGst && typeText === 'non-gst') {
+              show = true;
+            }
+
+            if (show) {
+              row.style.display = '';
+              visibleCount++;
+            } else {
+              row.style.display = 'none';
+            }
+          });
+
+          if (countPill) {
+            countPill.textContent = `${visibleCount} item${visibleCount !== 1 ? 's' : ''}`;
+          }
+        }
+
+        const labelGst = document.getElementById('labelGst');
+        const labelNonGst = document.getElementById('labelNonGst');
+
+        if (labelGst) {
+          labelGst.addEventListener('click', () => {
+            if (typeToggle.checked) {
+              typeToggle.checked = false;
+              filterInvoices();
+            }
+          });
+        }
+
+        if (labelNonGst) {
+          labelNonGst.addEventListener('click', () => {
+            if (!typeToggle.checked) {
+              typeToggle.checked = true;
+              filterInvoices();
+            }
+          });
+        }
+
+        if (typeToggle) {
+          typeToggle.addEventListener('change', filterInvoices);
+          // Run once initially to set the default filter (GST)
+          filterInvoices();
+        }
+      });
+    </script>
   </body>
 </html>

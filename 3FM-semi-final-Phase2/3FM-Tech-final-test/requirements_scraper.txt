@@ -1,0 +1,12 @@
+# Instagram Scraper Requirements
+# Install with: pip install -r requirements.txt
+
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+pandas>=2.0.0
+flask>=2.3.0
+lxml>=4.9.0
+
+# Optional: For enhanced scraping with Selenium
+# selenium>=4.15.0
+# webdriver-manager>=4.0.0

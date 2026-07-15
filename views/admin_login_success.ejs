@@ -1,0 +1,255 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Welcome Back — 3Folks Media</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background: #0a0014;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+      }
+
+      /* ── Animated bg gradient ── */
+      .bg-glow {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(124,58,237,0.18) 0%, transparent 70%);
+        animation: bgPulse 3s ease-in-out infinite alternate;
+      }
+      @keyframes bgPulse {
+        from { opacity: 0.6; transform: scale(1); }
+        to   { opacity: 1;   transform: scale(1.08); }
+      }
+
+      /* ── Floating particles ── */
+      .particles {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+      }
+      .particle {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0;
+        animation: floatUp var(--dur) ease-out var(--delay) forwards;
+      }
+      @keyframes floatUp {
+        0%   { transform: translateY(0) scale(0); opacity: 0; }
+        15%  { opacity: 1; }
+        100% { transform: translateY(-120vh) scale(1.4); opacity: 0; }
+      }
+
+      /* ── Ripple rings ── */
+      .ripple-wrap {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+      .ripple {
+        position: absolute;
+        border-radius: 50%;
+        border: 2px solid rgba(167,139,250,0.5);
+        animation: rippleOut 2.4s ease-out var(--d) forwards;
+      }
+      @keyframes rippleOut {
+        0%   { width: 0;     height: 0;     opacity: 0.8; }
+        100% { width: 800px; height: 800px; opacity: 0;   }
+      }
+
+      /* ── Main card ── */
+      .card {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 28px;
+        animation: cardIn 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards;
+        opacity: 0;
+      }
+      @keyframes cardIn {
+        from { opacity: 0; transform: scale(0.7) translateY(30px); }
+        to   { opacity: 1; transform: scale(1)   translateY(0);    }
+      }
+
+      /* ── Logo area ── */
+      .logo-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+      .logo-ring {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgba(124,58,237,0.12);
+        border: 1.5px solid rgba(167,139,250,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: logoRing 1s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
+        box-shadow: 0 0 40px rgba(124,58,237,0.25), inset 0 0 30px rgba(124,58,237,0.08);
+      }
+      @keyframes logoRing {
+        from { transform: scale(0) rotate(-90deg); opacity: 0; }
+        to   { transform: scale(1) rotate(0deg);   opacity: 1; }
+      }
+      .logo-ring img {
+        width: 88px;
+        height: auto;
+        filter: brightness(0) invert(1);
+        animation: logoImg 0.6s ease 0.5s both;
+      }
+      @keyframes logoImg {
+        from { opacity: 0; transform: scale(0.6); }
+        to   { opacity: 1; transform: scale(1); }
+      }
+
+      /* ── Checkmark tick ── */
+      .tick-wrap {
+        position: absolute;
+        bottom: -4px;
+        right: -4px;
+        width: 34px;
+        height: 34px;
+        background: linear-gradient(135deg, #16a34a, #15803d);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2.5px solid #0a0014;
+        animation: tickPop 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.85s both;
+        box-shadow: 0 4px 12px rgba(22,163,74,0.5);
+      }
+      @keyframes tickPop {
+        from { transform: scale(0); opacity: 0; }
+        to   { transform: scale(1); opacity: 1; }
+      }
+      .tick-wrap svg { width: 16px; height: 16px; stroke: #fff; }
+
+      /* ── Text ── */
+      .welcome-text {
+        text-align: center;
+        animation: textIn 0.6s ease 0.6s both;
+      }
+      @keyframes textIn {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .welcome-text h1 {
+        font-size: 38px;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: -1.5px;
+        line-height: 1.1;
+        margin-bottom: 8px;
+      }
+      .welcome-text h1 span { color: #a78bfa; }
+      .welcome-text p {
+        font-size: 14px;
+        font-weight: 500;
+        color: rgba(255,255,255,0.45);
+        letter-spacing: 0.3px;
+      }
+
+      /* ── Progress bar ── */
+      .progress-wrap {
+        width: 220px;
+        height: 3px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 99px;
+        overflow: hidden;
+        animation: fadeInBar 0.4s ease 1s both;
+      }
+      @keyframes fadeInBar { from { opacity: 0; } to { opacity: 1; } }
+      .progress-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #7c3aed, #a78bfa, #7c3aed);
+        background-size: 200% 100%;
+        border-radius: 99px;
+        animation: fillBar 2s ease 1.1s forwards, shimmer 1.2s linear 1.1s infinite;
+      }
+      @keyframes fillBar { from { width: 0%; } to { width: 100%; } }
+      @keyframes shimmer { 0% { background-position: 0% 0; } 100% { background-position: 200% 0; } }
+    </style>
+  </head>
+  <body>
+
+    <div class="bg-glow"></div>
+
+    <!-- Ripple rings from centre -->
+    <div class="ripple-wrap">
+      <div class="ripple" style="--d:0.1s"></div>
+      <div class="ripple" style="--d:0.5s"></div>
+      <div class="ripple" style="--d:0.9s"></div>
+      <div class="ripple" style="--d:1.3s"></div>
+    </div>
+
+    <!-- Floating particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Main content -->
+    <div class="card">
+      <div class="logo-wrap">
+        <div class="logo-ring" style="position:relative;">
+          <img src="/public/logo.png" alt="3Folks Media" />
+          <div class="tick-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="welcome-text">
+        <h1>Welcome <span>Back.</span></h1>
+        <p>Opening your dashboard&hellip;</p>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-fill"></div>
+      </div>
+    </div>
+
+    <script>
+      /* Spawn floating particles */
+      const container = document.getElementById('particles');
+      const colors = ['#7c3aed','#a78bfa','#c4b5fd','#4f46e5','#818cf8','#e879f9'];
+      for (let i = 0; i < 55; i++) {
+        const el = document.createElement('div');
+        el.className = 'particle';
+        const size = Math.random() * 8 + 3;
+        el.style.cssText = `
+          width:${size}px; height:${size}px;
+          left:${Math.random()*100}%;
+          top:${80 + Math.random()*20}%;
+          background:${colors[Math.floor(Math.random()*colors.length)]};
+          --dur:${2 + Math.random()*3}s;
+          --delay:${Math.random()*2}s;
+        `;
+        container.appendChild(el);
+      }
+
+      /* Redirect after animation */
+      const nextUrl = <%- JSON.stringify(nextUrl) %>;
+      setTimeout(() => window.location.replace(nextUrl), 3200);
+    </script>
+  </body>
+</html>

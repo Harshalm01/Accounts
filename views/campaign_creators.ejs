@@ -3,20 +3,53 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Campaign Creators</title>
-    <link rel="stylesheet" href="/public/styles.css" />
+    <title><%= campaign.campaign_name %> — Creators</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/styles.css?v=35" />
   </head>
   <body class="admin-page">
     <div class="shell">
-      <div class="topbar hero-banner">
-        <div>
+
+      <!-- Hero Banner -->
+      <div class="topbar hero-banner folder-header-banner">
+        <div class="header-left">
           <%- include('partials/brand') %>
-          <div class="eyebrow">Campaign Influencers</div>
-          <h2><%= campaign.campaign_name %></h2>
-          <p class="subtitle"><%= campaign.campaign_code %> • Add creators one by one or bulk upload CSV/XLSX</p>
+          <div class="eyebrow">Campaign Creators</div>
+          <h2 style="margin: 8px 0 6px 0;"><%= campaign.campaign_name %></h2>
+          <p class="subtitle" style="color: #4B5563 !important;"><%= campaign.campaign_code %> · Add creators manually or bulk upload CSV/XLSX.</p>
         </div>
-        <div class="row">
-          <a href="/admin/campaigns"><button class="btn btn-light" type="button">Back</button></a>
+
+        <div class="header-right">
+          <div class="header-actions-row">
+            <a href="<%= typeof backUrl !== 'undefined' ? backUrl : '/admin/folders' %>">
+              <button class="btn btn-3d-nav" type="button">← Back</button>
+            </a>
+          </div>
+          <div class="header-stats-grid">
+            <div class="header-stat-card">
+              <span class="stat-icon">👥</span>
+              <div class="stat-info">
+                <span class="stat-value"><%= creators.length %></span>
+                <span class="stat-label">Creators</span>
+              </div>
+            </div>
+            <div class="header-stat-card">
+              <span class="stat-icon">💰</span>
+              <div class="stat-info">
+                <span class="stat-value">₹<%= creators.reduce((s,c)=>s+Number(c.amount||0),0).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0}) %></span>
+                <span class="stat-label">Total Payout</span>
+              </div>
+            </div>
+            <div class="header-stat-card">
+              <span class="stat-icon">📄</span>
+              <div class="stat-info">
+                <span class="stat-value"><%= creators.filter(c=>c.latest_invoice_id).length %></span>
+                <span class="stat-label">Submitted</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -28,75 +61,140 @@
       <% } %>
 
       <% if (canEdit) { %>
-        <div class="card glass-panel" style="margin-bottom: 12px;">
-          <div class="section-head">
+        <!-- Add Creator Form -->
+        <div class="card glass-panel" style="margin-bottom:16px;">
+          <div class="section-head" style="margin-bottom:20px;">
             <div>
-              <h3>Add Creator Mapping</h3>
-              <p class="subtitle">Add a single creator manually.</p>
+              <h3>Add Creator</h3>
+              <p class="subtitle">Map a single creator to this campaign manually.</p>
             </div>
             <div class="pill">Manual</div>
           </div>
           <form method="post" action="/admin/campaigns/<%= campaign.id %>/creators" class="grid-3">
-            <label>Creator Name *<input type="text" name="creatorName" required /></label>
-            <label>Mobile *<input type="text" name="mobile" required /></label>
-            <label>Predefined Amount *<input type="number" step="0.01" name="amount" required /></label>
-            <div><button class="btn btn-primary" type="submit">Add Creator</button></div>
+            <label class="input-label">
+              <span>Creator Name *</span>
+              <input type="text" name="creatorName" required placeholder="e.g. Rahul Sharma" />
+            </label>
+            <label class="input-label">
+              <span>Mobile *</span>
+              <input type="text" name="mobile" required placeholder="10-digit number" />
+            </label>
+            <label class="input-label">
+              <span>Predefined Amount *</span>
+              <input type="number" step="0.01" name="amount" required placeholder="e.g. 25000" />
+            </label>
+            <div style="align-self:end;">
+              <button class="btn btn-3d-nav" type="submit" style="width:100%;">+ Add Creator</button>
+            </div>
           </form>
         </div>
 
-        <div class="card glass-panel" style="margin-bottom: 12px;">
-          <div class="section-head">
+        <!-- Bulk Upload -->
+        <div class="card glass-panel" style="margin-bottom:16px;">
+          <div class="section-head" style="margin-bottom:20px;">
             <div>
-              <h3>Bulk Upload Creators</h3>
-              <p class="subtitle">Upload a CSV or Excel file with columns: Creator Name, Contact Number, Amount.</p>
+              <h3>Bulk Upload</h3>
+              <p class="subtitle">Upload CSV or Excel with columns: Creator Name, Contact Number, Amount.</p>
             </div>
-            <div class="pill pill-accent">Bulk Upload</div>
+            <div class="pill pill-accent">Bulk</div>
           </div>
-          <form method="post" action="/admin/campaigns/<%= campaign.id %>/creators/bulk" enctype="multipart/form-data" class="bulk-upload-form">
-            <label>
-              Select CSV / Excel File
+          <form method="post" action="/admin/campaigns/<%= campaign.id %>/creators/bulk" enctype="multipart/form-data" style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;">
+            <label class="input-label" style="flex:1;min-width:220px;">
+              <span>Select CSV / Excel File</span>
               <input type="file" name="creatorFile" accept=".csv,.xlsx,.xls" required />
             </label>
-            <div class="row">
-              <button class="btn btn-dark" type="submit">Upload Creators</button>
-              <a href="/public/sample-creators.csv" download><button class="btn btn-light" type="button">Download Sample CSV</button></a>
+            <div style="display:flex;gap:8px;padding-bottom:2px;">
+              <button class="btn btn-3d-nav" type="submit">Upload</button>
+              <a href="/public/sample-creators.csv" download>
+                <button class="btn btn-3d-sm btn-3d-open" type="button" style="transform:none;">Sample CSV</button>
+              </a>
             </div>
           </form>
         </div>
       <% } %>
 
+      <!-- Creators Table -->
       <div class="card glass-panel">
-        <div class="section-head">
+        <div class="section-head" style="margin-bottom:20px;">
           <div>
-            <h3>Creators for this campaign</h3>
-            <p class="subtitle">Only creators linked to <%= campaign.campaign_name %> are shown here.</p>
+            <h3>Creators for <%= campaign.campaign_name %></h3>
+            <p class="subtitle">All creators mapped to this campaign and their invoice status.</p>
           </div>
           <div class="pill"><%= creators.length %> creators</div>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Creator Name</th>
-              <th>Mobile</th>
-              <th>Predefined Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% if (!creators.length) { %>
-              <tr><td colspan="4">No creators mapped yet.</td></tr>
-            <% } %>
-            <% creators.forEach((cr) => { %>
-              <tr>
-                <td><%= cr.id %></td>
-                <td><%= cr.creator_name %></td>
-                <td><%= cr.mobile %></td>
-                <td><%= Number(cr.amount || 0).toFixed(2) %></td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
+
+        <% if (!creators.length) { %>
+          <div class="empty-state">No creators mapped yet.</div>
+        <% } else { %>
+          <div class="users-table-wrap">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Creator</th>
+                  <th>Mobile</th>
+                  <th>Predefined Amt</th>
+                  <th>Invoice</th>
+                  <th>Invoice Amt</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% creators.forEach((cr) => { %>
+                  <tr>
+                    <td class="user-id-cell"><%= cr.id %></td>
+                    <td>
+                      <div class="user-name-cell">
+                        <div class="user-avatar"><%= cr.creator_name.charAt(0).toUpperCase() %></div>
+                        <span style="font-weight:600;color:#111827;"><%= cr.creator_name %></span>
+                      </div>
+                    </td>
+                    <td style="color:#6B7280;font-size:12px;font-weight:500;"><%= cr.mobile %></td>
+                    <td>
+                      <span style="font-weight:700;color:#7c3aed;">₹<%= Number(cr.amount||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}) %></span>
+                    </td>
+                    <td>
+                      <% if (cr.latest_invoice_id) { %>
+                        <div style="display:flex;flex-direction:column;gap:4px;">
+                          <span style="font-size:12px;font-weight:600;color:#1f2937;"><%= cr.latest_invoice_no || `#${cr.latest_invoice_id}` %></span>
+                          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                            <span class="status-pill <%= cr.latest_invoice_status %>" style="font-size:10px;padding:3px 8px;"><%= cr.latest_invoice_status %></span>
+                            <% if (Number(cr.invoice_count||0) > 1) { %>
+                              <span class="pill" style="font-size:10px;"><%= cr.invoice_count %> total</span>
+                            <% } %>
+                          </div>
+                        </div>
+                      <% } else { %>
+                        <span class="pill" style="font-size:10px;color:#9ca3af;">Not submitted</span>
+                      <% } %>
+                    </td>
+                    <td>
+                      <% if (cr.latest_invoice_id) { %>
+                        <span style="font-weight:700;color:#15803d;">₹<%= Number(cr.latest_invoice_amount||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}) %></span>
+                      <% } else { %>
+                        <span style="color:#d1d5db;">—</span>
+                      <% } %>
+                    </td>
+                    <td>
+                      <div style="display:flex;gap:6px;perspective:500px;">
+                        <% if (cr.latest_invoice_id) { %>
+                          <a href="/admin/invoices/<%= cr.latest_invoice_id %>?from=folders" class="btn btn-3d-sm btn-3d-view">View</a>
+                          <% if (cr.latest_pdf_path) { %>
+                            <a href="<%= cr.latest_pdf_path %>" target="_blank" class="btn btn-3d-sm btn-3d-open">PDF</a>
+                          <% } %>
+                        <% } else { %>
+                          <span style="color:#d1d5db;font-size:12px;">—</span>
+                        <% } %>
+                      </div>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
       </div>
+
     </div>
   </body>
 </html>

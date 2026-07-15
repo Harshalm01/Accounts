@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+body {
+  background-color: #f9fafb;
+  color: #111827;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Custom animation utilities */
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Glass morphism effect */
+.backdrop-blur-xl {
+  backdrop-filter: blur(16px);
+}
+
+/* Enhanced shadow */
+.shadow-3xl {
+  box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
+}

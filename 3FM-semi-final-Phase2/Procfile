@@ -1,0 +1,2 @@
+release: cd backend && npm run prisma:generate
+web: cd backend && npm start

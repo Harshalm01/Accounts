@@ -3,18 +3,52 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Campaigns</title>
-    <link rel="stylesheet" href="/public/styles.css" />
+    <title>Campaigns — 3Folks Media</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/styles.css?v=35" />
   </head>
   <body class="admin-page">
     <div class="shell">
-      <div class="topbar">
-        <div>
+
+      <!-- Hero Banner Header -->
+      <div class="topbar hero-banner folder-header-banner">
+        <div class="header-left">
           <%- include('partials/brand') %>
-          <h2>Campaigns</h2>
-          <p class="subtitle">Create campaign with predefined amount and map creators by mobile.</p>
+          <div class="eyebrow">Team workspace</div>
+          <h2 style="margin: 8px 0 6px 0;">Campaigns</h2>
+          <p class="subtitle" style="color: #4B5563 !important;">Create campaigns and map creators by mobile number.</p>
         </div>
-        <a href="/admin/dashboard"><button class="btn btn-light" type="button">Back</button></a>
+
+        <div class="header-right">
+          <div class="header-actions-row">
+            <a href="/admin/dashboard"><button class="btn btn-3d-nav" type="button">← Back</button></a>
+          </div>
+          <div class="header-stats-grid">
+            <div class="header-stat-card">
+              <span class="stat-icon">📣</span>
+              <div class="stat-info">
+                <span class="stat-value"><%= campaigns.length %></span>
+                <span class="stat-label">Total Campaigns</span>
+              </div>
+            </div>
+            <div class="header-stat-card">
+              <span class="stat-icon">👥</span>
+              <div class="stat-info">
+                <span class="stat-value"><%= campaigns.reduce((s,c)=>s+(c.creator_count||0),0) %></span>
+                <span class="stat-label">Total Creators</span>
+              </div>
+            </div>
+            <div class="header-stat-card">
+              <span class="stat-icon">💰</span>
+              <div class="stat-info">
+                <span class="stat-value">₹<%= Number(campaigns.reduce((s,c)=>s+Number(c.amount||0),0)).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0}) %></span>
+                <span class="stat-label">Total Payout</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <% if (error) { %>
@@ -24,42 +58,57 @@
         <div class="alert alert-success"><%= success %></div>
       <% } %>
 
+      <!-- Add Campaign Form -->
       <% if (canEdit) { %>
-        <div class="card" style="margin-bottom: 12px;">
-          <h3>Add Campaign</h3>
-          <form method="post" action="/admin/campaigns" class="grid-3">
-            <label>Campaign Name *<input type="text" name="campaignName" required /></label>
-            <label>Campaign Code *<input type="text" name="campaignCode" required /></label>
-            <% if (user.role === 'SUPER_ADMIN') { %>
-              <label>Team Name<input type="text" name="teamName" placeholder="TEAM_1" /></label>
-            <% } %>
+        <div class="card glass-panel" style="margin-bottom: 16px;">
+          <div class="section-head" style="margin-bottom: 20px;">
             <div>
-              <button class="btn btn-primary" type="submit">Create Campaign</button>
+              <h3>Add Campaign</h3>
+              <p class="subtitle">Fill in campaign name, code and optionally assign a team.</p>
+            </div>
+          </div>
+          <form method="post" action="/admin/campaigns" class="grid-3">
+            <label class="input-label">
+              <span>Campaign Name *</span>
+              <input type="text" name="campaignName" required placeholder="e.g. Kaamil Phase 3" />
+            </label>
+            <label class="input-label">
+              <span>Campaign Code *</span>
+              <input type="text" name="campaignCode" required placeholder="e.g. 3FM-CC-40" />
+            </label>
+            <% if (user.role === 'SUPER_ADMIN') { %>
+              <label class="input-label">
+                <span>Team Name</span>
+                <input type="text" name="teamName" placeholder="TEAM_1" />
+              </label>
+            <% } %>
+            <div style="align-self: end;">
+              <button class="btn btn-3d-nav" type="submit" style="width:100%;">+ Create Campaign</button>
             </div>
           </form>
         </div>
       <% } %>
 
-      <div class="card" style="margin-bottom: 12px;">
-        <h3>Filter Campaigns</h3>
-        <p class="subtitle" style="margin-top: -6px;">Use search to narrow the list, for example by campaign name like Kaamil.</p>
-        <form method="get" action="/admin/campaigns" class="grid-3">
-          <label>
-            Search by campaign name / code / team
-            <input type="text" name="search" value="<%= search || '' %>" placeholder="Kaamil" />
+      <!-- Filter -->
+      <div class="card glass-panel" style="margin-bottom: 16px;">
+        <form method="get" action="/admin/campaigns" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+          <label class="input-label" style="flex:1;min-width:220px;">
+            <span>Search by name / code / team</span>
+            <input type="text" name="search" value="<%= search || '' %>" placeholder="Kaamil, 3FM-CC-40…" />
           </label>
-          <div style="align-self: end;">
-            <button class="btn btn-dark" type="submit">Filter</button>
-            <a href="/admin/campaigns"><button class="btn btn-light" type="button">Clear</button></a>
+          <div style="display:flex;gap:8px;padding-bottom:2px;">
+            <button class="btn btn-3d-nav" type="submit">Filter</button>
+            <a href="/admin/campaigns"><button class="btn btn-3d-sm btn-3d-open" type="button" style="transform:none;">Clear</button></a>
           </div>
         </form>
       </div>
 
+      <!-- Campaign List -->
       <div class="card glass-panel">
-        <div class="section-head">
+        <div class="section-head" style="margin-bottom: 20px;">
           <div>
-            <h3>Campaign folders</h3>
-            <p class="subtitle">Click a campaign name to see the creators, amounts, and invoice details inside it.</p>
+            <h3>Campaign Folders</h3>
+            <p class="subtitle">Click a campaign to view creators, amounts and invoices.</p>
           </div>
           <div class="pill"><%= campaigns.length %> campaigns</div>
         </div>
@@ -68,50 +117,53 @@
           <div class="empty-state">No campaigns match your filter.</div>
         <% } %>
 
-        <div class="folder-grid">
+        <div class="campaigns-list">
           <% campaigns.forEach((c) => { %>
-            <details class="folder-card">
-              <summary class="folder-summary">
-                <h3><%= c.campaign_name %></h3>
-              </summary>
-
-              <div class="folder-card-body">
-                <div class="folder-card-head">
-                  <div>
-                    <p class="subtitle"><%= c.campaign_code %> • <%= c.team_name %></p>
-                    <div class="folder-metrics">
-                      <span class="pill"><%= c.creator_count || 0 %> creators</span>
-                      <span class="pill">₹<%= Number(c.amount || 0).toFixed(2) %></span>
-                    </div>
-                  </div>
-                  <div class="folder-links">
-                    <a href="/admin/campaigns/<%= c.id %>/creators">Manage Creators</a>
+            <div class="campaign-row-card">
+              <div class="campaign-row-left">
+                <div class="campaign-row-icon">📣</div>
+                <div class="campaign-row-info">
+                  <div class="campaign-row-name"><%= c.campaign_name %></div>
+                  <div class="campaign-row-meta">
+                    <span class="pill" style="font-size:10px;"><%= c.campaign_code %></span>
+                    <span style="color:#94a3b8;font-size:12px;">·</span>
+                    <span style="font-size:12px;color:#6B7280;font-weight:500;"><%= c.team_name %></span>
                   </div>
                 </div>
+              </div>
+              <div class="campaign-row-stats">
+                <div class="campaign-stat-chip">
+                  <span>👥</span>
+                  <span><%= c.creator_count || 0 %> creators</span>
+                </div>
+                <div class="campaign-stat-chip campaign-stat-amount">
+                  <span>₹<%= Number(c.amount || 0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}) %></span>
+                </div>
+              </div>
+              <div class="campaign-row-actions">
+                <a href="/admin/campaigns/<%= c.id %>/creators" class="btn btn-3d-sm btn-3d-view">Manage Creators</a>
+              </div>
+            </div>
 
-                <div class="creator-stack">
-                  <% const creators = c.creators || []; %>
-                  <% if (!creators.length) { %>
-                    <div class="empty-state empty-state-compact">No creators mapped yet.</div>
-                  <% } %>
-                  <% creators.forEach((creator) => { %>
-                    <div class="creator-card-row">
-                      <div>
-                        <strong><%= creator.creator_name %></strong>
-                        <div class="subtitle"><%= creator.mobile %></div>
-                      </div>
-                      <div class="creator-row-meta">
-                        <span>₹<%= Number(creator.amount || 0).toFixed(2) %></span>
-                        <span class="pill"><%= creator.invoice_count %> invoices</span>
-                      </div>
+            <!-- Creators preview (collapsible) -->
+            <% if ((c.creators || []).length) { %>
+              <details class="campaign-creators-preview">
+                <summary>Show <%= c.creators.length %> creator<%= c.creators.length !== 1 ? 's' : '' %></summary>
+                <div class="creator-preview-grid">
+                  <% c.creators.forEach((cr) => { %>
+                    <div class="creator-preview-chip">
+                      <strong><%= cr.creator_name %></strong>
+                      <span>₹<%= Number(cr.amount||0).toLocaleString('en-IN',{minimumFractionDigits:2}) %></span>
+                      <span class="pill" style="font-size:10px;"><%= cr.invoice_count %> inv</span>
                     </div>
                   <% }) %>
                 </div>
-              </div>
-            </details>
+              </details>
+            <% } %>
           <% }) %>
         </div>
       </div>
+
     </div>
   </body>
 </html>

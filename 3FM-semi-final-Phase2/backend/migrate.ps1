@@ -1,0 +1,1 @@
+$process = Start-Process -FilePath "npx" -ArgumentList "prisma", "migrate", "dev", "--create-only", "--name", "restructure_campaign_with_junction" -NoNewWindow -PassThru -Wait -RedirectStandardInput "y`n"

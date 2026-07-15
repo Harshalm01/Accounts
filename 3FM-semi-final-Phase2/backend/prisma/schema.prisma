@@ -1,0 +1,813 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  BRAND
+  AGENCY
+  EMPLOYEE
+}
+
+model User {
+  id           String         @id @default(uuid())
+  email        String?        @unique
+  phone        String?        @unique
+  password     String
+  name         String?
+  designation  String?
+  role         UserRole       @default(AGENCY)
+  themePreference     String   @default("dark")
+  onboardingCompleted Boolean  @default(false)
+  canAccessAccounts   Boolean  @default(false)
+  canApprovePayments  Boolean  @default(false)
+  credits             Float    @default(0)
+  loginHistory LoginHistory[]
+  brands       Brand[]
+  campaigns    Campaign[]
+  pitchesSent  Pitch[]        @relation("AgencyPitches")
+  pitchesReceived Pitch[]     @relation("BrandPitches")
+  assignmentsAsHead CampaignAssignment[] @relation("HeadAssignments")
+  assignmentsGiven  CampaignAssignment[] @relation("AssignerAssignments")
+  messagesSent      AssignmentMessage[]
+  statusUpdates     CampaignStatusUpdate[]
+  dmConversationsAsUser1 DirectConversation[] @relation("ConvUser1")
+  dmConversationsAsUser2 DirectConversation[] @relation("ConvUser2")
+  dmMessagesSent         DirectMessage[]      @relation("SentDMs")
+  groupsCreated          GroupConversation[]  @relation("GroupCreator")
+  groupMemberships       GroupMember[]
+  groupMessagesSent      GroupMessage[]       @relation("GroupMsgSender")
+  activityLogs           ActivityLog[]
+  notifications          Notification[]
+  uploadedPaymentSheets  PaymentSheet[] @relation("UploadedSheets")
+  approvedPaymentSheets  PaymentSheet[] @relation("ApprovedSheets")
+  completedPaymentSheets PaymentSheet[] @relation("CompletedSheets")
+  invoices               Invoice[]
+  addedAccountEntries    AccountEntry[] @relation("AddedAccountEntries")
+  reviewedAccountEntries AccountEntry[] @relation("ReviewedAccountEntries")
+  sentFinanceRequests     FinanceRequest[] @relation("SentFinanceRequests")
+  receivedFinanceRequests FinanceRequest[] @relation("ReceivedFinanceRequests")
+  searchHistory          SearchHistory[]
+  pinnedMessages        PinnedMessage[] // Messages this user pinned
+  broadcastsCreated     BroadcastMessage[] // Broadcasts created by this user
+  announcementTemplates AnnouncementTemplate[] // Templates created by this user
+  broadcastReactions    BroadcastReaction[] // Reactions created by this user
+  currentStreak          Int              @default(0)
+  longestStreak          Int              @default(0)
+  lastActiveDate         DateTime?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+}
+
+model LoginHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String
+  ipAddress String?
+  userAgent String?
+  status    String   // "success" or "failed"
+  loginAt   DateTime @default(now())
+}
+
+model Influencer {
+  id              String     @id @default(uuid())
+  firstName       String
+  lastName        String
+  igLink          String
+  followers       Int
+  followersUnit   String    @default("")
+  avgViews        Int?
+  avgViewsUnit    String?
+  primaryGenre    String
+  secondaryGenre  String?
+  city            String
+  state           String?
+  contact         Json
+  commercials     Json
+  gender          String
+  notes           String?   @default("")
+  blacklisted     Boolean   @default(false)
+  blacklistReason String?
+  rating          Int?
+  campaigns       CampaignInfluencer[]
+  accountEntries  AccountEntry[]
+  qrCodes         QRCode[]
+  creatorInvoiceRequests CreatorInvoiceRequest[]  // Creator requests matching this influencer
+  invoices        Invoice[]                       // Invoices uploaded by this influencer as creator
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Brand {
+  id          String   @id @default(uuid())
+  name        String
+  userId      String?      // Link to user account (for BRAND role)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  contactPerson String?
+  pitches     Pitch[]      // Pitches received by this brand
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Campaign {
+  id            String       @id @default(uuid())
+  name          String
+  contact       String       // Person of Contact (POC) - required
+  contactDetails String      @default("") // Contact phone number (10 digits) - required
+  brandName     String
+  addedToBrand  Boolean      @default(false) // Only show in brands tab if true
+  userId        String?      // Link to user account (agency owner)
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  campaignId    String?      // Custom campaign ID for authentication
+  campaignPassword String?   // Password for viewing campaign details
+  budget        Float?
+  internalCost  Float
+  externalCost  Float
+  status        String       @default("Upcoming")  // "Upcoming", "Active", "Completed"
+  startDate     DateTime
+  endDate       DateTime?
+  brief         String?      @default("")
+  influencers   CampaignInfluencer[]
+  pitches       Pitch[]      // Pitches for this campaign
+  assignments   CampaignAssignment[]
+  statusUpdates CampaignStatusUpdate[]
+  campaignGroups GroupConversation[]
+  invoices      Invoice[]
+  accountEntries AccountEntry[]
+  qrCodes       QRCode[]
+  creatorRequests CreatorInvoiceRequest[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model CampaignInfluencer {
+  id           String     @id @default(uuid())
+  campaignId   String
+  influencerId String
+  internalCost Float      @default(0)
+  externalCost Float      @default(0)
+  liveLink     String?
+  liveDate     DateTime?
+  invoices     Json?      // Array of invoice links or details
+  brandApprovalStatus String?  // "PENDING" | "APPROVED" | "REJECTED"
+  brandComment        String?
+  campaign     Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  influencer   Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([campaignId, influencerId])
+  @@index([liveDate])
+}
+
+model Roaster {
+  id          String   @id @default(uuid())
+  month       String
+  fileName    String
+  fileSize    Int?
+  mimeType    String?
+  fileData    Bytes?
+  data        Json
+  uploadedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum PitchStatus {
+  DRAFT
+  SENT
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+}
+
+model Pitch {
+  id            String       @id @default(uuid())
+  campaignId    String
+  campaign      Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  brandId       String
+  brand         Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  agencyId      String       // User ID of the agency sending the pitch
+  agency        User         @relation("AgencyPitches", fields: [agencyId], references: [id], onDelete: Cascade)
+  brandUserId   String?      // User ID of the brand (if they have an account)
+  brandUser     User?        @relation("BrandPitches", fields: [brandUserId], references: [id], onDelete: SetNull)
+  status        PitchStatus  @default(DRAFT)
+  message       String?      // Pitch proposal/message
+  proposedBudget Float?
+  expectedDeliverables String?
+  timeline      String?
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([campaignId, brandId])
+}
+
+enum AssignmentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model CampaignAssignment {
+  id           String           @id @default(uuid())
+  campaignId   String
+  campaign     Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  headId       String
+  head         User             @relation("HeadAssignments", fields: [headId], references: [id], onDelete: Cascade)
+  assignedById String
+  assignedBy   User             @relation("AssignerAssignments", fields: [assignedById], references: [id], onDelete: Cascade)
+  status       AssignmentStatus @default(PENDING)
+  messages     AssignmentMessage[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([campaignId, headId])
+  @@index([headId])
+  @@index([assignedById])
+  @@index([headId, status])
+}
+
+model AssignmentMessage {
+  id           String             @id @default(uuid())
+  assignmentId String
+  assignment   CampaignAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  senderId     String
+  sender       User               @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content      String
+  isRead       Boolean            @default(false)
+  createdAt    DateTime           @default(now())
+
+  @@index([assignmentId, isRead])
+}
+
+model CampaignStatusUpdate {
+  id         String   @id @default(uuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userRole   UserRole  // AGENCY | EMPLOYEE
+  content    String
+  createdAt  DateTime @default(now())
+
+  @@index([campaignId])
+}
+
+model DirectConversation {
+  id            String          @id @default(uuid())
+  user1Id       String
+  user1         User            @relation("ConvUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2Id       String
+  user2         User            @relation("ConvUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  messages      DirectMessage[]
+  pinnedMessages PinnedMessage[] // Messages pinned in this conversation
+  hiddenByUser1 Boolean         @default(false)
+  hiddenByUser2 Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([user1Id, user2Id])
+}
+
+model DirectMessage {
+  id             String             @id @default(uuid())
+  conversationId String
+  conversation   DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User               @relation("SentDMs", fields: [senderId], references: [id], onDelete: Cascade)
+  content        String?
+  fileUrl        String?
+  fileName       String?
+  fileType       String?
+  isRead         Boolean            @default(false)
+  reactions      DmMessageReaction[]
+  createdAt      DateTime           @default(now())
+
+  @@index([conversationId, isRead])
+  @@index([conversationId, createdAt])
+}
+
+model DmMessageReaction {
+  id        String        @id @default(cuid())
+  messageId String
+  message   DirectMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  emoji     String
+  createdAt DateTime      @default(now())
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+model GroupConversation {
+  id          String         @id @default(uuid())
+  name        String
+  createdById String
+  createdBy   User           @relation("GroupCreator", fields: [createdById], references: [id])
+  campaignId  String?
+  campaign    Campaign?      @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  members     GroupMember[]
+  messages    GroupMessage[]
+  pinnedMessages PinnedMessage[] // Messages pinned in this group
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model GroupMember {
+  id         String            @id @default(uuid())
+  groupId    String
+  group      GroupConversation @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt   DateTime          @default(now())
+  lastReadAt DateTime?
+
+  @@unique([groupId, userId])
+}
+
+model GroupMessage {
+  id        String            @id @default(uuid())
+  groupId   String
+  group     GroupConversation @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User              @relation("GroupMsgSender", fields: [senderId], references: [id], onDelete: Cascade)
+  content   String?
+  fileUrl   String?
+  fileName  String?
+  fileType  String?
+  reactions GroupMessageReaction[]
+  createdAt DateTime          @default(now())
+
+  @@index([groupId, createdAt])
+}
+
+model GroupMessageReaction {
+  id        String       @id @default(cuid())
+  messageId String
+  message   GroupMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  emoji     String
+  createdAt DateTime     @default(now())
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+model PinnedMessage {
+  id String @id @default(cuid())
+
+  // Can pin from DM or Group
+  dmConversationId String?
+  groupId          String?
+
+  dmConversation DirectConversation? @relation(fields: [dmConversationId], references: [id], onDelete: Cascade)
+  group          GroupConversation?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  // Reference to the actual message content
+  messageText      String
+  messageAuthorId  String
+  messageAuthorName String
+  originalMessageId String // Reference ID for jumping
+
+  pinnedById String // Who pinned it?
+  pinnedUser User   @relation(fields: [pinnedById], references: [id], onDelete: Cascade)
+  pinReason  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([groupId, createdAt])
+  @@index([dmConversationId, createdAt])
+}
+
+model BroadcastMessage {
+  id String @id @default(cuid())
+
+  title   String
+  content String
+  priority String // "LOW" | "NORMAL" | "HIGH" | "CRITICAL"
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  // Who has read it?
+  readBy String[] // Array of userIds
+
+  // Recipient filtering
+  recipientType String @default("ALL") // "ALL" | "ROLES" | "USERS"
+  recipientRoles String[] @default([]) // ["ADMIN", "AGENCY", "EMPLOYEE", "BRAND"]
+  recipientUserIds String[] @default([]) // Specific user IDs
+
+  // Scheduling (optional)
+  scheduledFor DateTime?
+  expiresAt    DateTime?
+
+  // Pinned status
+  isPinned      Boolean     @default(false)
+  pinnedAt      DateTime?   // When it was pinned
+  pinnedById    String?     // Admin who pinned it
+  pinnedReason  String?     // Why it was pinned
+  pinExpiresAt  DateTime?   // Auto-unpin date (optional)
+
+  // Reactions
+  reactions BroadcastReaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt, priority])
+  @@index([isPinned, pinnedAt]) // For efficient pinned queries
+}
+
+model AnnouncementTemplate {
+  id String @id @default(cuid())
+
+  name          String          // Template name (e.g., "Weekly Update")
+  description   String?         // Optional description
+  title         String          // Template title (can include placeholders)
+  content       String          // Template content (can include placeholders)
+  priority      String          @default("NORMAL")
+
+  // Configuration
+  recipientType String          @default("ALL")
+  recipientRoles String[]       @default([])
+
+  // Usage tracking
+  usageCount    Int             @default(0)
+  lastUsedAt    DateTime?
+
+  createdById   String
+  createdBy     User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([createdById, createdAt])
+  @@index([priority])
+}
+
+model BroadcastReaction {
+  id        String        @id @default(cuid())
+
+  broadcastId String
+  broadcast BroadcastMessage @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emoji     String        // Single emoji (e.g., "👍", "❤️", "😂")
+  createdAt DateTime      @default(now())
+
+  @@unique([broadcastId, userId, emoji]) // Prevent duplicate reactions from same user
+  @@index([broadcastId])                  // For fetching all reactions
+  @@index([broadcastId, emoji])           // For counting specific reactions
+  @@index([userId])                       // For user's all reactions
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action     String
+  entityType String
+  entityId   String
+  entityName String
+  details    Json?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String   // "ASSIGNMENT_CREATED" | "ASSIGNMENT_RESPONDED" | "STATUS_UPDATE" | "PITCH_RESPONDED"
+  title      String
+  body       String
+  entityType String?
+  entityId   String?
+  read       Boolean  @default(false)
+  reactions  NotificationReaction[]
+  createdAt  DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+model NotificationReaction {
+  id             String       @id @default(cuid())
+  notificationId String
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  userId         String
+  emoji          String
+  createdAt      DateTime     @default(now())
+
+  @@unique([notificationId, userId, emoji])
+  @@index([notificationId])
+}
+
+enum PaymentSheetStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+}
+
+model PaymentSheet {
+  id            String              @id @default(uuid())
+  title         String
+  filename      String
+  filepath      String
+  fileSize      Int
+  status        PaymentSheetStatus  @default(UPCOMING)
+  notes         String?
+  uploadedById  String
+  uploadedBy    User                @relation("UploadedSheets", fields: [uploadedById], references: [id])
+  approvedById  String?
+  approvedBy    User?               @relation("ApprovedSheets", fields: [approvedById], references: [id])
+  completedById String?
+  completedBy   User?               @relation("CompletedSheets", fields: [completedById], references: [id])
+  approvedAt    DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([status])
+  @@index([uploadedById])
+}
+
+enum AccountEntryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model AccountEntry {
+  id             String             @id @default(uuid())
+  influencerId   String
+  influencer     Influencer         @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  campaignId     String
+  campaign       Campaign           @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  internalCost   Float
+  status         AccountEntryStatus @default(PENDING)
+  notes               String?
+  invoiceFile         String?
+  invoiceOriginalName String?
+  addedById           String
+  addedBy        User               @relation("AddedAccountEntries", fields: [addedById], references: [id])
+  reviewedById   String?
+  reviewedBy     User?              @relation("ReviewedAccountEntries", fields: [reviewedById], references: [id])
+  reviewedAt     DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@unique([influencerId, campaignId])
+  @@index([status])
+  @@index([campaignId])
+}
+
+enum FinanceRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model FinanceRequest {
+  id          String               @id @default(uuid())
+  message     String
+  status      FinanceRequestStatus @default(PENDING)
+  sentById    String
+  sentBy      User                 @relation("SentFinanceRequests", fields: [sentById], references: [id], onDelete: Cascade)
+  sentToId    String
+  sentTo      User                 @relation("ReceivedFinanceRequests", fields: [sentToId], references: [id], onDelete: Cascade)
+  respondedAt DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([sentToId, status])
+}
+
+enum InvoiceType {
+  GST
+  NON_GST
+}
+
+enum InvoiceStatus {
+  UPLOADED
+  SCANNED
+  APPROVED
+  REJECTED
+}
+
+model Invoice {
+  id                String        @id @default(uuid())
+  type              InvoiceType
+  status            InvoiceStatus @default(UPLOADED)
+
+  // File info
+  fileName          String
+  originalName      String
+  filePath          String
+  fileSize          Int?
+  mimeType          String?
+
+  // Scan results (JSON: { fieldName: { value, detected } })
+  scanResults       Json?
+  extractedText     String?       // raw OCR text for boosting re-training
+
+  // Common fields
+  invoiceDate       String?
+  datePatternId     String?       // which booster pattern detected the date
+  campaignDetails   String?
+  campaignAmount    String?
+
+  // Bank details (both types)
+  bankName          String?
+  accountHolderName String?
+  accountNumber     String?
+  ifscCode          String?
+  branchName        String?
+  branchAddress     String?       // GST only
+  upiId             String?       // UPI payment ID (both types)
+
+  // Non-GST specific
+  panCard           String?
+  signatureDetected Boolean       @default(false)
+
+  // GST specific
+  creatorAddress    String?
+  creatorGstin      String?
+  folksAddress      String?       // 3Folks Media address
+  folksGstin        String?       // 3Folks Media GSTIN
+  invoiceNumber     String?
+
+  // Folder organization
+  folder            String        @default("Uncategorized")
+
+  // Relations
+  uploadedById      String
+  uploadedBy        User          @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  campaignId        String?
+  campaign          Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  influencerId      String?       // Link to influencer (for creator submissions)
+  influencer        Influencer?   @relation(fields: [influencerId], references: [id], onDelete: SetNull)
+
+  // Creator portal
+  creatorRequestId  String?
+  creatorRequest    CreatorInvoiceRequest? @relation(fields: [creatorRequestId], references: [id], onDelete: SetNull)
+  creatorEmail      String?       // email of the creator who submitted
+  liveLink          String?       // campaign live link (Instagram/social media post)
+  rejectionComment  String?       // head's comment on rejection
+
+  // Boosting corrections relation
+  dateCorrections   DatePatternCorrection[]
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model DatePatternCorrection {
+  id              String   @id @default(uuid())
+
+  // What the OCR text looked like around the date
+  ocrContext      String   // the surrounding text snippet that contained the date
+  extractedText   String   // full extracted text (for re-training)
+
+  // What happened
+  wrongValue      String?  // what the system detected (null = missed entirely)
+  correctValue    String   // what the user corrected it to
+
+  // The learned regex pattern (generated from the correction)
+  learnedLabel    String?  // new label prefix discovered (e.g. "Billing Date")
+  learnedPattern  String?  // full regex string that would have matched
+
+  // Boosting weight — higher = more trustworthy
+  weight          Float    @default(1.0)
+  hitCount        Int      @default(1)  // how many times this pattern matched correctly
+
+  invoiceId       String?
+  invoice         Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model FieldPatternCorrection {
+  id              String   @id @default(uuid())
+
+  fieldName       String   // which field: "campaignAmount", "bankName", "accountNumber", etc.
+
+  // What the OCR text looked like around the field
+  ocrContext      String   // the surrounding text snippet
+  extractedText   String   // full extracted text (for re-training)
+
+  // What happened
+  wrongValue      String?  // what the system detected (null = missed entirely)
+  correctValue    String   // what the user corrected it to
+
+  // The learned regex pattern
+  learnedLabel    String?  // label prefix discovered (e.g. "Total Amount")
+  learnedPattern  String?  // full regex string
+
+  // Boosting weight
+  weight          Float    @default(1.0)
+  hitCount        Int      @default(1)
+
+  invoiceId       String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model QRCode {
+  id            String     @id @default(uuid())
+  code          String     @unique
+  campaignId    String
+  campaign      Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  influencerId  String
+  influencer    Influencer @relation(fields: [influencerId], references: [id], onDelete: Cascade)
+  targetUrl     String?
+  scanCount     Int        @default(0)
+  uniqueScans   Int        @default(0)
+  scans         QRScan[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([campaignId, influencerId])
+}
+
+model QRScan {
+  id        String   @id @default(uuid())
+  qrCodeId  String
+  qrCode    QRCode   @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([qrCodeId, createdAt])
+}
+
+model SearchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  query     String
+  entityType String // "CAMPAIGN" | "INFLUENCER" | "BRAND" | "INVOICE" | "USER"
+  entityId  String
+  entityName String
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model SearchTrend {
+  id        String   @id @default(cuid())
+  entityType String // "CAMPAIGN" | "INFLUENCER" | "BRAND"
+  entityId  String
+  entityName String
+
+  viewCount  Int @default(0)
+  searchCount Int @default(0)
+  lastViewedAt DateTime @updatedAt
+
+  @@unique([entityType, entityId])
+  @@index([viewCount])
+  @@index([searchCount])
+}
+
+model CreatorInvoiceRequest {
+  id           String        @id @default(uuid())
+  creatorEmail String
+  creatorName  String?
+  campaignId   String
+  campaign     Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  influencerId String?       // Matched influencer (if found)
+  influencer   Influencer?   @relation(fields: [influencerId], references: [id], onDelete: SetNull)
+  status       String        @default("PENDING") // PENDING | ACCEPTED | REJECTED
+  token        InvoiceToken?
+  invoices     Invoice[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([campaignId, status])
+}
+
+model InvoiceToken {
+  id               String                @id @default(uuid())
+  token            String                @unique @default(uuid())
+  requestId        String                @unique
+  request          CreatorInvoiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  acceptedByUserId String
+  expiresAt        DateTime
+  createdAt        DateTime              @default(now())
+
+  @@index([token])
+}

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Creator Portal</title>
-    <link rel="stylesheet" href="/public/styles.css" />
+    <link rel="stylesheet" href="/public/styles.css?v=35" />
   </head>
   <body class="creator-page">
     <div class="shell">
@@ -98,6 +98,7 @@
           <% const existingItems = form.existingItems || []; %>
           <% const selectedInvoiceType = existingInvoice ? existingInvoice.invoice_type : (form.invoiceType || 'non_gst'); %>
           <% const existingInvoiceItems = existingItems; %>
+
           <section class="notice-card info-card">
             <div class="notice-icon notice-icon-info" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -126,271 +127,374 @@
                   <span>Amount</span>
                   <strong>₹<%= form.amount %></strong>
                 </div>
-                <div class="summary-item">
-                  <span>Status</span>
-                  <strong><span class="status-badge status-badge-success">Validated</span></strong>
-                </div>
-                <div class="summary-item">
-                  <span>Payment Timeline</span>
-                  <strong>Review • Approval • Payout</strong>
-                </div>
               </div>
             </div>
           </section>
 
-          <section class="content-card">
-            <div class="section-head">
-              <div>
-                <div class="portal-kicker">Invoice type</div>
-                <h2 class="section-title">Choose the billing flow</h2>
-              </div>
-              <p class="section-subtitle">Pick the invoice format you want to continue with after validation.</p>
-            </div>
-            <div class="grid-2 choice-grid">
-              <button type="button" class="btn btn-light flow-choice" id="nonGstChoice">
-                <span>Non-GST Based</span>
-              </button>
-              <button type="button" class="btn btn-light flow-choice" id="gstChoice">
-                <span>GST Based</span>
-              </button>
-            </div>
-            <p class="section-subtitle" id="choiceHint">Non-GST will open the current Bill of Supply flow. GST will be added next.</p>
-          </section>
+          <div class="mobile-preview-toggle">
+            <button type="button" class="active" id="showFormBtn">Edit Form</button>
+            <button type="button" id="showPreviewBtn">Live Preview</button>
+          </div>
 
-          <form method="post" action="/creator/submit" enctype="multipart/form-data" id="invoiceForm" class="portal-form stack-layout">
-            <input type="hidden" name="validated" value="true" />
-            <input type="hidden" name="invoiceType" id="invoiceType" value="<%= selectedInvoiceType %>" />
-            <% if (existingInvoice) { %>
-              <input type="hidden" name="existingInvoiceId" value="<%= existingInvoice.id %>" />
-            <% } %>
-            <input type="hidden" name="campaignId" value="<%= form.campaignId %>" />
-            <input type="hidden" name="campaignCode" value="<%= form.campaignCode %>" />
-            <input type="hidden" name="campaignName" value="<%= form.campaignName %>" />
-            <input type="hidden" name="mobile" value="<%= form.mobile %>" />
-            <input type="hidden" name="creatorName" value="<%= form.creatorName || '' %>" />
-            <input type="hidden" name="amount" value="<%= form.amount %>" />
-            <input type="hidden" id="signatureDraw" name="signatureDraw" />
+          <div class="portal-split-layout">
+            <!-- LEFT PANEL: Stepper form -->
+            <div class="portal-form-pane" id="formPane">
+              <!-- Stepper Header -->
+              <div class="stepper-header">
+                <div class="stepper-progress-bar" id="stepperProgressBar"></div>
+                <button type="button" class="step-bubble active" data-step="1">
+                  <span class="step-number">1</span>
+                  <span class="step-label">Identity</span>
+                </button>
+                <button type="button" class="step-bubble" data-step="2">
+                  <span class="step-number">2</span>
+                  <span class="step-label">Invoice</span>
+                </button>
+                <button type="button" class="step-bubble" data-step="3">
+                  <span class="step-number">3</span>
+                  <span class="step-label">Payout</span>
+                </button>
+                <button type="button" class="step-bubble" data-step="4">
+                  <span class="step-number">4</span>
+                  <span class="step-label">Sign</span>
+                </button>
+              </div>
 
-            <section class="content-card">
-              <div class="section-head">
-                <div>
-                  <div class="portal-kicker">Workspace</div>
-                  <h2 class="section-title">Invoice snapshot</h2>
-                </div>
-                <p class="section-subtitle">Campaign details are locked to the validated mapping for this submission.</p>
-              </div>
-              <div class="grid-2 summary-lock-grid">
-                <label class="field field-floating field-readonly">
-                  <input type="text" value="<%= form.campaignName %>" readonly placeholder=" " />
-                  <span>Campaign Name</span>
-                </label>
-                <label class="field field-floating field-readonly">
-                  <input type="number" id="lockedAmount" value="<%= form.amount %>" readonly placeholder=" " />
-                  <span>Locked Amount</span>
-                </label>
-                <label class="field field-floating field-readonly">
-                  <input type="text" value="<%= form.mobile %>" readonly placeholder=" " />
-                  <span>Creator Mobile</span>
-                </label>
-                <label class="field field-floating field-readonly">
-                  <input type="text" value="<%= form.creatorName || '' %>" readonly placeholder=" " />
-                  <span>Mapped Creator</span>
-                </label>
-              </div>
-            </section>
+              <form method="post" action="/creator/submit" enctype="multipart/form-data" id="invoiceForm" class="portal-form stack-layout">
+                <input type="hidden" name="validated" value="true" />
+                <input type="hidden" name="invoiceType" id="invoiceType" value="<%= selectedInvoiceType %>" />
+                <% if (existingInvoice) { %>
+                  <input type="hidden" name="existingInvoiceId" value="<%= existingInvoice.id %>" />
+                <% } %>
+                <input type="hidden" name="campaignId" value="<%= form.campaignId %>" />
+                <input type="hidden" name="campaignCode" value="<%= form.campaignCode %>" />
+                <input type="hidden" name="campaignName" value="<%= form.campaignName %>" />
+                <input type="hidden" name="mobile" value="<%= form.mobile %>" />
+                <input type="hidden" name="creatorName" value="<%= form.creatorName || '' %>" />
+                <input type="hidden" name="amount" value="<%= form.amount %>" />
+                <input type="hidden" id="signatureDraw" name="signatureDraw" />
 
-            <section class="content-card">
-              <div class="section-head">
-                <div>
-                  <div class="portal-kicker">Billing identity</div>
-                  <h2 class="section-title">Bill from</h2>
-                </div>
-              </div>
-              <div class="grid-2 field-grid">
-                <label class="field field-floating">
-                  <input type="text" name="fullName" value="<%= existingInvoice ? existingInvoice.full_name : (form.fullName || '') %>" required placeholder=" " />
-                  <span>Full Name *</span>
-                </label>
-                <label class="field field-floating field-textarea">
-                  <textarea name="address" placeholder=" "><%= existingInvoice ? existingInvoice.address || '' : (form.address || '') %></textarea>
-                  <span>Address</span>
-                </label>
-                <label class="field field-floating">
-                  <input type="text" name="pan" value="<%= existingInvoice ? existingInvoice.pan || '' : (form.pan || '') %>" placeholder=" " />
-                  <span>PAN/IT No</span>
-                </label>
-                <label class="field field-floating">
-                  <input type="email" name="email" value="<%= existingInvoice ? existingInvoice.email || '' : (form.email || '') %>" placeholder=" " />
-                  <span>Email</span>
-                </label>
-              </div>
-            </section>
-
-            <section class="content-card">
-              <div class="section-head">
-                <div>
-                  <div class="portal-kicker">Document control</div>
-                  <h2 class="section-title">Invoice header</h2>
-                </div>
-              </div>
-              <div class="grid-3 field-grid">
-                <label class="field field-floating">
-                  <input type="text" name="invoiceNo" value="<%= existingInvoice ? existingInvoice.invoice_no || '' : (form.invoiceNo || '') %>" required placeholder=" " />
-                  <span>Invoice No *</span>
-                </label>
-                <label class="field field-floating field-readonly">
-                  <input type="date" name="invoiceDate" value="<%= today %>" readonly required placeholder=" " />
-                  <span>Dated Today *</span>
-                </label>
-                <label class="field field-floating">
-                  <input type="text" name="paymentMode" value="<%= existingInvoice ? existingInvoice.payment_mode || '' : (form.paymentMode || '') %>" placeholder=" " />
-                  <span>Mode/Terms of Payment</span>
-                </label>
-                <label class="field field-floating">
-                  <input type="text" name="pocName" value="<%= existingInvoice ? existingInvoice.poc_name || '' : (form.pocName || '') %>" placeholder=" " />
-                  <span>POC Name</span>
-                </label>
-                <label class="field field-floating">
-                  <input type="text" name="otherReferences" value="<%= existingInvoice ? existingInvoice.other_references || '' : (form.otherReferences || '') %>" placeholder=" " />
-                  <span>Other References</span>
-                </label>
-              </div>
-            </section>
-
-            <section class="content-card" id="gstDetailsSection" hidden>
-              <div class="section-head">
-                <div>
-                  <div class="portal-kicker">GST details</div>
-                  <h2 class="section-title">GST invoice requirements</h2>
-                </div>
-                <p class="section-subtitle">These fields are mandatory only for GST based submissions.</p>
-              </div>
-              <div class="static-panel" style="margin-bottom: 14px;">
-                <p><strong>Company GSTIN:</strong> 27AACFZ6393B1ZZ</p>
-                <p><strong>Company PAN:</strong> AACFZ6393B</p>
-              </div>
-              <div class="grid-2 field-grid">
-                <label class="field field-floating">
-                  <input type="text" name="poNumber" id="poNumber" value="<%= existingInvoice ? existingInvoice.po_number || '' : (form.poNumber || '') %>" placeholder=" " />
-                  <span>PO Number *</span>
-                </label>
-                <label class="field field-floating">
-                  <input type="text" name="gstin" id="gstin" value="<%= existingInvoice ? existingInvoice.creator_gstin || '' : (form.gstin || '') %>" placeholder=" " />
-                  <span>GSTIN of Creator *</span>
-                </label>
-              </div>
-              <div class="static-panel" style="margin-top: 14px;" id="gstSummarySection" hidden>
-                <p><strong>Taxable Amount:</strong> ₹<span id="gstTaxableAmount">0.00</span></p>
-                <p id="gstTaxLineOne"><strong id="gstTaxLabelOne">CGST @ 9%:</strong> ₹<span id="gstCgstAmount">0.00</span></p>
-                <p id="gstTaxLineTwo"><strong id="gstTaxLabelTwo">SGST @ 9%:</strong> ₹<span id="gstSgstAmount">0.00</span></p>
-                <p><strong>Total GST:</strong> ₹<span id="gstTotalAmount">0.00</span></p>
-                <p><strong>Final Amount:</strong> ₹<span id="gstFinalAmount">0.00</span></p>
-              </div>
-            </section>
-
-            <section class="content-card section-static">
-              <div class="section-head">
-                <div>
-                  <div class="portal-kicker">Recipient</div>
-                  <h2 class="section-title">To (static)</h2>
-                </div>
-                <p class="section-subtitle">Fixed recipient details, not editable.</p>
-              </div>
-              <div class="static-panel">
-                <p>
-                  3Folks Media, 1801, 18th Floor, C Wing, Lotus Corporate Park, Off. Western Express Highway,
-                  Goregaon East, Mumbai- 400063. PAN: AACFZ6393B State Name: Maharashtra, Code : 27
-                </p>
-              </div>
-            </section>
-
-            <section class="content-card">
-              <div class="section-head">
-                <div>
-                  <div class="portal-kicker">Line items</div>
-                  <h2 class="section-title">Invoice rows</h2>
-                </div>
-                <p class="section-subtitle">Add the rows and quantities. Amounts are calculated automatically from the locked creator amount.</p>
-              </div>
-              <div class="invoice-rows" id="rowsWrap"></div>
-              <div class="form-actions form-actions-between">
-                <button type="button" class="btn btn-light" id="addRowBtn">+ Add Row</button>
-                <label class="field field-floating field-readonly compact-field">
-                  <input type="number" id="computedTotal" readonly placeholder=" " />
-                  <span>Auto Total</span>
-                </label>
-              </div>
-            </section>
-
-            <section class="content-card">
-              <div class="section-head">
-                <div>
-                  <div class="portal-kicker">Payout rails</div>
-                  <h2 class="section-title">Bank details</h2>
-                </div>
-              </div>
-              <div class="grid-3 field-grid">
-                <label class="field field-floating">
-                  <input type="text" name="accountName" value="<%= existingInvoice ? existingInvoice.account_name || '' : (form.accountName || '') %>" placeholder=" " />
-                  <span>Account Name</span>
-                </label>
-                <label class="field field-floating">
-                  <input type="text" name="bankName" value="<%= existingInvoice ? existingInvoice.bank_name || '' : (form.bankName || '') %>" placeholder=" " />
-                  <span>Bank Name</span>
-                </label>
-                <label class="field field-floating">
-                  <input type="text" name="accountNo" value="<%= existingInvoice ? existingInvoice.account_no || '' : (form.accountNo || '') %>" placeholder=" " />
-                  <span>Account No</span>
-                </label>
-                <label class="field field-floating">
-                  <input type="text" name="ifscCode" value="<%= existingInvoice ? existingInvoice.ifsc_code || '' : (form.ifscCode || '') %>" placeholder=" " />
-                  <span>IFSC Code</span>
-                </label>
-                <label class="field field-floating">
-                  <input type="text" name="branch" value="<%= existingInvoice ? existingInvoice.branch || '' : (form.branch || '') %>" placeholder=" " />
-                  <span>Branch</span>
-                </label>
-                <label class="field field-floating">
-                  <input type="text" name="upiId" value="<%= existingInvoice ? existingInvoice.upi_id || '' : (form.upiId || '') %>" placeholder=" " />
-                  <span>UPI ID</span>
-                </label>
-              </div>
-            </section>
-
-            <section class="content-card">
-              <div class="section-head">
-                <div>
-                  <div class="portal-kicker">Signature capture</div>
-                  <h2 class="section-title">E-sign</h2>
-                </div>
-                <p class="section-subtitle">Draw or upload a signature image before submission.</p>
-              </div>
-              <div class="grid-2 signature-grid">
-                <div class="signature-panel">
-                  <label class="field-label-inline">Draw Signature</label>
-                  <div class="canvas-wrap">
-                    <canvas id="signPad" width="600" height="160"></canvas>
+                <!-- STEP 1: Billing Choice & Profile -->
+                <div class="stepper-step active" data-step="1">
+                  <div class="content-card" style="margin-bottom: 20px;">
+                    <div class="section-head">
+                      <div>
+                        <div class="portal-kicker">Invoice type</div>
+                        <h2 class="section-title">Choose the billing flow</h2>
+                      </div>
+                    </div>
+                    <div class="grid-2 choice-grid">
+                      <button type="button" class="btn btn-light flow-choice" id="nonGstChoice">
+                        <span>Non-GST Based</span>
+                      </button>
+                      <button type="button" class="btn btn-light flow-choice" id="gstChoice">
+                        <span>GST Based</span>
+                      </button>
+                    </div>
+                    <p class="section-subtitle" id="choiceHint" style="margin-top: 10px;">Select to configure invoice settings.</p>
                   </div>
-                  <div class="form-actions form-actions-left">
-                    <button type="button" class="btn btn-light" id="clearSign">Clear Drawing</button>
+
+                  <div class="content-card">
+                    <div class="section-head">
+                      <div>
+                        <div class="portal-kicker">Billing identity</div>
+                        <h2 class="section-title">Bill from</h2>
+                      </div>
+                    </div>
+                    <div class="grid-2 field-grid">
+                      <label class="field field-floating">
+                        <input type="text" name="fullName" value="<%= existingInvoice ? existingInvoice.full_name : (form.fullName || '') %>" required placeholder=" " />
+                        <span>Full Name *</span>
+                        <small class="validation-msg">Full Name is required.</small>
+                      </label>
+                      <label class="field field-floating field-textarea">
+                        <textarea name="address" required placeholder=" "><%= existingInvoice ? existingInvoice.address || '' : (form.address || '') %></textarea>
+                        <span>Address *</span>
+                        <small class="validation-msg">Address is required.</small>
+                      </label>
+                      <label class="field field-floating">
+                        <input type="text" name="pan" value="<%= existingInvoice ? existingInvoice.pan || '' : (form.pan || '') %>" pattern="[A-Z]{5}[0-9]{4}[A-Z]" title="PAN format: ABCDE1234F" autocapitalize="characters" placeholder=" " />
+                        <span>PAN/IT No</span>
+                        <small class="validation-msg">Invalid PAN format (e.g. ABCDE1234F).</small>
+                      </label>
+                      <label class="field field-floating">
+                        <input type="email" name="email" value="<%= existingInvoice ? existingInvoice.email || '' : (form.email || '') %>" placeholder=" " />
+                        <span>Email</span>
+                        <small class="validation-msg">Invalid email format.</small>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="form-actions form-actions-right" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-primary btn-next">Next Step</button>
                   </div>
                 </div>
-                <div class="signature-upload-panel">
-                  <label class="field-label-inline" for="signatureFile">Or Upload Signature Image</label>
-                  <input type="file" id="signatureFile" name="signatureFile" accept="image/*" />
-                  <p class="subtitle" style="margin: 6px 0 0;">PNG, JPG, or JPEG works best.</p>
+
+                <!-- STEP 2: Invoice Details -->
+                <div class="stepper-step" data-step="2">
+                  <div class="content-card" style="margin-bottom: 20px;">
+                    <div class="section-head">
+                      <div>
+                        <div class="portal-kicker">Document control</div>
+                        <h2 class="section-title">Invoice header</h2>
+                      </div>
+                    </div>
+                    <div class="grid-3 field-grid">
+                      <label class="field field-floating">
+                        <input type="text" name="invoiceNo" value="<%= existingInvoice ? existingInvoice.invoice_no || '' : (form.invoiceNo || '') %>" required placeholder=" " />
+                        <span>Invoice No *</span>
+                        <small class="validation-msg">Invoice No is required.</small>
+                      </label>
+                      <label class="field field-floating field-readonly">
+                        <input type="date" name="invoiceDate" value="<%= today %>" readonly required placeholder=" " />
+                        <span>Dated Today *</span>
+                      </label>
+                      <label class="field field-floating">
+                        <input type="text" name="paymentMode" value="<%= existingInvoice ? existingInvoice.payment_mode || '' : (form.paymentMode || '') %>" placeholder=" " />
+                        <span>Mode/Terms of Payment</span>
+                      </label>
+                      <label class="field field-floating">
+                        <input type="text" name="pocName" value="<%= existingInvoice ? existingInvoice.poc_name || '' : (form.pocName || '') %>" placeholder=" " />
+                        <span>POC Name</span>
+                      </label>
+                      <label class="field field-floating">
+                        <input type="text" name="otherReferences" value="<%= existingInvoice ? existingInvoice.other_references || '' : (form.otherReferences || '') %>" placeholder=" " />
+                        <span>Other References</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="content-card" id="gstDetailsSection" hidden>
+                    <div class="section-head">
+                      <div>
+                        <div class="portal-kicker">GST details</div>
+                        <h2 class="section-title">GST invoice requirements</h2>
+                      </div>
+                    </div>
+                    <div class="grid-2 field-grid">
+                      <label class="field field-floating">
+                        <input type="text" name="poNumber" id="poNumber" value="<%= existingInvoice ? existingInvoice.po_number || '' : (form.poNumber || '') %>" placeholder=" " />
+                        <span>PO Number *</span>
+                        <small class="validation-msg">PO Number is required for GST.</small>
+                      </label>
+                      <label class="field field-floating">
+                        <input type="text" name="gstin" id="gstin" value="<%= existingInvoice ? existingInvoice.creator_gstin || '' : (form.gstin || '') %>" pattern="[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]" title="GSTIN format: 27ABCDE1234F1Z5" autocapitalize="characters" placeholder=" " />
+                        <span>GSTIN of Creator *</span>
+                        <small class="validation-msg">Invalid GSTIN format (e.g. 27ABCDE1234F1Z5).</small>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="form-actions form-actions-between" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-light btn-prev">Back</button>
+                    <button type="button" class="btn btn-primary btn-next">Next Step</button>
+                  </div>
+                </div>
+
+                <!-- STEP 3: Line Items & Payout details -->
+                <div class="stepper-step" data-step="3">
+                  <div class="content-card" style="margin-bottom: 20px;">
+                    <div class="section-head">
+                      <div>
+                        <div class="portal-kicker">Line items</div>
+                        <h2 class="section-title">Invoice rows</h2>
+                      </div>
+                      <p class="section-subtitle">Amount is auto-allocated from the locked creator commercial (₹<%= form.amount %>).</p>
+                    </div>
+                    <input type="number" id="lockedAmount" value="<%= form.amount %>" hidden />
+                    <div class="invoice-rows" id="rowsWrap"></div>
+                    <div class="form-actions form-actions-between" style="margin-top: 10px;">
+                      <button type="button" class="btn btn-light" id="addRowBtn">+ Add Row</button>
+                      <label class="field field-floating field-readonly compact-field">
+                        <input type="number" id="computedTotal" readonly placeholder=" " />
+                        <span>Auto Total</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="content-card">
+                    <div class="section-head">
+                      <div>
+                        <div class="portal-kicker">Payout rails</div>
+                        <h2 class="section-title">Bank details</h2>
+                      </div>
+                    </div>
+                    <div class="grid-3 field-grid">
+                      <label class="field field-floating">
+                        <input type="text" name="accountName" value="<%= existingInvoice ? existingInvoice.account_name || '' : (form.accountName || '') %>" required placeholder=" " />
+                        <span>Account Name *</span>
+                        <small class="validation-msg">Account Name is required.</small>
+                      </label>
+                      <label class="field field-floating">
+                        <input type="text" name="bankName" value="<%= existingInvoice ? existingInvoice.bank_name || '' : (form.bankName || '') %>" required placeholder=" " />
+                        <span>Bank Name *</span>
+                        <small class="validation-msg">Bank Name is required.</small>
+                      </label>
+                      <label class="field field-floating">
+                        <input type="text" name="accountNo" value="<%= existingInvoice ? existingInvoice.account_no || '' : (form.accountNo || '') %>" required placeholder=" " />
+                        <span>Account No *</span>
+                        <small class="validation-msg">Account Number is required.</small>
+                      </label>
+                      <label class="field field-floating">
+                        <input type="text" name="ifscCode" value="<%= existingInvoice ? existingInvoice.ifsc_code || '' : (form.ifscCode || '') %>" required pattern="[A-Z]{4}0[A-Z0-9]{6}" title="IFSC format: SBIN0001234" autocapitalize="characters" placeholder=" " />
+                        <span>IFSC Code *</span>
+                        <small class="validation-msg">Invalid IFSC Code (e.g. SBIN0001234).</small>
+                      </label>
+                      <label class="field field-floating">
+                        <input type="text" name="branch" value="<%= existingInvoice ? existingInvoice.branch || '' : (form.branch || '') %>" required placeholder=" " />
+                        <span>Branch *</span>
+                        <small class="validation-msg">Branch is required.</small>
+                      </label>
+                      <label class="field field-floating">
+                        <input type="text" name="upiId" value="<%= existingInvoice ? existingInvoice.upi_id || '' : (form.upiId || '') %>" placeholder=" " />
+                        <span>UPI ID</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="form-actions form-actions-between" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-light btn-prev">Back</button>
+                    <button type="button" class="btn btn-primary btn-next">Next Step</button>
+                  </div>
+                </div>
+
+                <!-- STEP 4: Review & Sign -->
+                <div class="stepper-step" data-step="4">
+                  <div class="content-card">
+                    <div class="section-head">
+                      <div>
+                        <div class="portal-kicker">Signature capture</div>
+                        <h2 class="section-title">E-sign</h2>
+                      </div>
+                      <p class="section-subtitle">Draw signature or upload signature image before final submission.</p>
+                    </div>
+                    <div class="grid-2 signature-grid">
+                      <div class="signature-panel">
+                        <label class="field-label-inline">Draw Signature</label>
+                        <div class="canvas-wrap">
+                          <canvas id="signPad" width="600" height="160"></canvas>
+                        </div>
+                        <div class="form-actions form-actions-left" style="margin-top: 6px;">
+                          <button type="button" class="btn btn-light" id="clearSign">Clear Drawing</button>
+                        </div>
+                      </div>
+                      <div class="signature-upload-panel">
+                        <label class="field-label-inline" for="signatureFile">Or Upload Signature Image</label>
+                        <input type="file" id="signatureFile" name="signatureFile" accept="image/*" />
+                        <p class="subtitle" style="margin: 6px 0 0;">PNG, JPG, or JPEG works best.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-actions form-actions-between" style="margin-top: 20px;">
+                    <button type="button" class="btn btn-light btn-prev">Back</button>
+                    <button class="btn btn-primary btn-submit" type="submit" id="submitBtn">
+                      <span class="btn-spinner" aria-hidden="true"></span>
+                      <span class="btn-label">Submit Invoice</span>
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- RIGHT PANEL: Live preview paper card -->
+            <div class="portal-preview-pane" id="previewPane">
+              <div class="live-invoice-paper">
+                <div>
+                  <h2 id="prevInvoiceTitle">BILL OF SUPPLY</h2>
+
+                  <div class="preview-header-meta">
+                    <div>
+                      <div class="preview-title">Bill From</div>
+                      <div style="font-weight: 600;" id="prevCreatorName">-</div>
+                      <div id="prevCreatorAddress" style="white-space: pre-wrap; font-size: 10px; color: #555;">-</div>
+                      <div id="prevCreatorEmail" style="color: #555;">-</div>
+                      <div id="prevCreatorPan" style="font-weight: 500;">-</div>
+                      <div id="prevCreatorGstinBlock" style="display:none; font-weight: 500;">GSTIN: <span id="prevCreatorGstin">-</span></div>
+                    </div>
+                    <div style="text-align: right;">
+                      <div class="preview-title">Bill To</div>
+                      <div style="font-weight: 600;">3Folks Media</div>
+                      <div style="font-size: 10px; color: #555;">1801, 18th Floor, C Wing, Lotus Corporate Park, Off. Western Express Highway, Goregaon East, Mumbai- 400063.</div>
+                      <div style="font-weight: 500;">PAN: AACFZ6393B</div>
+                      <div style="font-weight: 500;">GSTIN: 27AACFZ6393B1ZZ</div>
+                    </div>
+                  </div>
+
+                  <div class="preview-grid-2" style="border-top: 1px solid #e5e5ea; padding-top: 8px; font-size: 10px; color: #333;">
+                    <div>
+                      <div><strong>Invoice No:</strong> <span id="prevInvoiceNo">-</span></div>
+                      <div><strong>Date:</strong> <span id="prevInvoiceDate">-</span></div>
+                      <div><strong>Payment Mode:</strong> <span id="prevPaymentMode">-</span></div>
+                    </div>
+                    <div style="text-align: right;">
+                      <div><strong>POC Name:</strong> <span id="prevPocName">-</span></div>
+                      <div><strong>References:</strong> <span id="prevReferences">-</span></div>
+                      <div id="prevPoBlock" style="display:none;"><strong>PO Number:</strong> <span id="prevPoNumber">-</span></div>
+                    </div>
+                  </div>
+
+                  <table class="preview-table">
+                    <thead>
+                      <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 55%;">Description</th>
+                        <th style="width: 20%; text-align: right;">Qty</th>
+                        <th style="width: 20%; text-align: right;">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody id="prevTableBody">
+                      <!-- Dynamically added rows -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid #e5e5ea; padding-top: 8px;">
+                    <div style="width: 50%; font-size: 10px; line-height: 1.3;">
+                      <div class="preview-title" style="border-bottom: none; margin-bottom: 2px;">Bank Details</div>
+                      <div><strong>Account Name:</strong> <span id="prevAccName">-</span></div>
+                      <div><strong>Bank Name:</strong> <span id="prevBankName">-</span></div>
+                      <div><strong>Account No:</strong> <span id="prevAccNo">-</span></div>
+                      <div><strong>IFSC Code:</strong> <span id="prevIfsc">-</span></div>
+                      <div><strong>Branch:</strong> <span id="prevBranch">-</span></div>
+                      <div><strong>UPI ID:</strong> <span id="prevUpi">-</span></div>
+                    </div>
+
+                    <div class="preview-totals">
+                      <div id="prevTaxableRow" class="preview-totals-row" style="display:none;">
+                        <span>Taxable Value:</span>
+                        <span id="prevTaxableAmount">₹0.00</span>
+                      </div>
+                      <div id="prevCgstRow" class="preview-totals-row" style="display:none;">
+                        <span id="prevCgstLabel">CGST @ 9%:</span>
+                        <span id="prevCgstAmount">₹0.00</span>
+                      </div>
+                      <div id="prevSgstRow" class="preview-totals-row" style="display:none;">
+                        <span>SGST @ 9%:</span>
+                        <span id="prevSgstAmount">₹0.00</span>
+                      </div>
+                      <div id="prevGstRow" class="preview-totals-row" style="display:none;">
+                        <span>Total GST:</span>
+                        <span id="prevGstAmount">₹0.00</span>
+                      </div>
+                      <div class="preview-totals-row grand-total">
+                        <span>Grand Total:</span>
+                        <span id="prevGrandTotal">₹0.00</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="preview-signature-wrap">
+                    <div>
+                      <img id="prevSignatureImg" class="preview-signature-img" style="display:none;" />
+                      <div style="border-top: 1px solid #d1d1d6; padding-top: 4px; font-weight: 500; font-size: 9px; color: #555;">Authorised Signatory</div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </section>
-
-            <div class="form-actions form-actions-right portal-submit-row">
-              <button class="btn btn-primary btn-submit" type="submit" id="submitBtn">
-                <span class="btn-spinner" aria-hidden="true"></span>
-                <span class="btn-label">Submit Invoice</span>
-              </button>
             </div>
-          </form>
-
+          </div>
         <% } %>
       </main>
     </div>
@@ -400,20 +504,9 @@
         const nonGstChoice = document.getElementById("nonGstChoice");
         const gstChoice = document.getElementById("gstChoice");
         const gstDetailsSection = document.getElementById("gstDetailsSection");
-        const gstSummarySection = document.getElementById("gstSummarySection");
-        const choiceHint = document.getElementById("choiceHint");
         const invoiceType = document.getElementById("invoiceType");
         const poNumber = document.getElementById("poNumber");
         const gstin = document.getElementById("gstin");
-        const gstTaxableAmount = document.getElementById("gstTaxableAmount");
-        const gstTaxLineOne = document.getElementById("gstTaxLineOne");
-        const gstTaxLineTwo = document.getElementById("gstTaxLineTwo");
-        const gstTaxLabelOne = document.getElementById("gstTaxLabelOne");
-        const gstTaxLabelTwo = document.getElementById("gstTaxLabelTwo");
-        const gstCgstAmount = document.getElementById("gstCgstAmount");
-        const gstSgstAmount = document.getElementById("gstSgstAmount");
-        const gstTotalAmount = document.getElementById("gstTotalAmount");
-        const gstFinalAmount = document.getElementById("gstFinalAmount");
         const rowsWrap = document.getElementById("rowsWrap");
         const addRowBtn = document.getElementById("addRowBtn");
         const lockedAmount = Number(document.getElementById("lockedAmount").value || 0);
@@ -424,68 +517,163 @@
         const deliverableOptions = <%- JSON.stringify(deliverableOptions) %>;
         const companyStateCode = "27";
 
+        // Mobile preview toggle buttons
+        const showFormBtn = document.getElementById("showFormBtn");
+        const showPreviewBtn = document.getElementById("showPreviewBtn");
+        const formPane = document.getElementById("formPane");
+        const previewPane = document.getElementById("previewPane");
+
+        if (showFormBtn && showPreviewBtn) {
+          showFormBtn.addEventListener("click", () => {
+            showFormBtn.classList.add("active");
+            showPreviewBtn.classList.remove("active");
+            formPane.classList.remove("inactive");
+            previewPane.classList.remove("active");
+          });
+          showPreviewBtn.addEventListener("click", () => {
+            showPreviewBtn.classList.add("active");
+            showFormBtn.classList.remove("active");
+            formPane.classList.add("inactive");
+            previewPane.classList.add("active");
+          });
+        }
+
+        // Stepper Navigation
+        let currentStep = 1;
+        const steps = document.querySelectorAll(".stepper-step");
+        const stepBubbles = document.querySelectorAll(".step-bubble");
+        const progressBar = document.getElementById("stepperProgressBar");
+
+        function updateStepUI() {
+          steps.forEach((step) => {
+            step.classList.toggle("active", Number(step.dataset.step) === currentStep);
+          });
+
+          stepBubbles.forEach((bubble) => {
+            const stepNum = Number(bubble.dataset.step);
+            bubble.classList.toggle("active", stepNum === currentStep);
+            bubble.classList.toggle("completed", stepNum < currentStep);
+          });
+
+          const percentages = [0, 33.33, 66.66, 100];
+          progressBar.style.width = `calc(${percentages[currentStep - 1]}% - 20px)`;
+          progressBar.style.left = "20px";
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function validateField(inputEl) {
+          const fieldContainer = inputEl.closest(".field");
+          if (!fieldContainer) return true;
+
+          if (inputEl.closest("[hidden]")) {
+            fieldContainer.classList.remove("is-valid", "is-invalid");
+            return true;
+          }
+
+          let isValid = true;
+          const val = inputEl.value.trim();
+
+          if (inputEl.hasAttribute("required") && !val) {
+            isValid = false;
+          } else if (val) {
+            if (inputEl.type === "email") {
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              isValid = emailRegex.test(val);
+            } else if (inputEl.hasAttribute("pattern")) {
+              const patternRegex = new RegExp("^" + inputEl.getAttribute("pattern") + "$");
+              isValid = patternRegex.test(val);
+            }
+          }
+
+          if (isValid) {
+            fieldContainer.classList.add("is-valid");
+            fieldContainer.classList.remove("is-invalid");
+          } else {
+            fieldContainer.classList.add("is-invalid");
+            fieldContainer.classList.remove("is-valid");
+          }
+          return isValid;
+        }
+
+        function validateCurrentStep() {
+          const activeStepContainer = document.querySelector(`.stepper-step[data-step='${currentStep}']`);
+          if (!activeStepContainer) return true;
+
+          const inputs = activeStepContainer.querySelectorAll("input, textarea, select");
+          let stepValid = true;
+          inputs.forEach((input) => {
+            const ok = validateField(input);
+            if (!ok) stepValid = false;
+          });
+
+          return stepValid;
+        }
+
+        document.querySelectorAll(".btn-next").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            if (validateCurrentStep()) {
+              currentStep += 1;
+              updateStepUI();
+            }
+          });
+        });
+
+        document.querySelectorAll(".btn-prev").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            if (currentStep > 1) {
+              currentStep -= 1;
+              updateStepUI();
+            }
+          });
+        });
+
+        stepBubbles.forEach((bubble) => {
+          bubble.addEventListener("click", () => {
+            const targetStep = Number(bubble.dataset.step);
+            if (targetStep < currentStep) {
+              currentStep = targetStep;
+              updateStepUI();
+            } else if (targetStep === currentStep + 1 && validateCurrentStep()) {
+              currentStep = targetStep;
+              updateStepUI();
+            }
+          });
+        });
+
+        updateStepUI();
+
+        // GST choice handling
         function setChoiceState(activeChoice) {
           if (nonGstChoice) {
             nonGstChoice.classList.toggle("flow-choice-active", activeChoice === "non_gst");
-            nonGstChoice.setAttribute("aria-pressed", activeChoice === "non_gst" ? "true" : "false");
           }
           if (gstChoice) {
             gstChoice.classList.toggle("flow-choice-active", activeChoice === "gst");
-            gstChoice.setAttribute("aria-pressed", activeChoice === "gst" ? "true" : "false");
           }
         }
 
         function showNonGstFlow() {
           if (invoiceType) invoiceType.value = "non_gst";
-          if (choiceHint) choiceHint.textContent = "Non-GST will open the current Bill of Supply flow. Continue below.";
+          if (choiceHint) choiceHint.textContent = "Non-GST based Bill of Supply flow selected. Fill details below.";
           setChoiceState("non_gst");
           if (gstDetailsSection) gstDetailsSection.hidden = true;
-          if (gstSummarySection) gstSummarySection.hidden = true;
           if (poNumber) poNumber.required = false;
           if (gstin) gstin.required = false;
-        }
-
-        function updateGstSummary() {
-          const taxable = Number(lockedAmount || 0);
-          const gstinValue = String(gstin ? gstin.value : "").trim();
-          const isIntraState = gstinValue.slice(0, 2) === companyStateCode;
-          const cgst = isIntraState ? Number((taxable * 0.09).toFixed(2)) : 0;
-          const sgst = isIntraState ? Number((taxable * 0.09).toFixed(2)) : 0;
-          const igst = isIntraState ? 0 : Number((taxable * 0.18).toFixed(2));
-          const totalGst = Number((cgst + sgst + igst).toFixed(2));
-          const final = Number((taxable + totalGst).toFixed(2));
-          if (gstTaxableAmount) gstTaxableAmount.textContent = taxable.toFixed(2);
-          if (gstTaxLabelOne) gstTaxLabelOne.textContent = isIntraState ? "CGST @ 9%:" : "IGST @ 18%:";
-          if (gstTaxLabelTwo) gstTaxLabelTwo.textContent = "SGST @ 9%:";
-          if (gstTaxLineTwo) gstTaxLineTwo.hidden = !isIntraState;
-          if (gstCgstAmount) gstCgstAmount.textContent = (isIntraState ? cgst : igst).toFixed(2);
-          if (gstSgstAmount) gstSgstAmount.textContent = sgst.toFixed(2);
-          if (gstTotalAmount) gstTotalAmount.textContent = totalGst.toFixed(2);
-          if (gstFinalAmount) gstFinalAmount.textContent = final.toFixed(2);
+          syncAllPreviewFields();
         }
 
         function showGstFlow() {
           if (invoiceType) invoiceType.value = "gst";
-          if (choiceHint) choiceHint.textContent = "GST based invoice will include PO Number and GSTIN as mandatory fields.";
+          if (choiceHint) choiceHint.textContent = "GST based Tax Invoice flow selected. PO Number and GSTIN are required.";
           setChoiceState("gst");
           if (gstDetailsSection) gstDetailsSection.hidden = false;
-          if (gstSummarySection) gstSummarySection.hidden = false;
-          updateGstSummary();
           if (poNumber) poNumber.required = true;
           if (gstin) gstin.required = true;
+          syncAllPreviewFields();
         }
 
-        if (nonGstChoice) {
-          nonGstChoice.addEventListener("click", showNonGstFlow);
-        }
-
-        if (gstChoice) {
-          gstChoice.addEventListener("click", showGstFlow);
-        }
-
-        if (gstin) {
-          gstin.addEventListener("input", updateGstSummary);
-        }
+        if (nonGstChoice) nonGstChoice.addEventListener("click", showNonGstFlow);
+        if (gstChoice) gstChoice.addEventListener("click", showGstFlow);
 
         if (invoiceType && invoiceType.value === "gst") {
           showGstFlow();
@@ -493,6 +681,7 @@
           showNonGstFlow();
         }
 
+        // Real-Time Live Preview Sync and Validation
         function syncFieldState(field) {
           const control = field.querySelector("input, textarea, select");
           if (!control) return;
@@ -502,15 +691,6 @@
           field.dataset.filled = hasValue ? "true" : "false";
         }
 
-        document.querySelectorAll(".field").forEach((field) => {
-          syncFieldState(field);
-          const control = field.querySelector("input, textarea, select");
-          if (!control) return;
-          ["input", "change", "blur"].forEach((eventName) => {
-            control.addEventListener(eventName, () => syncFieldState(field));
-          });
-        });
-
         function escapeHtml(value) {
           return String(value || "")
             .replace(/&/g, "&amp;")
@@ -519,6 +699,126 @@
             .replace(/\"/g, "&quot;");
         }
 
+        function updatePreviewTable() {
+          const tableBody = document.getElementById("prevTableBody");
+          if (!tableBody) return;
+          tableBody.innerHTML = "";
+
+          const rows = document.querySelectorAll(".line-item-row");
+          rows.forEach((row, index) => {
+            const descSelect = row.querySelector("select[name='itemDescriptions']");
+            const customInput = row.querySelector("input[name='itemCustomDescriptions']");
+            const qtyInput = row.querySelector("input[name='itemQuantities']");
+            const amtInput = row.querySelector("input[name='itemAmounts']");
+
+            const desc = descSelect && descSelect.value === "Custom" ? (customInput ? customInput.value : "") : (descSelect ? descSelect.value : "");
+            const qty = Number(qtyInput ? qtyInput.value : 0);
+            const amt = Number(amtInput ? amtInput.value : 0);
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${index + 1}</td>
+              <td style="word-break: break-all;">${escapeHtml(desc || "-")}</td>
+              <td style="text-align: right;">${qty.toFixed(2)}</td>
+              <td style="text-align: right;">₹${amt.toFixed(2)}</td>
+            `;
+            tableBody.appendChild(tr);
+          });
+        }
+
+        function updatePreviewTotals() {
+          const isGst = invoiceType.value === "gst";
+          const taxable = Number(lockedAmount || 0);
+          const gstinValue = String(gstin ? gstin.value : "").trim();
+          const isIntraState = gstinValue.slice(0, 2) === companyStateCode;
+
+          const cgst = isIntraState ? Number((taxable * 0.09).toFixed(2)) : 0;
+          const sgst = isIntraState ? Number((taxable * 0.09).toFixed(2)) : 0;
+          const igst = isIntraState ? 0 : Number((taxable * 0.18).toFixed(2));
+          const totalGst = Number((cgst + sgst + igst).toFixed(2));
+          const final = Number((taxable + totalGst).toFixed(2));
+
+          document.getElementById("prevTaxableRow").style.display = isGst ? "flex" : "none";
+          document.getElementById("prevGstRow").style.display = isGst ? "flex" : "none";
+          document.getElementById("prevCgstRow").style.display = isGst ? "flex" : "none";
+          document.getElementById("prevSgstRow").style.display = isGst && isIntraState ? "flex" : "none";
+
+          if (isGst) {
+            document.getElementById("prevTaxableAmount").textContent = "₹" + taxable.toFixed(2);
+            document.getElementById("prevCgstLabel").textContent = isIntraState ? "CGST @ 9%:" : "IGST @ 18%:";
+            document.getElementById("prevCgstAmount").textContent = "₹" + (isIntraState ? cgst : igst).toFixed(2);
+            document.getElementById("prevSgstAmount").textContent = "₹" + sgst.toFixed(2);
+            document.getElementById("prevGstAmount").textContent = "₹" + totalGst.toFixed(2);
+            document.getElementById("prevGrandTotal").textContent = "₹" + final.toFixed(2);
+          } else {
+            document.getElementById("prevGrandTotal").textContent = "₹" + taxable.toFixed(2);
+          }
+        }
+
+        function syncAllPreviewFields() {
+          const fieldsMap = {
+            "fullName": "prevCreatorName",
+            "address": "prevCreatorAddress",
+            "email": "prevCreatorEmail",
+            "pan": "prevCreatorPan",
+            "invoiceNo": "prevInvoiceNo",
+            "paymentMode": "prevPaymentMode",
+            "pocName": "prevPocName",
+            "otherReferences": "prevReferences",
+            "poNumber": "prevPoNumber",
+            "gstin": "prevCreatorGstin",
+            "accountName": "prevAccName",
+            "bankName": "prevBankName",
+            "accountNo": "prevAccNo",
+            "ifscCode": "prevIfsc",
+            "branch": "prevBranch",
+            "upiId": "prevUpi"
+          };
+
+          for (const [name, prevId] of Object.entries(fieldsMap)) {
+            const input = document.querySelector(`[name='${name}']`);
+            const prevEl = document.getElementById(prevId);
+            if (input && prevEl) {
+              prevEl.textContent = input.value.trim() || "-";
+              if (name === "pan") {
+                prevEl.textContent = input.value.trim() ? "PAN: " + input.value.trim().toUpperCase() : "-";
+              }
+            }
+          }
+
+          const dateInput = document.querySelector("input[name='invoiceDate']");
+          if (dateInput) {
+            document.getElementById("prevInvoiceDate").textContent = dateInput.value || "-";
+          }
+
+          const isGst = invoiceType.value === "gst";
+          document.getElementById("prevCreatorGstinBlock").style.display = isGst ? "block" : "none";
+          document.getElementById("prevPoBlock").style.display = isGst ? "block" : "none";
+          document.getElementById("prevInvoiceTitle").textContent = isGst ? "TAX INVOICE" : "BILL OF SUPPLY";
+
+          updatePreviewTable();
+          updatePreviewTotals();
+        }
+
+        // Live validation and preview mapping setup
+        function bindLiveInput(inputEl) {
+          const field = inputEl.closest(".field");
+          if (field) syncFieldState(field);
+
+          ["input", "change", "blur"].forEach((eventName) => {
+            inputEl.addEventListener(eventName, () => {
+              if (field) syncFieldState(field);
+              validateField(inputEl);
+              syncAllPreviewFields();
+            });
+          });
+        }
+
+        document.querySelectorAll("input, textarea, select").forEach((input) => {
+          bindLiveInput(input);
+        });
+
+        // Line Items templates and calculations
         function rowTemplate(item = {}) {
           const description = String(item.description || "").trim();
           const isCustom = Boolean(description) && !deliverableOptions.includes(description);
@@ -527,6 +827,7 @@
           const rowAmount = Number.isFinite(Number(item.amount)) ? Number(item.amount) : 0;
           const row = document.createElement("div");
           row.className = "grid-3 line-item-row";
+          row.style.marginBottom = "10px";
           row.innerHTML = `
             <label class="field field-floating">
               <select name="itemDescriptions" required placeholder=" ">
@@ -543,7 +844,7 @@
               <input type="number" name="itemAmounts" step="0.01" min="0" value="${rowAmount.toFixed(2)}" readonly required placeholder=" " />
               <span>Amount</span>
             </label>
-            <label class="field field-floating field-textarea custom-deliverable" style="grid-column: 1 / -1; ${selectedValue === "Custom" ? "" : "display:none;"}">
+            <label class="field field-floating field-textarea custom-deliverable" style="grid-column: 1 / -1; margin-top: 8px; ${selectedValue === "Custom" ? "" : "display:none;"}">
               <input type="text" name="itemCustomDescriptions" value="${escapeHtml(customValue)}" placeholder=" " ${selectedValue === "Custom" ? "required" : ""} />
               <span>Custom Deliverable</span>
             </label>
@@ -561,14 +862,11 @@
 
           select.addEventListener("change", syncCustomField);
           syncCustomField();
-          row.querySelectorAll(".field").forEach((field) => {
-            syncFieldState(field);
-            const control = field.querySelector("input, textarea, select");
-            if (!control) return;
-            ["input", "change", "blur"].forEach((eventName) => {
-              control.addEventListener(eventName, () => syncFieldState(field));
-            });
+
+          row.querySelectorAll("input, select").forEach((input) => {
+            bindLiveInput(input);
           });
+
           row.addEventListener("input", calculateTotal);
           return row;
         }
@@ -610,10 +908,12 @@
             total += Number(amountInputs[i].value || 0);
           }
           computedTotal.value = total.toFixed(2);
+          syncAllPreviewFields();
         }
 
         addRowBtn.addEventListener("click", () => {
           rowsWrap.appendChild(rowTemplate());
+          calculateTotal();
         });
 
         if (initialItems.length) {
@@ -623,9 +923,12 @@
         }
         calculateTotal();
 
+        // Smooth Quadratic Bezier Canvas Drawing
         const canvas = document.getElementById("signPad");
         const ctx = canvas.getContext("2d");
         let drawing = false;
+        let strokes = [];
+        let currentStroke = [];
 
         function pointFromEvent(e) {
           const rect = canvas.getBoundingClientRect();
@@ -634,26 +937,73 @@
           return { x, y };
         }
 
+        function redrawCanvas() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.lineWidth = 2.5;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.strokeStyle = "#111";
+
+          strokes.forEach((stroke) => {
+            if (stroke.length < 1) return;
+            ctx.beginPath();
+            ctx.moveTo(stroke[0].x, stroke[0].y);
+
+            if (stroke.length < 3) {
+              if (stroke[1]) ctx.lineTo(stroke[1].x, stroke[1].y);
+              ctx.stroke();
+              return;
+            }
+
+            for (let i = 1; i < stroke.length - 2; i++) {
+              const xc = (stroke[i].x + stroke[i + 1].x) / 2;
+              const yc = (stroke[i].y + stroke[i + 1].y) / 2;
+              ctx.quadraticCurveTo(stroke[i].x, stroke[i].y, xc, yc);
+            }
+
+            ctx.quadraticCurveTo(
+              stroke[stroke.length - 2].x,
+              stroke[stroke.length - 2].y,
+              stroke[stroke.length - 1].x,
+              stroke[stroke.length - 1].y
+            );
+            ctx.stroke();
+          });
+        }
+
+        function updatePreviewSignature() {
+          const prevImg = document.getElementById("prevSignatureImg");
+          const base64 = canvas.toDataURL("image/png");
+          if (strokes.length > 0) {
+            prevImg.src = base64;
+            prevImg.style.display = "block";
+          } else {
+            prevImg.src = "";
+            prevImg.style.display = "none";
+          }
+        }
+
         function startDraw(e) {
           drawing = true;
           const p = pointFromEvent(e);
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
+          currentStroke = [p];
+          strokes.push(currentStroke);
+          redrawCanvas();
         }
 
         function moveDraw(e) {
           if (!drawing) return;
           e.preventDefault();
           const p = pointFromEvent(e);
-          ctx.lineWidth = 2;
-          ctx.lineCap = "round";
-          ctx.strokeStyle = "#111";
-          ctx.lineTo(p.x, p.y);
-          ctx.stroke();
+          currentStroke.push(p);
+          redrawCanvas();
         }
 
         function endDraw() {
-          drawing = false;
+          if (drawing) {
+            drawing = false;
+            updatePreviewSignature();
+          }
         }
 
         canvas.addEventListener("mousedown", startDraw);
@@ -665,15 +1015,50 @@
         canvas.addEventListener("touchend", endDraw);
 
         document.getElementById("clearSign").addEventListener("click", () => {
+          strokes = [];
+          currentStroke = [];
           ctx.clearRect(0, 0, canvas.width, canvas.height);
+          updatePreviewSignature();
         });
 
+        // Handle signature upload file sync
+        document.getElementById("signatureFile").addEventListener("change", (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              const prevImg = document.getElementById("prevSignatureImg");
+              prevImg.src = evt.target.result;
+              prevImg.style.display = "block";
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+
+        // Submit form validation
         formEl.addEventListener("submit", (e) => {
           calculateTotal();
+
+          if (!validateCurrentStep()) {
+            e.preventDefault();
+            alert("Please correct the validation errors in the fields.");
+            return;
+          }
+
+          const signatureFile = document.getElementById("signatureFile");
+          const signatureHasUpload = signatureFile && signatureFile.files.length > 0;
+
+          if (strokes.length === 0 && !signatureHasUpload) {
+            e.preventDefault();
+            alert("Draw or upload signature is mandatory.");
+            return;
+          }
+
           if (submitBtn) {
             submitBtn.dataset.loading = "true";
             submitBtn.disabled = true;
           }
+
           const total = Number(computedTotal.value || 0);
           if (Number(total.toFixed(2)) !== Number(lockedAmount.toFixed(2))) {
             e.preventDefault();
@@ -684,10 +1069,16 @@
             alert("Row total must exactly match predefined creator amount.");
             return;
           }
-          const signatureDraw = document.getElementById("signatureDraw");
-          signatureDraw.value = canvas.toDataURL("image/png");
+
+          if (strokes.length > 0) {
+            const signatureDraw = document.getElementById("signatureDraw");
+            signatureDraw.value = canvas.toDataURL("image/png");
+          }
         });
+
+        // Initialize preview fields on page load
+        syncAllPreviewFields();
       </script>
     <% } %>
   </body>
-  </html>
+</html>

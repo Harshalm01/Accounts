@@ -25,6 +25,11 @@ const DELIVERABLE_OPTIONS = [
 ];
 const COMPANY_STATE_CODE = "27";
 const AUTH_COOKIE_NAME = "portal_auth";
+const regex = {
+  pan: /^[A-Z]{5}[0-9]{4}[A-Z]$/,
+  gstin: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/,
+  ifsc: /^[A-Z]{4}0[A-Z0-9]{6}$/
+};
 
 const uploadDir = path.join(runtimeDir, "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -260,7 +265,7 @@ async function loadCampaignCards(user, search = "") {
   if (user.role === "TEAM") {
     if (normalizedSearch) {
       campaigns = await db.all(
-        `SELECT c.*, COUNT(cc.id) AS creator_count
+        `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
          FROM campaigns c
          LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
          WHERE c.team_name = ? AND (c.campaign_name LIKE ? OR c.campaign_code LIKE ?)
@@ -270,7 +275,7 @@ async function loadCampaignCards(user, search = "") {
       );
     } else {
       campaigns = await db.all(
-        `SELECT c.*, COUNT(cc.id) AS creator_count
+        `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
          FROM campaigns c
          LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
          WHERE c.team_name = ?
@@ -282,7 +287,7 @@ async function loadCampaignCards(user, search = "") {
   } else {
     if (normalizedSearch) {
       campaigns = await db.all(
-        `SELECT c.*, COUNT(cc.id) AS creator_count
+        `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
          FROM campaigns c
          LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
          WHERE c.campaign_name LIKE ? OR c.campaign_code LIKE ? OR c.team_name LIKE ?
@@ -292,7 +297,7 @@ async function loadCampaignCards(user, search = "") {
       );
     } else {
       campaigns = await db.all(
-        `SELECT c.*, COUNT(cc.id) AS creator_count
+        `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
          FROM campaigns c
          LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
          GROUP BY c.id
@@ -320,6 +325,70 @@ async function loadCampaignCards(user, search = "") {
   }
 
   return campaignCards;
+}
+
+async function loadCampaignCreatorsWithInvoices(campaignId) {
+  const invoiceMatch = `i2.campaign_id = cc.campaign_id AND (
+          REPLACE(REPLACE(REPLACE(TRIM(i2.creator_mobile), ' ', ''), '-', ''), '+91', '') = REPLACE(REPLACE(REPLACE(TRIM(cc.mobile), ' ', ''), '-', ''), '+91', '')
+          OR LOWER(TRIM(i2.creator_name)) = LOWER(TRIM(cc.creator_name))
+        )`;
+  const joinMatch = `i.campaign_id = cc.campaign_id AND (
+       REPLACE(REPLACE(REPLACE(TRIM(i.creator_mobile), ' ', ''), '-', ''), '+91', '') = REPLACE(REPLACE(REPLACE(TRIM(cc.mobile), ' ', ''), '-', ''), '+91', '')
+       OR LOWER(TRIM(i.creator_name)) = LOWER(TRIM(cc.creator_name))
+     )`;
+
+  return db.all(
+    `SELECT cc.*,
+      COUNT(DISTINCT i.id) AS invoice_count,
+      (
+        SELECT i2.id
+        FROM invoices i2
+        WHERE ${invoiceMatch}
+        ORDER BY i2.id DESC
+        LIMIT 1
+      ) AS latest_invoice_id,
+      (
+        SELECT i2.invoice_no
+        FROM invoices i2
+        WHERE ${invoiceMatch}
+        ORDER BY i2.id DESC
+        LIMIT 1
+      ) AS latest_invoice_no,
+      (
+        SELECT i2.invoice_date
+        FROM invoices i2
+        WHERE ${invoiceMatch}
+        ORDER BY i2.id DESC
+        LIMIT 1
+      ) AS latest_invoice_date,
+      (
+        SELECT i2.status
+        FROM invoices i2
+        WHERE ${invoiceMatch}
+        ORDER BY i2.id DESC
+        LIMIT 1
+      ) AS latest_invoice_status,
+      (
+        SELECT i2.pdf_path
+        FROM invoices i2
+        WHERE ${invoiceMatch}
+        ORDER BY i2.id DESC
+        LIMIT 1
+      ) AS latest_pdf_path,
+      (
+        SELECT i2.total_amount
+        FROM invoices i2
+        WHERE ${invoiceMatch}
+        ORDER BY i2.id DESC
+        LIMIT 1
+      ) AS latest_invoice_amount
+     FROM campaign_creators cc
+     LEFT JOIN invoices i ON ${joinMatch}
+     WHERE cc.campaign_id = ?
+     GROUP BY cc.id
+     ORDER BY cc.id DESC`,
+    [campaignId]
+  );
 }
 
 function moveUploadToCampaignFolder(file, campaign) {
@@ -448,7 +517,7 @@ app.set("trust proxy", 1);
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; base-uri 'self'; connect-src 'self' https://vercel.live; form-action 'self'; img-src 'self' data:; object-src 'none'; script-src 'self' 'unsafe-inline' https://vercel.live; script-src-elem 'self' 'unsafe-inline' https://vercel.live; worker-src 'self' blob:; frame-src 'self' https://vercel.live; child-src 'self' https://vercel.live; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'"
+    "default-src 'self'; base-uri 'self'; connect-src 'self' https://vercel.live; form-action 'self'; img-src 'self' data:; object-src 'none'; script-src 'self' 'unsafe-inline' https://vercel.live; script-src-elem 'self' 'unsafe-inline' https://vercel.live; worker-src 'self' blob:; frame-src 'self' https://vercel.live; child-src 'self' https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'"
   );
   next();
 });
@@ -487,6 +556,7 @@ app.use((req, _, next) => {
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(uploadDir));
 app.use("/generated", express.static(generatedDir));
+app.get("/favicon.ico", (req, res) => res.sendFile(path.join(__dirname, "public", "logo.png")));
 
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
@@ -605,6 +675,43 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       });
     }
 
+    const normalizedPan = String(pan || "").trim().toUpperCase();
+    const normalizedGstin = String(gstin || "").trim().toUpperCase();
+    const normalizedIfscCode = String(ifscCode || "").trim().toUpperCase();
+
+    if (normalizedPan && !regex.pan.test(normalizedPan)) {
+      return res.render("creator_form", {
+        error: "PAN must match the format ABCDE1234F.",
+        success: null,
+        form: {
+          validated: true,
+          ...req.body
+        }
+      });
+    }
+
+    if (invoiceKind === "gst" && !regex.gstin.test(normalizedGstin)) {
+      return res.render("creator_form", {
+        error: "GSTIN must match the format 27ABCDE1234F1Z5.",
+        success: null,
+        form: {
+          validated: true,
+          ...req.body
+        }
+      });
+    }
+
+    if (normalizedIfscCode && !regex.ifsc.test(normalizedIfscCode)) {
+      return res.render("creator_form", {
+        error: "IFSC must match the format SBIN0001234.",
+        success: null,
+        form: {
+          validated: true,
+          ...req.body
+        }
+      });
+    }
+
     const campaign = await db.get("SELECT * FROM campaigns WHERE id = ?", [campaignId]);
     if (!campaign) {
       return res.render("creator_form", {
@@ -663,7 +770,7 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
     }
 
     const taxableAmount = Number(total.toFixed(2));
-    const taxes = gstBreakup(invoiceKind, gstin, taxableAmount);
+    const taxes = gstBreakup(invoiceKind, normalizedGstin, taxableAmount);
     const {
       gstRate,
       cgstRate,
@@ -728,7 +835,7 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
           invoiceKind,
           fullName.trim(),
           address || "",
-          pan || "",
+          normalizedPan,
           email || "",
           invoiceNo.trim(),
           invoiceDate,
@@ -736,7 +843,7 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
           pocName || "",
           otherReferences || "",
           poNumber || "",
-          gstin || "",
+          normalizedGstin,
           taxableAmount,
           gstRate,
           cgstRate,
@@ -750,7 +857,7 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
           accountName || "",
           bankName || "",
           accountNo || "",
-          ifscCode || "",
+          normalizedIfscCode,
           branch || "",
           upiId || "",
           signatureType,
@@ -780,7 +887,7 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
           invoiceKind,
           fullName.trim(),
           address || "",
-          pan || "",
+          normalizedPan,
           email || "",
           invoiceNo.trim(),
           invoiceDate,
@@ -788,7 +895,7 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
           pocName || "",
           otherReferences || "",
           poNumber || "",
-          gstin || "",
+          normalizedGstin,
           taxableAmount,
           gstRate,
           cgstRate,
@@ -802,7 +909,7 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
           accountName || "",
           bankName || "",
           accountNo || "",
-          ifscCode || "",
+          normalizedIfscCode,
           branch || "",
           upiId || "",
           signatureType,
@@ -883,6 +990,10 @@ app.get("/admin", (req, res) => {
   res.render("admin_login", { error: null });
 });
 
+app.get("/admin/login/success", requireAuth, (req, res) => {
+  res.render("admin_login_success", { nextUrl: "/admin/dashboard" });
+});
+
 app.post("/admin/login", async (req, res) => {
   const { username, password } = req.body;
   const user = await db.get("SELECT * FROM users WHERE username = ?", [username]);
@@ -903,7 +1014,9 @@ app.post("/admin/login", async (req, res) => {
   };
   setAuthCookie(res, req, req.session.user);
 
-  res.redirect("/admin/dashboard");
+  req.session.save(() => {
+    res.redirect("/admin/login/success");
+  });
 });
 
 app.post("/admin/logout", requireAuth, (req, res) => {
@@ -938,7 +1051,7 @@ app.get("/admin/dashboard", async (req, res) => {
 
   if (user.role === "ACCOUNTS" || user.role === "SUPER_ADMIN") {
     notifications = await db.all(
-      `SELECT n.*, c.campaign_name, i.creator_name
+      `SELECT n.*, c.campaign_name, i.creator_name, i.status AS invoice_status
        FROM notifications n
        LEFT JOIN campaigns c ON c.id = n.campaign_id
        LEFT JOIN invoices i ON i.id = n.invoice_id
@@ -1036,13 +1149,14 @@ app.get("/admin/campaigns/:id/creators", requireRole(["ACCOUNTS", "TEAM", "SUPER
     return res.redirect("/admin/campaigns");
   }
 
-  const creators = await db.all("SELECT * FROM campaign_creators WHERE campaign_id = ? ORDER BY id DESC", [campaign.id]);
+  const creators = await loadCampaignCreatorsWithInvoices(campaign.id);
   res.render("campaign_creators", {
     campaign,
     creators,
     error: null,
     success: null,
-    canEdit: req.session.user.role !== "ACCOUNTS"
+    canEdit: req.session.user.role !== "ACCOUNTS",
+    backUrl: "/admin/folders"
   });
 });
 
@@ -1054,12 +1168,14 @@ app.post("/admin/campaigns/:id/creators", requireRole(["TEAM", "SUPER_ADMIN"]), 
 
   const { creatorName, mobile, amount } = req.body;
   if (!creatorName || !mobile || !amount) {
-    const creators = await db.all("SELECT * FROM campaign_creators WHERE campaign_id = ? ORDER BY id DESC", [campaign.id]);
+    const creators = await loadCampaignCreatorsWithInvoices(campaign.id);
     return res.render("campaign_creators", {
       campaign,
       creators,
       error: "Creator name, mobile, and predefined amount are required.",
-      success: null
+      success: null,
+      canEdit: true,
+      backUrl: "/admin/folders"
     });
   }
 
@@ -1078,12 +1194,14 @@ app.post("/admin/campaigns/:id/creators/bulk", requireRole(["TEAM", "SUPER_ADMIN
   }
 
   if (!req.file) {
-    const creators = await db.all("SELECT * FROM campaign_creators WHERE campaign_id = ? ORDER BY id DESC", [campaign.id]);
+    const creators = await loadCampaignCreatorsWithInvoices(campaign.id);
     return res.render("campaign_creators", {
       campaign,
       creators,
       error: "Please upload a CSV or Excel file.",
-      success: null
+      success: null,
+      canEdit: true,
+      backUrl: "/admin/folders"
     });
   }
 
@@ -1118,20 +1236,24 @@ app.post("/admin/campaigns/:id/creators/bulk", requireRole(["TEAM", "SUPER_ADMIN
       }
     }
 
-    const creators = await db.all("SELECT * FROM campaign_creators WHERE campaign_id = ? ORDER BY id DESC", [campaign.id]);
+    const creators = await loadCampaignCreatorsWithInvoices(campaign.id);
     return res.render("campaign_creators", {
       campaign,
       creators,
       error: null,
-      success: `Bulk upload complete. Added/updated ${inserted.length} creators${skipped.length ? `, skipped ${skipped.length} invalid rows` : ""}.`
+      success: `Bulk upload complete. Added/updated ${inserted.length} creators${skipped.length ? `, skipped ${skipped.length} invalid rows` : ""}.`,
+      canEdit: true,
+      backUrl: "/admin/folders"
     });
   } catch (error) {
-    const creators = await db.all("SELECT * FROM campaign_creators WHERE campaign_id = ? ORDER BY id DESC", [campaign.id]);
+    const creators = await loadCampaignCreatorsWithInvoices(campaign.id);
     return res.render("campaign_creators", {
       campaign,
       creators,
       error: `Bulk upload failed: ${error.message}`,
-      success: null
+      success: null,
+      canEdit: true,
+      backUrl: "/admin/folders"
     });
   } finally {
     if (req.file && fs.existsSync(req.file.path)) {
@@ -1154,7 +1276,8 @@ app.get("/admin/invoices/:id", async (req, res) => {
   }
 
   const items = await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [invoice.id]);
-  res.render("invoice_view", { invoice, items, error: null });
+  const backUrl = req.query.from === "folders" ? "/admin/folders" : "/admin/dashboard";
+  res.render("invoice_view", { invoice, items, error: null, backUrl });
 });
 
 app.post("/admin/invoices/:id/status", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), async (req, res) => {
@@ -1166,7 +1289,7 @@ app.post("/admin/invoices/:id/status", requireRole(["ACCOUNTS", "SUPER_ADMIN"]),
 
   const nextStatus = action === "accept" ? "ACCEPTED" : "REJECTED";
   await db.run("UPDATE invoices SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [nextStatus, invoice.id]);
-  res.redirect(`/admin/invoices/${invoice.id}`);
+  res.redirect(req.get("referer") || "/admin/dashboard");
 });
 
 app.get("/admin/invoices/:id/edit", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), async (req, res) => {

@@ -3,8 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Invoice View</title>
-    <link rel="stylesheet" href="/public/styles.css" />
+    <title>Invoice View — 3Folks Media</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/styles.css?v=35" />
   </head>
   <body class="admin-page">
     <div class="shell">
@@ -18,134 +21,185 @@
       <% const gstAmount = Number(invoice.gst_amount ?? (isIntraState ? (cgstAmount + sgstAmount) : igstAmount).toFixed(2)); %>
       <% const grandTotal = Number(invoice.final_amount ?? (isGstInvoice ? (taxableAmount + gstAmount) : invoice.total_amount ?? taxableAmount)); %>
       <% function rowBreakup(amount) { const base = Number(amount || 0); if (isIntraState) { const cgst = Number((base * 0.09).toFixed(2)); const sgst = Number((base * 0.09).toFixed(2)); return { cgst, sgst, igst: 0, finalAmount: Number((base + cgst + sgst).toFixed(2)) }; } const igst = Number((base * 0.18).toFixed(2)); return { cgst: 0, sgst: 0, igst, finalAmount: Number((base + igst).toFixed(2)) }; } %>
-      <div class="topbar hero-banner">
-        <div>
-          <%- include('partials/brand') %>
-          <div class="eyebrow">Invoice details</div>
-          <h2>Invoice #<%= invoice.id %></h2>
-          <div class="pill">Status: <%= invoice.status %></div>
-        </div>
-        <a href="/admin/dashboard"><button class="btn btn-light" type="button">Back</button></a>
-      </div>
 
-      <div class="card glass-panel" style="margin-bottom: 12px;">
-        <div class="grid-3">
-          <div><strong>Campaign:</strong> <%= invoice.campaign_name %> (<%= invoice.campaign_code %>)</div>
-          <div><strong>Creator:</strong> <%= invoice.creator_name %> / <%= invoice.creator_mobile %></div>
-          <div><strong>Total:</strong> <%= grandTotal.toFixed(2) %></div>
-          <div><strong>Type:</strong> <%= isGstInvoice ? 'GST Based' : 'Non-GST Based' %></div>
-          <div><strong>Invoice No:</strong> <%= invoice.invoice_no %></div>
-          <div><strong>Date:</strong> <%= invoice.invoice_date %></div>
-          <% if (isGstInvoice) { %>
-            <div><strong>PO Number:</strong> <%= invoice.po_number || '' %></div>
-            <div><strong>Creator GSTIN:</strong> <%= invoice.creator_gstin || '' %></div>
-            <div><strong>Company GSTIN:</strong> 27AACFZ6393B1ZZ</div>
-            <div><strong>Company PAN:</strong> AACFZ6393B</div>
-            <div><strong>Taxable Amount:</strong> <%= taxableAmount.toFixed(2) %></div>
-                <% if (isIntraState) { %>
-                  <div><strong>CGST @ 9%:</strong> <%= cgstAmount.toFixed(2) %></div>
-                  <div><strong>SGST @ 9%:</strong> <%= sgstAmount.toFixed(2) %></div>
-                <% } else { %>
-                  <div><strong>IGST @ 18%:</strong> <%= igstAmount.toFixed(2) %></div>
-                <% } %>
-                <div><strong>Total GST:</strong> <%= gstAmount.toFixed(2) %></div>
-            <div><strong>Grand Total:</strong> <%= grandTotal.toFixed(2) %></div>
-          <% } %>
-          <div><strong>PDF:</strong> <% if (invoice.pdf_path) { %><a href="<%= invoice.pdf_path %>" target="_blank">Download</a><% } else { %>Not generated<% } %></div>
-        </div>
-      </div>
-
-      <div class="card glass-panel" style="margin-bottom: 12px;">
-        <div class="section-head">
+      <!-- Top Header Card -->
+      <div class="card glass-panel" style="margin-bottom: 16px; padding: 28px 32px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
           <div>
-            <h3>Rows</h3>
+            <div style="margin-bottom: 20px;"><%- include('partials/brand') %></div>
+            <h2 style="font-size: 32px; font-weight: 850; color: #0f172a; margin: 0 0 12px 0; letter-spacing: -1.5px;">Invoice #<%= invoice.id %></h2>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span class="status-pill <%= invoice.status %>" style="font-size: 11px; padding: 5px 14px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">
+                Status: <%= invoice.status %>
+              </span>
+            </div>
+          </div>
+          <div>
+            <a href="<%= typeof backUrl !== 'undefined' ? backUrl : '/admin/dashboard' %>">
+              <button class="btn btn-3d-nav" type="button" style="padding: 12px 24px;">Back</button>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Details Card -->
+      <div class="card glass-panel" style="margin-bottom: 16px; padding: 24px 32px;">
+        <div class="grid-3" style="row-gap: 20px; column-gap: 32px;">
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Campaign</span>
+            <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= invoice.campaign_name %> (<%= invoice.campaign_code %>)</span>
+          </div>
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Creator</span>
+            <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= invoice.creator_name %> / <%= invoice.creator_mobile %></span>
+          </div>
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Total</span>
+            <span style="font-weight: 800; color: #7c3aed; font-size: 16px;">₹<%= grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></span>
+          </div>
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Type</span>
+            <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= isGstInvoice ? 'GST Based' : 'Non-GST Based' %></span>
+          </div>
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Invoice No</span>
+            <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= invoice.invoice_no %></span>
+          </div>
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Date</span>
+            <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= invoice.invoice_date %></span>
+          </div>
+
+          <% if (isGstInvoice) { %>
+            <div>
+              <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">PO Number</span>
+              <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= invoice.po_number || '—' %></span>
+            </div>
+            <div>
+              <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Creator GSTIN</span>
+              <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= invoice.creator_gstin || '—' %></span>
+            </div>
+            <div>
+              <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Company GSTIN</span>
+              <span style="font-weight: 600; color: #1e293b; font-size: 15px;">27AACFZ6393B1ZZ</span>
+            </div>
+            <div>
+              <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Company PAN</span>
+              <span style="font-weight: 600; color: #1e293b; font-size: 15px;">AACFZ6393B</span>
+            </div>
+            <div>
+              <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Taxable Amount</span>
+              <span style="font-weight: 600; color: #1e293b; font-size: 15px;">₹<%= taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></span>
+            </div>
+            <div>
+              <% if (isIntraState) { %>
+                <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">CGST + SGST (9% each)</span>
+                <span style="font-weight: 600; color: #1e293b; font-size: 15px;">₹<%= cgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %> + ₹<%= sgstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></span>
+              <% } else { %>
+                <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">IGST @ 18%</span>
+                <span style="font-weight: 600; color: #1e293b; font-size: 15px;">₹<%= igstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></span>
+              <% } %>
+            </div>
+            <div>
+              <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Total GST</span>
+              <span style="font-weight: 600; color: #1e293b; font-size: 15px;">₹<%= gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></span>
+            </div>
+            <div>
+              <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Grand Total</span>
+              <span style="font-weight: 800; color: #16a34a; font-size: 16px;">₹<%= grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></span>
+            </div>
+          <% } %>
+
+          <div>
+            <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">PDF Invoice</span>
+            <% if (invoice.pdf_path) { %>
+              <a href="<%= invoice.pdf_path %>" target="_blank" style="font-weight: 700; color: #7c3aed; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                Download PDF 📥
+              </a>
+            <% } else { %>
+              <span style="color: #94a3b8; font-style: italic;">Not generated</span>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Line Items Rows Card -->
+      <div class="card glass-panel" style="margin-bottom: 16px; padding: 24px 32px;">
+        <div class="section-head" style="margin-bottom: 20px;">
+          <div>
+            <h3 style="font-size: 18px; font-weight: 800; color: #0f172a;">Rows</h3>
             <p class="subtitle">Invoice line items captured from the creator portal.</p>
           </div>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Description</th>
-              <th>Qty</th>
-              <th>Rate</th>
-              <% if (isGstInvoice) { %>
-                <% if (isIntraState) { %>
-                  <th>CGST</th>
-                  <th>SGST</th>
-                <% } else { %>
-                  <th>IGST</th>
-                <% } %>
-              <% } %>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% items.forEach((it, idx) => { %>
-              <% const row = rowBreakup(it.amount); %>
-              <tr>
-                <td><%= idx + 1 %></td>
-                <td><%= it.description %></td>
-                <td><%= it.quantity %></td>
-                <td><%= isGstInvoice ? '18.00' : Number(it.rate || 0).toFixed(2) %></td>
-                <% if (isGstInvoice) { %>
-                  <% if (isIntraState) { %>
-                    <td><%= row.cgst.toFixed(2) %></td>
-                    <td><%= row.sgst.toFixed(2) %></td>
-                  <% } else { %>
-                    <td><%= row.igst.toFixed(2) %></td>
-                  <% } %>
-                  <td><%= row.finalAmount.toFixed(2) %></td>
-                <% } else { %>
-                  <td><%= Number(it.amount || 0).toFixed(2) %></td>
-                <% } %>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      </div>
 
-      <% if (isGstInvoice) { %>
-        <div class="card glass-panel" style="margin-bottom: 12px;">
-          <div class="section-head">
-            <div>
-              <h3>GST Summary</h3>
-              <p class="subtitle">Automatic GST split applied on the commercial amount.</p>
-            </div>
-          </div>
-          <table>
+        <div class="users-table-wrap">
+          <table class="users-table">
             <thead>
               <tr>
-                <th>Taxable Amount</th>
-                <th>CGST @ 9%</th>
-                <th>SGST @ 9%</th>
-                <th>Total GST</th>
-                <th>Grand Total</th>
+                <th style="width: 60px;">#</th>
+                <th>Description</th>
+                <th style="text-align: center;">Qty</th>
+                <th style="text-align: right;">Rate</th>
+                <% if (isGstInvoice) { %>
+                  <% if (isIntraState) { %>
+                    <th style="text-align: right;">CGST</th>
+                    <th style="text-align: right;">SGST</th>
+                  <% } else { %>
+                    <th style="text-align: right;">IGST</th>
+                  <% } %>
+                <% } %>
+                <th style="text-align: right; padding-right: 24px;">Amount</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td><%= Number(invoice.taxable_amount ?? invoice.locked_amount ?? 0).toFixed(2) %></td>
-                <td><%= Number(invoice.cgst_amount ?? 0).toFixed(2) %></td>
-                <td><%= Number(invoice.sgst_amount ?? 0).toFixed(2) %></td>
-                <td><%= Number(invoice.gst_amount ?? 0).toFixed(2) %></td>
-                <td><%= Number(invoice.final_amount ?? invoice.total_amount ?? 0).toFixed(2) %></td>
-              </tr>
+              <% items.forEach((it, idx) => { %>
+                <% const row = rowBreakup(it.amount); %>
+                <tr>
+                  <td class="user-id-cell"><%= idx + 1 %></td>
+                  <td style="font-weight: 600; color: #334155;"><%= it.description %></td>
+                  <td style="text-align: center; font-weight: 600;"><%= it.quantity %></td>
+                  <td style="text-align: right; font-family: monospace; font-size: 14px;">
+                    <%= isGstInvoice ? '18.00' : Number(it.rate || 0).toFixed(2) %>
+                  </td>
+                  <% if (isGstInvoice) { %>
+                    <% if (isIntraState) { %>
+                      <td style="text-align: right; font-family: monospace; font-size: 14px; color: #475569;">
+                        ₹<%= row.cgst.toFixed(2) %>
+                      </td>
+                      <td style="text-align: right; font-family: monospace; font-size: 14px; color: #475569;">
+                        ₹<%= row.sgst.toFixed(2) %>
+                      </td>
+                    <% } else { %>
+                      <td style="text-align: right; font-family: monospace; font-size: 14px; color: #475569;">
+                        ₹<%= row.igst.toFixed(2) %>
+                      </td>
+                    <% } %>
+                    <td style="text-align: right; font-weight: 700; color: #1e293b; padding-right: 24px;">
+                      ₹<%= row.finalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %>
+                    </td>
+                  <% } else { %>
+                    <td style="text-align: right; font-weight: 700; color: #1e293b; padding-right: 24px;">
+                      ₹<%= Number(it.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) %>
+                    </td>
+                  <% } %>
+                </tr>
+              <% }) %>
             </tbody>
           </table>
         </div>
-      <% } %>
+      </div>
 
+      <!-- Accept / Reject Actions -->
       <% if (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN') { %>
-        <div class="card glass-panel">
-          <div class="row">
-            <form method="post" action="/admin/invoices/<%= invoice.id %>/status">
+        <div class="card glass-panel" style="padding: 24px 32px;">
+          <div style="display: flex; gap: 16px; justify-content: center; perspective: 1000px;">
+            <form method="post" action="/admin/invoices/<%= invoice.id %>/status" style="display: inline;">
               <input type="hidden" name="action" value="accept" />
-              <button class="btn btn-primary" type="submit">Accept</button>
+              <button class="btn btn-3d-sm btn-3d-accept" type="submit" style="padding: 12px 32px; font-size: 13px;">Accept Invoice</button>
             </form>
-            <form method="post" action="/admin/invoices/<%= invoice.id %>/status">
+            <form method="post" action="/admin/invoices/<%= invoice.id %>/status" style="display: inline;">
               <input type="hidden" name="action" value="reject" />
-              <button class="btn btn-danger" type="submit">Reject</button>
+              <button class="btn btn-3d-sm btn-3d-reject" type="submit" style="padding: 12px 32px; font-size: 13px;">Reject Invoice</button>
             </form>
           </div>
         </div>
