@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/styles.css?v=43" />
+    <link rel="stylesheet" href="/public/styles.css?v=44" />
   </head>
   <body class="admin-page">
     <div class="shell">
@@ -117,49 +117,49 @@
           <div class="empty-state">No campaigns match your filter.</div>
         <% } %>
 
-        <div class="campaigns-list">
+        <div class="folder-grid folder-grid-books" style="margin-top: 16px;">
           <% campaigns.forEach((c) => { %>
-            <div class="campaign-row-card">
-              <div class="campaign-row-left">
-                <div class="campaign-row-icon">📣</div>
-                <div class="campaign-row-info">
-                  <div class="campaign-row-name"><%= c.campaign_name %></div>
-                  <div class="campaign-row-meta">
-                    <span class="pill" style="font-size:10px;"><%= c.campaign_code %></span>
-                    <span style="color:#94a3b8;font-size:12px;">·</span>
-                    <span style="font-size:12px;color:#6B7280;font-weight:500;"><%= c.team_name %></span>
+            <div class="folder-card-wrap">
+              <a class="book" href="/admin/campaigns/<%= c.id %>/creators">
+
+                <!-- Inside of Book (creators list) -->
+                <div class="inside-page">
+                  <div class="inside-header">Creators · <%= c.creators.length %></div>
+                  <div class="inside-creators-list">
+                    <% if (c.creators && c.creators.length) { %>
+                      <% c.creators.forEach((cr) => { %>
+                        <div class="inside-creator-row">
+                          <span class="inside-creator-name"><%= cr.creator_name %></span>
+                          <span class="inside-creator-amount">₹<%= Number(cr.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></span>
+                        </div>
+                      <% }) %>
+                    <% } else { %>
+                      <div style="color:#a78bfa;font-size:13px;margin-top:16px;text-align:center;">No creators mapped</div>
+                    <% } %>
                   </div>
                 </div>
-              </div>
-              <div class="campaign-row-stats">
-                <div class="campaign-stat-chip">
-                  <span>👥</span>
-                  <span><%= c.creator_count || 0 %> creators</span>
-                </div>
-                <div class="campaign-stat-chip campaign-stat-amount">
-                  <span>₹<%= Number(c.amount || 0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}) %></span>
-                </div>
-              </div>
-              <div class="campaign-row-actions">
-                <a href="/admin/campaigns/<%= c.id %>/creators" class="btn btn-3d-sm btn-3d-view">Manage Creators</a>
-              </div>
-            </div>
 
-            <!-- Creators preview (collapsible) -->
-            <% if ((c.creators || []).length) { %>
-              <details class="campaign-creators-preview">
-                <summary>Show <%= c.creators.length %> creator<%= c.creators.length !== 1 ? 's' : '' %></summary>
-                <div class="creator-preview-grid">
-                  <% c.creators.forEach((cr) => { %>
-                    <div class="creator-preview-chip">
-                      <strong><%= cr.creator_name %></strong>
-                      <span>₹<%= Number(cr.amount||0).toLocaleString('en-IN',{minimumFractionDigits:2}) %></span>
-                      <span class="pill" style="font-size:10px;"><%= cr.invoice_count %> inv</span>
+                <!-- Cover of Book (campaign summary) -->
+                <div class="cover">
+                  <div>
+                    <span class="cover-tag">Campaign</span>
+                    <h3 class="cover-title"><%= c.campaign_name %></h3>
+                    <p style="font-size:12px;color:#6B7280;margin:0 0 12px 0;"><%= c.campaign_code %> · <%= c.team_name %></p>
+                  </div>
+                  <div class="cover-meta">
+                    <div class="meta-item">
+                      <span class="meta-icon">💰</span>
+                      <span>₹<%= Number(c.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) %></span>
                     </div>
-                  <% }) %>
+                    <div class="meta-item">
+                      <span class="meta-icon">👥</span>
+                      <span><%= c.creator_count || 0 %> creators</span>
+                    </div>
+                  </div>
                 </div>
-              </details>
-            <% } %>
+
+              </a>
+            </div>
           <% }) %>
         </div>
       </div>
