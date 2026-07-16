@@ -556,7 +556,10 @@ app.use((req, _, next) => {
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(uploadDir));
 app.use("/generated", express.static(generatedDir));
-app.get("/favicon.ico", (req, res) => res.sendFile(path.join(__dirname, "public", "logo.png")));
+app.get("/favicon.ico", (req, res) => {
+  res.setHeader("Content-Type", "image/svg+xml");
+  res.sendFile(path.join(__dirname, "public", "favicon.svg"));
+});
 
 // Database keep-alive endpoint for hosted setups (like Supabase free-tier)
 app.get("/api/ping", async (req, res) => {
