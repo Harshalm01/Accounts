@@ -616,6 +616,56 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware to dynamically inject impersonation banner into rendered views
+app.use((req, res, next) => {
+  if (req.session && req.session.originalUser) {
+    const originalRender = res.render;
+    res.render = function (view, options, fn) {
+      const self = this;
+      let renderOptions = options || {};
+      let renderFn = fn;
+
+      if (typeof options === "function") {
+        renderFn = options;
+        renderOptions = {};
+      }
+
+      originalRender.call(self, view, renderOptions, (err, html) => {
+        if (err) {
+          if (typeof renderFn === "function") return renderFn(err);
+          return next(err);
+        }
+
+        const bannerHtml = `
+          <div class="impersonation-banner" style="background: linear-gradient(135deg, #f43f5e, #e11d48); color: #fff; padding: 12px 24px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; z-index: 99999; position: sticky; top: 0; box-shadow: 0 4px 20px rgba(225, 29, 72, 0.4); font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 14px; letter-spacing: -0.01em; border-bottom: 2px solid rgba(255, 255, 255, 0.1);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 18px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));">🛡️</span>
+              <span>Impersonating <strong style="text-decoration: underline; text-underline-offset: 2px;">${req.session.user.username}</strong> (${req.session.user.role}) &mdash; Original User: <strong>${req.session.originalUser.username}</strong></span>
+            </div>
+            <a href="/admin/users/stop-impersonating" style="background: rgba(255, 255, 255, 0.2); color: #fff; text-decoration: none; padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 700; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255, 255, 255, 0.5); display: inline-flex; align-items: center; gap: 6px; cursor: pointer; text-shadow: 0 1px 2px rgba(0,0,0,0.1);" onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(0)'">
+              Stop Impersonating
+            </a>
+          </div>
+        `;
+
+        let modifiedHtml = html;
+        if (html.includes('<body class="admin-page">')) {
+          modifiedHtml = html.replace('<body class="admin-page">', `<body class="admin-page">\n${bannerHtml}`);
+        } else if (html.includes('<body>')) {
+          modifiedHtml = html.replace('<body>', `<body>\n${bannerHtml}`);
+        }
+
+        if (typeof renderFn === "function") {
+          renderFn(null, modifiedHtml);
+        } else {
+          self.send(modifiedHtml);
+        }
+      });
+    };
+  }
+  next();
+});
+
 app.get("/", async (req, res) => {
   res.render("creator_form", { error: null, success: null, form: { ...req.query } });
 });
@@ -1392,6 +1442,50 @@ app.get("/admin/invoices/:id/edit", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), as
 
 app.post("/admin/invoices/:id/edit", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), async (req, res) => {
   return res.redirect(`/admin/invoices/${req.params.id}`);
+});
+
+app.get("/admin/users/stop-impersonating", async (req, res) => {
+  if (req.session.originalUser) {
+    req.session.user = req.session.originalUser;
+    delete req.session.originalUser;
+  }
+  req.session.save(() => {
+    res.redirect("/admin/users");
+  });
+});
+
+app.post("/admin/users/:id/impersonate", async (req, res) => {
+  const currentUser = req.session.user;
+  const originalUser = req.session.originalUser;
+
+  const isSuperAdmin = (currentUser && currentUser.role === "SUPER_ADMIN") ||
+                      (originalUser && originalUser.role === "SUPER_ADMIN");
+
+  if (!isSuperAdmin) {
+    return res.status(403).send("Forbidden");
+  }
+
+  const targetId = Number(req.params.id);
+  const targetUser = await db.get("SELECT id, username, role, team_name FROM users WHERE id = ?", [targetId]);
+
+  if (!targetUser) {
+    return res.status(404).send("User not found");
+  }
+
+  if (!req.session.originalUser) {
+    req.session.originalUser = { ...req.session.user };
+  }
+
+  req.session.user = {
+    id: targetUser.id,
+    username: targetUser.username,
+    role: targetUser.role,
+    teamName: targetUser.team_name || null
+  };
+
+  req.session.save(() => {
+    res.redirect("/admin/dashboard");
+  });
 });
 
 app.get("/admin/users", requireRole(["SUPER_ADMIN"]), async (req, res) => {

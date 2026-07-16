@@ -108,6 +108,7 @@
                 <th>Username</th>
                 <th>Role</th>
                 <th>Team</th>
+                <th>Impersonate</th>
                 <th>Reset Password</th>
                 <th>Delete</th>
               </tr>
@@ -126,6 +127,15 @@
                     <span class="role-badge role-<%= u.role.toLowerCase() %>"><%= u.role %></span>
                   </td>
                   <td class="team-cell"><%= u.team_name || '—' %></td>
+                  <td>
+                    <% if (u.id !== user.id) { %>
+                      <form method="post" action="/admin/users/<%= u.id %>/impersonate">
+                        <button class="btn btn-3d-sm btn-3d-view" type="submit">Impersonate</button>
+                      </form>
+                    <% } else { %>
+                      <span style="color: #9ca3af; font-size: 13px; font-weight: 500;">Current User</span>
+                    <% } %>
+                  </td>
                   <td>
                     <form method="post" action="/admin/users/<%= u.id %>/reset" style="display:flex;gap:8px;align-items:center;">
                       <input type="password" name="newPassword" placeholder="New password" required style="flex:1;min-width:140px;" />
