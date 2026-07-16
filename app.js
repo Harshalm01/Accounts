@@ -564,6 +564,33 @@ app.use((req, _, next) => {
 });
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(uploadDir));
+// Dynamic PDF serving to handle stateless serverless instances (Vercel)
+app.get("/generated/campaigns/:folder/:filename", async (req, res) => {
+  try {
+    const { folder, filename } = req.params;
+    const localPath = path.join(runtimeDir, "generated", "campaigns", folder, filename);
+
+    if (fs.existsSync(localPath)) {
+      return res.sendFile(localPath);
+    }
+
+    // Extract invoice ID and regenerate PDF on the fly if not on local disk
+    const match = filename.match(/invoice-(\d+)\.pdf/i);
+    if (match) {
+      const invoiceId = Number(match[1]);
+      await ensurePdfForInvoice(invoiceId);
+      if (fs.existsSync(localPath)) {
+        return res.sendFile(localPath);
+      }
+    }
+
+    res.status(404).send("Invoice PDF not found.");
+  } catch (err) {
+    console.error("Dynamic PDF serving failed:", err);
+    res.status(500).send("Error rendering PDF.");
+  }
+});
+
 app.use("/generated", express.static(generatedDir));
 app.get("/favicon.ico", (req, res) => {
   res.setHeader("Content-Type", "image/svg+xml");
