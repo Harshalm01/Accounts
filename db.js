@@ -1,36 +1,91 @@
 const path = require("path");
-const sqlite3 = require("sqlite3").verbose();
 const bcrypt = require("bcryptjs");
 
-const runtimeDir = process.env.VERCEL ? "/tmp" : __dirname;
-const dbPath = process.env.DATABASE_PATH || path.join(runtimeDir, "portal.db");
-const raw = new sqlite3.Database(dbPath);
+const isPostgres = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
 
-function run(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    raw.run(sql, params, function onRun(err) {
-      if (err) return reject(err);
-      resolve({ lastID: this.lastID, changes: this.changes });
-    });
+let pool;
+let raw;
+
+if (isPostgres) {
+  const { Pool } = require("pg");
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
   });
+} else {
+  const sqlite3 = require("sqlite3").verbose();
+  const runtimeDir = process.env.VERCEL ? "/tmp" : __dirname;
+  const dbPath = process.env.DATABASE_PATH || path.join(runtimeDir, "portal.db");
+  raw = new sqlite3.Database(dbPath);
 }
 
-function get(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    raw.get(sql, params, (err, row) => {
-      if (err) return reject(err);
-      resolve(row || null);
-    });
-  });
+function convertQuery(sql) {
+  if (!isPostgres) return sql;
+  
+  // 1. Translate SQLite column types/definitions to PostgreSQL equivalents
+  let converted = sql
+    .replace(/INTEGER PRIMARY KEY AUTOINCREMENT/gi, "SERIAL PRIMARY KEY")
+    .replace(/REAL/gi, "DOUBLE PRECISION")
+    .replace(/TEXT DEFAULT CURRENT_TIMESTAMP/gi, "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    .replace(/expire INTEGER/gi, "expire BIGINT");
+    
+  // 2. Convert ? placeholders to PostgreSQL $1, $2, $3...
+  let count = 1;
+  converted = converted.replace(/\?/g, () => `$${count++}`);
+  
+  return converted;
 }
 
-function all(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    raw.all(sql, params, (err, rows) => {
-      if (err) return reject(err);
-      resolve(rows || []);
+async function run(sql, params = []) {
+  if (isPostgres) {
+    let converted = convertQuery(sql);
+    const isInsert = sql.trim().toUpperCase().startsWith("INSERT");
+    if (isInsert && !converted.toUpperCase().includes("RETURNING")) {
+      converted += " RETURNING id";
+    }
+    const res = await pool.query(converted, params);
+    const lastID = isInsert ? (res.rows[0]?.id || null) : null;
+    return { lastID, changes: res.rowCount };
+  } else {
+    return new Promise((resolve, reject) => {
+      raw.run(sql, params, function onRun(err) {
+        if (err) return reject(err);
+        resolve({ lastID: this.lastID, changes: this.changes });
+      });
     });
-  });
+  }
+}
+
+async function get(sql, params = []) {
+  if (isPostgres) {
+    const converted = convertQuery(sql);
+    const res = await pool.query(converted, params);
+    return res.rows[0] || null;
+  } else {
+    return new Promise((resolve, reject) => {
+      raw.get(sql, params, (err, row) => {
+        if (err) return reject(err);
+        resolve(row || null);
+      });
+    });
+  }
+}
+
+async function all(sql, params = []) {
+  if (isPostgres) {
+    const converted = convertQuery(sql);
+    const res = await pool.query(converted, params);
+    return res.rows || [];
+  } else {
+    return new Promise((resolve, reject) => {
+      raw.all(sql, params, (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows || []);
+      });
+    });
+  }
 }
 
 async function seedDefaultUsers() {
@@ -154,76 +209,118 @@ async function init() {
     FOREIGN KEY(campaign_id) REFERENCES campaigns(id)
   )`);
 
-  const creatorColumns = await all("PRAGMA table_info(campaign_creators)");
-  if (!creatorColumns.some((c) => c.name === "amount")) {
-    await run("ALTER TABLE campaign_creators ADD COLUMN amount REAL NOT NULL DEFAULT 0");
+  let hasCreatorAmount = false;
+  let hasInvoiceType = false;
+  let hasPoNumber = false;
+  let hasCreatorGstin = false;
+  let hasTaxableAmount = false;
+  let hasGstRate = false;
+  let hasCgstRate = false;
+  let hasSgstRate = false;
+  let hasIgstRate = false;
+  let hasCgstAmount = false;
+  let hasSgstAmount = false;
+  let hasIgstAmount = false;
+  let hasGstAmount = false;
+  let hasFinalAmount = false;
+  let hasLockedAmount = false;
+  let hasRevisionCount = false;
+
+  if (isPostgres) {
+    const checkColumn = async (table, column) => {
+      const res = await get(
+        "SELECT column_name FROM information_schema.columns WHERE table_name = ? AND column_name = ?",
+        [table, column]
+      );
+      return !!res;
+    };
+    hasCreatorAmount = await checkColumn("campaign_creators", "amount");
+    hasInvoiceType = await checkColumn("invoices", "invoice_type");
+    hasPoNumber = await checkColumn("invoices", "po_number");
+    hasCreatorGstin = await checkColumn("invoices", "creator_gstin");
+    hasTaxableAmount = await checkColumn("invoices", "taxable_amount");
+    hasGstRate = await checkColumn("invoices", "gst_rate");
+    hasCgstRate = await checkColumn("invoices", "cgst_rate");
+    hasSgstRate = await checkColumn("invoices", "sgst_rate");
+    hasIgstRate = await checkColumn("invoices", "igst_rate");
+    hasCgstAmount = await checkColumn("invoices", "cgst_amount");
+    hasSgstAmount = await checkColumn("invoices", "sgst_amount");
+    hasIgstAmount = await checkColumn("invoices", "igst_amount");
+    hasGstAmount = await checkColumn("invoices", "gst_amount");
+    hasFinalAmount = await checkColumn("invoices", "final_amount");
+    hasLockedAmount = await checkColumn("invoices", "locked_amount");
+    hasRevisionCount = await checkColumn("invoices", "revision_count");
+  } else {
+    const creatorColumns = await all("PRAGMA table_info(campaign_creators)");
+    hasCreatorAmount = creatorColumns.some((c) => c.name === "amount");
+
+    const invoiceColumns = await all("PRAGMA table_info(invoices)");
+    hasInvoiceType = invoiceColumns.some((c) => c.name === "invoice_type");
+    hasPoNumber = invoiceColumns.some((c) => c.name === "po_number");
+    hasCreatorGstin = invoiceColumns.some((c) => c.name === "creator_gstin");
+    hasTaxableAmount = invoiceColumns.some((c) => c.name === "taxable_amount");
+    hasGstRate = invoiceColumns.some((c) => c.name === "gst_rate");
+    hasCgstRate = invoiceColumns.some((c) => c.name === "cgst_rate");
+    hasSgstRate = invoiceColumns.some((c) => c.name === "sgst_rate");
+    hasIgstRate = invoiceColumns.some((c) => c.name === "igst_rate");
+    hasCgstAmount = invoiceColumns.some((c) => c.name === "cgst_amount");
+    hasSgstAmount = invoiceColumns.some((c) => c.name === "sgst_amount");
+    hasIgstAmount = invoiceColumns.some((c) => c.name === "igst_amount");
+    hasGstAmount = invoiceColumns.some((c) => c.name === "gst_amount");
+    hasFinalAmount = invoiceColumns.some((c) => c.name === "final_amount");
+    hasLockedAmount = invoiceColumns.some((c) => c.name === "locked_amount");
+    hasRevisionCount = invoiceColumns.some((c) => c.name === "revision_count");
   }
 
-  const invoiceColumns = await all("PRAGMA table_info(invoices)");
-  if (!invoiceColumns.some((c) => c.name === "invoice_type")) {
+  if (!hasCreatorAmount) {
+    await run("ALTER TABLE campaign_creators ADD COLUMN amount REAL NOT NULL DEFAULT 0");
+  }
+  if (!hasInvoiceType) {
     await run("ALTER TABLE invoices ADD COLUMN invoice_type TEXT NOT NULL DEFAULT 'non_gst'");
   }
-  if (!invoiceColumns.some((c) => c.name === "po_number")) {
+  if (!hasPoNumber) {
     await run("ALTER TABLE invoices ADD COLUMN po_number TEXT");
   }
-  if (!invoiceColumns.some((c) => c.name === "creator_gstin")) {
+  if (!hasCreatorGstin) {
     await run("ALTER TABLE invoices ADD COLUMN creator_gstin TEXT");
   }
-  if (!invoiceColumns.some((c) => c.name === "taxable_amount")) {
+  if (!hasTaxableAmount) {
     await run("ALTER TABLE invoices ADD COLUMN taxable_amount REAL");
   }
-  if (!invoiceColumns.some((c) => c.name === "gst_rate")) {
+  if (!hasGstRate) {
     await run("ALTER TABLE invoices ADD COLUMN gst_rate REAL");
   }
-  if (!invoiceColumns.some((c) => c.name === "cgst_rate")) {
+  if (!hasCgstRate) {
     await run("ALTER TABLE invoices ADD COLUMN cgst_rate REAL");
   }
-  if (!invoiceColumns.some((c) => c.name === "sgst_rate")) {
+  if (!hasSgstRate) {
     await run("ALTER TABLE invoices ADD COLUMN sgst_rate REAL");
   }
-  if (!invoiceColumns.some((c) => c.name === "igst_rate")) {
+  if (!hasIgstRate) {
     await run("ALTER TABLE invoices ADD COLUMN igst_rate REAL");
   }
-  if (!invoiceColumns.some((c) => c.name === "cgst_amount")) {
+  if (!hasCgstAmount) {
     await run("ALTER TABLE invoices ADD COLUMN cgst_amount REAL");
   }
-  if (!invoiceColumns.some((c) => c.name === "sgst_amount")) {
+  if (!hasSgstAmount) {
     await run("ALTER TABLE invoices ADD COLUMN sgst_amount REAL");
   }
-  if (!invoiceColumns.some((c) => c.name === "igst_amount")) {
+  if (!hasIgstAmount) {
     await run("ALTER TABLE invoices ADD COLUMN igst_amount REAL");
   }
-  if (!invoiceColumns.some((c) => c.name === "gst_amount")) {
+  if (!hasGstAmount) {
     await run("ALTER TABLE invoices ADD COLUMN gst_amount REAL");
   }
-  if (!invoiceColumns.some((c) => c.name === "final_amount")) {
+  if (!hasFinalAmount) {
     await run("ALTER TABLE invoices ADD COLUMN final_amount REAL");
   }
-  if (!invoiceColumns.some((c) => c.name === "locked_amount")) {
+  if (!hasLockedAmount) {
     await run("ALTER TABLE invoices ADD COLUMN locked_amount REAL NOT NULL DEFAULT 0");
     await run("UPDATE invoices SET locked_amount = total_amount WHERE locked_amount = 0");
   }
-  if (!invoiceColumns.some((c) => c.name === "revision_count")) {
+  if (!hasRevisionCount) {
     await run("ALTER TABLE invoices ADD COLUMN revision_count INTEGER NOT NULL DEFAULT 0");
   }
-
-  await run(`UPDATE invoices
-    SET
-      taxable_amount = COALESCE(taxable_amount, locked_amount, total_amount),
-      gst_rate = COALESCE(gst_rate, 18),
-      cgst_rate = COALESCE(cgst_rate, 9),
-      sgst_rate = COALESCE(sgst_rate, 9),
-      igst_rate = COALESCE(igst_rate, 0),
-      cgst_amount = COALESCE(cgst_amount, ROUND(COALESCE(taxable_amount, locked_amount, total_amount) * 0.09, 2)),
-      sgst_amount = COALESCE(sgst_amount, ROUND(COALESCE(taxable_amount, locked_amount, total_amount) * 0.09, 2)),
-      igst_amount = COALESCE(igst_amount, 0),
-      gst_amount = COALESCE(gst_amount, ROUND(COALESCE(taxable_amount, locked_amount, total_amount) * 0.18, 2)),
-      final_amount = COALESCE(final_amount, ROUND(COALESCE(taxable_amount, locked_amount, total_amount) * 1.18, 2)),
-      total_amount = CASE
-        WHEN invoice_type = 'gst' THEN COALESCE(final_amount, ROUND(COALESCE(taxable_amount, locked_amount, total_amount) * 1.18, 2))
-        ELSE total_amount
-      END
-    WHERE invoice_type = 'gst'`);
 
   await run(`CREATE TABLE IF NOT EXISTS invoice_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
