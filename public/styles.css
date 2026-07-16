@@ -4600,3 +4600,26 @@ body.creator-page .summary-item {
   box-shadow: 0 20px 48px rgba(124, 58, 237, 0.06) !important; /* purple shadow */
 }
 
+/* ═══════════════════════════════════════
+   FORM VALIDATION STYLING (RED ALERTS)
+═══════════════════════════════════════ */
+body.creator-page .field.is-invalid input,
+body.creator-page .field.is-invalid textarea,
+body.creator-page .field.is-invalid select {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08) !important;
+}
+
+body.creator-page .field.is-invalid span {
+  color: #dc2626 !important;
+}
+
+body.creator-page .field.is-invalid .validation-msg {
+  display: block !important;
+  color: #dc2626 !important;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+
