@@ -558,6 +558,16 @@ app.use("/uploads", express.static(uploadDir));
 app.use("/generated", express.static(generatedDir));
 app.get("/favicon.ico", (req, res) => res.sendFile(path.join(__dirname, "public", "logo.png")));
 
+// Database keep-alive endpoint for hosted setups (like Supabase free-tier)
+app.get("/api/ping", async (req, res) => {
+  try {
+    await db.get("SELECT 1");
+    res.status(200).send("pong");
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.error = null;
