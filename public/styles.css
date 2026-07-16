@@ -4575,3 +4575,28 @@ body.creator-page .portal-kicker {
   font-weight: 700;
   letter-spacing: 0.12em;
 }
+
+/* ═══════════════════════════════════════
+   HIGH-SPECIFICITY PURPLE OVERRIDES
+═══════════════════════════════════════ */
+body.creator-page {
+  background:
+    radial-gradient(circle at 10% 20%, rgba(124, 58, 237, 0.08), transparent 30%),
+    radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.06), transparent 25%),
+    #FAF9FF !important; /* Forces purple background over general resets */
+}
+
+body.creator-page .portal-hero.card,
+body.creator-page .content-card,
+body.creator-page .notice-card,
+body.creator-page .card,
+body.creator-page .static-panel,
+body.creator-page .invoice-rows,
+body.creator-page .canvas-wrap,
+body.creator-page .meta-chip,
+body.creator-page .summary-item {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid rgba(124, 58, 237, 0.15) !important; /* purple border */
+  box-shadow: 0 20px 48px rgba(124, 58, 237, 0.06) !important; /* purple shadow */
+}
+
