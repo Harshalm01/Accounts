@@ -116,8 +116,8 @@ body.admin-page .brand-name strong {
 }
 
 body.admin-page .brand-mark {
-  width: 180px;
-  height: 80px;
+  width: 150px;
+  height: 50px;
   border-radius: 0;
   background: transparent;
   border: 0;
@@ -170,7 +170,8 @@ body.admin-page .btn-danger {
 }
 
 /* 3D Nav Button */
-body.admin-page .btn-3d-nav {
+body.admin-page .btn-3d-nav,
+body.creator-page .btn-3d-nav {
   --c1: #7c3aed;
   --c2: #5b21b6;
   --depth: 6px;
@@ -195,7 +196,8 @@ body.admin-page .btn-3d-nav {
   text-shadow: 0 2px 6px rgba(0,0,0,0.25);
 }
 
-body.admin-page .btn-3d-nav::before {
+body.admin-page .btn-3d-nav::before,
+body.creator-page .btn-3d-nav::before {
   content: "";
   width: 100%;
   height: var(--depth);
@@ -207,14 +209,16 @@ body.admin-page .btn-3d-nav::before {
   transform-origin: top;
 }
 
-body.admin-page .btn-3d-nav:hover {
+body.admin-page .btn-3d-nav:hover,
+body.creator-page .btn-3d-nav:hover {
   transform: rotateX(4deg) rotateZ(0deg) translateY(2px);
   box-shadow:
     0 3px 0 0 var(--c2),
     0 6px 14px rgba(124, 58, 237, 0.4);
 }
 
-body.admin-page .btn-3d-nav:active {
+body.admin-page .btn-3d-nav:active,
+body.creator-page .btn-3d-nav:active {
   transform: rotateX(0deg) translateY(var(--depth));
   box-shadow:
     0 0px 0 0 var(--c2),
@@ -222,7 +226,8 @@ body.admin-page .btn-3d-nav:active {
 }
 
 /* Small 3D buttons — for table rows and drawer cards */
-body.admin-page .btn-3d-sm {
+body.admin-page .btn-3d-sm,
+body.creator-page .btn-3d-sm {
   --depth: 4px;
   position: relative;
   display: inline-flex;
@@ -243,7 +248,8 @@ body.admin-page .btn-3d-sm {
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
 }
 
-body.admin-page .btn-3d-sm::before {
+body.admin-page .btn-3d-sm::before,
+body.creator-page .btn-3d-sm::before {
   content: "";
   width: 100%;
   height: var(--depth);
@@ -256,48 +262,56 @@ body.admin-page .btn-3d-sm::before {
   background: inherit;
 }
 
-body.admin-page .btn-3d-sm:hover {
+body.admin-page .btn-3d-sm:hover,
+body.creator-page .btn-3d-sm:hover {
   transform: rotateX(4deg) translateY(2px);
 }
 
-body.admin-page .btn-3d-sm:active {
+body.admin-page .btn-3d-sm:active,
+body.creator-page .btn-3d-sm:active {
   transform: rotateX(0deg) translateY(var(--depth));
   box-shadow: none !important;
 }
 
 /* Color variants */
-body.admin-page .btn-3d-open {
+body.admin-page .btn-3d-open,
+body.creator-page .btn-3d-open {
   background: #3f3f46;
   color: #fff;
   box-shadow: 0 4px 0 0 #18181b, 0 6px 12px rgba(0,0,0,0.2);
 }
 
-body.admin-page .btn-3d-view {
+body.admin-page .btn-3d-view,
+body.creator-page .btn-3d-view {
   background: #7c3aed;
   color: #fff;
   box-shadow: 0 4px 0 0 #5b21b6, 0 6px 14px rgba(124, 58, 237, 0.35);
 }
 
-body.admin-page .btn-3d-accept {
+body.admin-page .btn-3d-accept,
+body.creator-page .btn-3d-accept {
   background: #16a34a;
   color: #fff;
   box-shadow: 0 4px 0 0 #15803d, 0 6px 14px rgba(22, 163, 74, 0.35);
 }
 
-body.admin-page .btn-3d-reject {
+body.admin-page .btn-3d-reject,
+body.creator-page .btn-3d-reject {
   background: #dc2626;
   color: #fff;
   box-shadow: 0 4px 0 0 #b91c1c, 0 6px 14px rgba(220, 38, 38, 0.35);
 }
 
 /* Bell button */
-body.admin-page .btn-3d-bell {
+body.admin-page .btn-3d-bell,
+body.creator-page .btn-3d-bell {
   font-size: 18px;
   padding: 10px 16px;
   position: relative;
 }
 
-body.admin-page .bell-badge {
+body.admin-page .bell-badge,
+body.creator-page .bell-badge {
   position: absolute;
   top: -6px;
   right: -6px;
@@ -314,7 +328,8 @@ body.admin-page .bell-badge {
 }
 
 /* Close (X) button in drawer */
-body.admin-page .btn-3d-close {
+body.admin-page .btn-3d-close,
+body.creator-page .btn-3d-close {
   --c1: #52525b;
   --c2: #3f3f46;
   font-size: 14px;
@@ -1832,8 +1847,8 @@ body.creator-page .brand-row-bounce {
 }
 
 body.creator-page .brand-mark {
-  width: 180px;
-  height: 80px;
+  width: 150px;
+  height: 50px;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -4169,4 +4184,16 @@ justify-content: center;
 .toggle-input:checked ~ .toggle-base .toggle-base-inside::after {
   opacity: 1;
 }
+
+/* ═══════════════════════════════════════
+   CREATOR PAGE FORM ACTIONS 3D SUPPORT
+═══════════════════════════════════════ */
+body.creator-page .form-actions {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
 

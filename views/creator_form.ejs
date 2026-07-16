@@ -4,17 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Creator Portal</title>
-    <link rel="stylesheet" href="/public/styles.css?v=35" />
+    <link rel="stylesheet" href="/public/styles.css?v=38" />
   </head>
   <body class="creator-page">
     <div class="shell">
       <main class="portal-frame">
         <header class="portal-hero card">
-          <div class="portal-title-block">
-            <%- include('partials/brand') %>
+          <div class="portal-title-block" style="display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0;">
+            <div style="width: 160px; height: 60px; display: flex; align-items: center; justify-content: flex-start; margin-bottom: 4px; overflow: visible;">
+              <img src="/public/logo.png" alt="3Folks Media" style="width: 100%; height: auto; max-height: 100%; object-fit: contain; display: block;" />
+            </div>
             <div class="portal-kicker">Creator portal</div>
-            <h1>Creator Invoice Portal</h1>
-            <p class="subtitle">Non-GST Bill of Supply submission</p>
+            <h1 style="margin: 0; font-size: clamp(2rem, 3.8vw, 36px); line-height: 1.1; letter-spacing: -0.03em; color: #111827;">Creator Invoice Portal</h1>
+            <p class="subtitle" style="margin: 0; font-size: 14px; color: #6b7280;">Non-GST Bill of Supply submission</p>
           </div>
           <div class="portal-hero-meta" aria-hidden="true">
             <div class="meta-chip">
@@ -85,7 +87,7 @@
                 </label>
               </div>
               <div class="form-actions form-actions-left">
-                <button class="btn btn-primary btn-submit" type="submit">
+                <button class="btn btn-3d-nav btn-3d-view btn-submit" type="submit" style="width: 100%; max-width: 280px;">
                   <span>Validate Campaign</span>
                 </button>
               </div>
@@ -226,7 +228,7 @@
                   </div>
 
                   <div class="form-actions form-actions-right" style="margin-top: 20px;">
-                    <button type="button" class="btn btn-primary btn-next">Next Step</button>
+                    <button type="button" class="btn btn-3d-nav btn-3d-view btn-next">Next Step</button>
                   </div>
                 </div>
 
@@ -286,8 +288,8 @@
                   </div>
 
                   <div class="form-actions form-actions-between" style="margin-top: 20px;">
-                    <button type="button" class="btn btn-light btn-prev">Back</button>
-                    <button type="button" class="btn btn-primary btn-next">Next Step</button>
+                    <button type="button" class="btn btn-3d-sm btn-3d-open btn-prev">Back</button>
+                    <button type="button" class="btn btn-3d-nav btn-3d-view btn-next">Next Step</button>
                   </div>
                 </div>
 
@@ -353,8 +355,8 @@
                   </div>
 
                   <div class="form-actions form-actions-between" style="margin-top: 20px;">
-                    <button type="button" class="btn btn-light btn-prev">Back</button>
-                    <button type="button" class="btn btn-primary btn-next">Next Step</button>
+                    <button type="button" class="btn btn-3d-sm btn-3d-open btn-prev">Back</button>
+                    <button type="button" class="btn btn-3d-nav btn-3d-view btn-next">Next Step</button>
                   </div>
                 </div>
 
@@ -375,7 +377,7 @@
                           <canvas id="signPad" width="600" height="160"></canvas>
                         </div>
                         <div class="form-actions form-actions-left" style="margin-top: 6px;">
-                          <button type="button" class="btn btn-light" id="clearSign">Clear Drawing</button>
+                          <button type="button" class="btn btn-3d-sm btn-3d-open" id="clearSign">Clear Drawing</button>
                         </div>
                       </div>
                       <div class="signature-upload-panel">
@@ -387,8 +389,8 @@
                   </div>
 
                   <div class="form-actions form-actions-between" style="margin-top: 20px;">
-                    <button type="button" class="btn btn-light btn-prev">Back</button>
-                    <button class="btn btn-primary btn-submit" type="submit" id="submitBtn">
+                    <button type="button" class="btn btn-3d-sm btn-3d-open btn-prev">Back</button>
+                    <button class="btn btn-3d-nav btn-3d-accept btn-submit" type="submit" id="submitBtn">
                       <span class="btn-spinner" aria-hidden="true"></span>
                       <span class="btn-label">Submit Invoice</span>
                     </button>
