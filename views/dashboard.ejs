@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard</title>
-    <link rel="stylesheet" href="/public/styles.css?v=42" />
+    <link rel="stylesheet" href="/public/styles.css?v=43" />
   </head>
   <body class="admin-page">
     <div class="shell">
@@ -129,7 +129,7 @@
               <th>Action</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="invoiceTableBody">
             <% if (!invoices.length) { %>
               <tr><td colspan="8" style="text-align: center; color: #6b7280; padding: 30px;">No invoices yet.</td></tr>
             <% } %>
@@ -175,7 +175,7 @@
           <h3>Recent Submissions</h3>
           <button type="button" class="btn btn-3d-nav btn-3d-close" id="closeDrawerBtn">✕</button>
         </div>
-        <div class="drawer-body">
+        <div class="drawer-body" id="drawerBody">
           <% if (!notifications.length) { %>
             <div class="empty-state">All caught up! No pending notifications.</div>
           <% } %>
@@ -245,15 +245,26 @@
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const typeToggle = document.getElementById('invoiceTypeToggle');
-        const invoiceRows = document.querySelectorAll('.context-row');
         const countPill = document.getElementById('invoiceCountPill');
 
+        // 1. Restore saved state from localStorage on load
+        if (typeToggle) {
+          const savedToggleState = localStorage.getItem('dashboard_show_non_gst');
+          if (savedToggleState !== null) {
+            typeToggle.checked = (savedToggleState === 'true');
+          }
+        }
+
         function filterInvoices() {
+          if (!typeToggle) return;
           const showNonGst = typeToggle.checked;
+          const invoiceRows = document.querySelectorAll('.context-row');
           let visibleCount = 0;
 
           invoiceRows.forEach(row => {
-            const typeText = row.querySelector('.type-cell span').textContent.trim().toLowerCase();
+            const typeCell = row.querySelector('.type-cell span');
+            if (!typeCell) return;
+            const typeText = typeCell.textContent.trim().toLowerCase();
             let show = false;
 
             if (!showNonGst && typeText === 'gst') {
@@ -278,29 +289,220 @@
         const labelGst = document.getElementById('labelGst');
         const labelNonGst = document.getElementById('labelNonGst');
 
-        if (labelGst) {
+        if (labelGst && typeToggle) {
           labelGst.addEventListener('click', () => {
             if (typeToggle.checked) {
               typeToggle.checked = false;
+              localStorage.setItem('dashboard_show_non_gst', 'false');
               filterInvoices();
             }
           });
         }
 
-        if (labelNonGst) {
+        if (labelNonGst && typeToggle) {
           labelNonGst.addEventListener('click', () => {
             if (!typeToggle.checked) {
               typeToggle.checked = true;
+              localStorage.setItem('dashboard_show_non_gst', 'true');
               filterInvoices();
             }
           });
         }
 
         if (typeToggle) {
-          typeToggle.addEventListener('change', filterInvoices);
-          // Run once initially to set the default filter (GST)
+          typeToggle.addEventListener('change', () => {
+            localStorage.setItem('dashboard_show_non_gst', typeToggle.checked ? 'true' : 'false');
+            filterInvoices();
+          });
           filterInvoices();
         }
+
+        // Helper to format Indian currency
+        function formatInr(val) {
+          return Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Helper to calculate invoice total payout matching EJS gstBreakup
+        function gstBreakup(inv) {
+          const isGst = inv.invoice_type === 'gst';
+          const taxable = Number(inv.taxable_amount ?? inv.locked_amount ?? inv.total_amount ?? 0);
+          const cgst = Number(inv.cgst_amount ?? (taxable * 0.09).toFixed(2));
+          const sgst = Number(inv.sgst_amount ?? (taxable * 0.09).toFixed(2));
+          const gst = Number(inv.gst_amount ?? (cgst + sgst).toFixed(2));
+          return Number(inv.final_amount ?? (isGst ? (taxable + gst) : inv.total_amount ?? taxable));
+        }
+
+        // ═══════════════════════════════════════
+        //   LIVE SYNC POLLING SYSTEM
+        // ═══════════════════════════════════════
+        let currentStateHash = '';
+
+        function computeHash(data) {
+          const invHash = data.invoices.map(i => `${i.id}-${i.status}-${i.invoice_type}-${i.total_amount}`).join('|');
+          const noteHash = (data.notifications || []).map(n => `${n.id}-${n.is_read}`).join('|');
+          return `${invHash}#${noteHash}`;
+        }
+
+        async function pollData() {
+          try {
+            const res = await fetch('/admin/api/invoices');
+            if (!res.ok) return;
+            const data = await res.json();
+            const newHash = computeHash(data);
+
+            // Only update DOM if the database state has actually changed
+            if (newHash !== currentStateHash) {
+              currentStateHash = newHash;
+              updateDashboardUI(data);
+            }
+          } catch (e) {
+            console.error("Live sync check failed:", e);
+          }
+        }
+
+        function updateDashboardUI(data) {
+          // 1. Update stats count
+          const statTotalInvoices = document.getElementById('statTotalInvoices');
+          const statPendingReview = document.getElementById('statPendingReview');
+          const statTotalPayout = document.getElementById('statTotalPayout');
+
+          if (statTotalInvoices) statTotalInvoices.textContent = data.invoices.length;
+          
+          if (statPendingReview) {
+            const pendingCount = data.invoices.filter(i => i.status === 'SUBMITTED' || i.status === 'REGENERATED').length;
+            statPendingReview.textContent = pendingCount;
+          }
+
+          if (statTotalPayout) {
+            const totalPayout = data.invoices.reduce((sum, i) => sum + gstBreakup(i), 0);
+            statTotalPayout.textContent = '₹' + Math.round(totalPayout).toLocaleString('en-IN');
+          }
+
+          // 2. Update Invoices table body
+          const tableBody = document.getElementById('invoiceTableBody');
+          if (tableBody) {
+            if (data.invoices.length === 0) {
+              tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #6b7280; padding: 30px;">No invoices yet.</td></tr>';
+            } else {
+              tableBody.innerHTML = data.invoices.map(inv => {
+                const isGstStr = inv.invoice_type === 'gst' ? 'GST' : 'Non-GST';
+                const finalAmt = gstBreakup(inv);
+                const pdfBtn = inv.pdf_path 
+                  ? `<a href="${inv.pdf_path}" target="_blank" class="btn btn-3d-sm btn-3d-open">Download PDF</a>`
+                  : '';
+
+                return `
+                  <tr class="context-row">
+                    <td style="color: #6B7280; font-weight: 600;">#${inv.id}</td>
+                    <td class="campaign-cell">
+                      <strong>${inv.campaign_name}</strong><br/>
+                      <span>${inv.campaign_code}</span>
+                    </td>
+                    <td>
+                      <strong>${inv.creator_name}</strong><br/>
+                      <span style="color: #6B7280; font-size: 12px;">${inv.creator_mobile}</span>
+                    </td>
+                    <td style="font-weight: 500; color: #4B5563;">#${inv.invoice_no}</td>
+                    <td class="type-cell">
+                      <span>${isGstStr}</span>
+                    </td>
+                    <td class="total-cell">₹${formatInr(finalAmt)}</td>
+                    <td>
+                      <span class="status-pill ${inv.status}">${inv.status}</span>
+                    </td>
+                    <td class="action-cell">
+                      <a href="/admin/invoices/${inv.id}" class="btn btn-3d-sm btn-3d-open">Open</a>
+                      <div class="row-hover-overlay">
+                        <a href="/admin/invoices/${inv.id}" class="btn btn-3d-sm btn-3d-view">View Details</a>
+                        ${pdfBtn}
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('');
+            }
+          }
+
+          // 3. Update Notification Drawer
+          const bellCount = document.getElementById('bellCount');
+          const drawerBody = document.getElementById('drawerBody');
+          
+          if (bellCount) {
+            if (data.notifications && data.notifications.length > 0) {
+              bellCount.textContent = data.notifications.length;
+              bellCount.style.display = '';
+            } else {
+              bellCount.style.display = 'none';
+            }
+          }
+
+          if (drawerBody) {
+            if (!data.notifications || data.notifications.length === 0) {
+              drawerBody.innerHTML = '<div class="empty-state">All caught up! No pending notifications.</div>';
+            } else {
+              drawerBody.innerHTML = data.notifications.map(note => {
+                const actionBlock = note.invoice_id
+                  ? `
+                    <a href="/admin/invoices/${note.invoice_id}" class="btn btn-3d-sm btn-3d-open">Open</a>
+                    <form method="post" action="/admin/invoices/${note.invoice_id}/status" style="display: inline;">
+                      <input type="hidden" name="action" value="accept" />
+                      <button type="submit" class="btn btn-3d-sm btn-3d-accept">Accept</button>
+                    </form>
+                    <form method="post" action="/admin/invoices/${note.invoice_id}/status" style="display: inline;">
+                      <input type="hidden" name="action" value="reject" />
+                      <button type="submit" class="btn btn-3d-sm btn-3d-reject">Reject</button>
+                    </form>
+                  `
+                  : '';
+
+                return `
+                  <div class="drawer-card">
+                    <div class="drawer-card-header">
+                      <span class="eyebrow">${note.campaign_name || 'Campaign'}</span>
+                      <span class="pill status-pill ${note.invoice_status}" style="font-size: 10px;">${note.invoice_status}</span>
+                    </div>
+                    <p class="drawer-message">${note.message}</p>
+                    <div class="drawer-actions">
+                      ${actionBlock}
+                    </div>
+                  </div>
+                `;
+              }).join('');
+            }
+          }
+
+          // 4. Re-run local filters to keep the active toggle view synced
+          filterInvoices();
+        }
+
+        // Initialize state hash
+        const initialInvoices = [];
+        document.querySelectorAll('#invoiceTableBody .context-row').forEach(row => {
+          const cells = row.querySelectorAll('td');
+          if (cells.length < 8) return;
+          const id = cells[0].textContent.replace('#', '').trim();
+          const campaignName = row.querySelector('.campaign-cell strong').textContent.trim();
+          const campaignCode = row.querySelector('.campaign-cell span').textContent.trim();
+          const creatorName = cells[2].querySelector('strong').textContent.trim();
+          const creatorMobile = cells[2].querySelector('span').textContent.trim();
+          const invoiceNo = cells[3].textContent.replace('#', '').trim();
+          const type = cells[4].querySelector('span').textContent.trim().toLowerCase() === 'gst' ? 'gst' : 'non_gst';
+          const status = cells[6].querySelector('.status-pill').textContent.trim();
+          initialInvoices.push({ id, status, invoice_type: type, total_amount: 0 });
+        });
+        
+        const initialNotifications = [];
+        const drawerBody = document.getElementById('drawerBody');
+        if (drawerBody) {
+          drawerBody.querySelectorAll('.drawer-card').forEach(card => {
+            initialNotifications.push({ id: 1, is_read: 0 });
+          });
+        }
+        
+        currentStateHash = computeHash({ invoices: initialInvoices, notifications: initialNotifications });
+
+        // Start polling every 5 seconds
+        setInterval(pollData, 5000);
       });
     </script>
   </body>

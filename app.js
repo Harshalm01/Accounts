@@ -1038,11 +1038,11 @@ app.use("/admin", requireAuth);
 
 app.get("/admin/dashboard", async (req, res) => {
   const user = req.session.user;
-  let invoices;
-  let notifications = [];
+  let invoicesPromise;
+  let notificationsPromise;
 
   if (user.role === "TEAM") {
-    invoices = await db.all(
+    invoicesPromise = db.all(
       `SELECT i.*, c.campaign_name, c.campaign_code
        FROM invoices i
        JOIN campaigns c ON c.id = i.campaign_id
@@ -1051,7 +1051,7 @@ app.get("/admin/dashboard", async (req, res) => {
       [user.teamName]
     );
   } else {
-    invoices = await db.all(
+    invoicesPromise = db.all(
       `SELECT i.*, c.campaign_name, c.campaign_code
        FROM invoices i
        JOIN campaigns c ON c.id = i.campaign_id
@@ -1060,7 +1060,7 @@ app.get("/admin/dashboard", async (req, res) => {
   }
 
   if (user.role === "ACCOUNTS" || user.role === "SUPER_ADMIN") {
-    notifications = await db.all(
+    notificationsPromise = db.all(
       `SELECT n.*, c.campaign_name, i.creator_name, i.status AS invoice_status
        FROM notifications n
        LEFT JOIN campaigns c ON c.id = n.campaign_id
@@ -1069,9 +1069,54 @@ app.get("/admin/dashboard", async (req, res) => {
        ORDER BY n.id DESC
        LIMIT 10`
     );
+  } else {
+    notificationsPromise = Promise.resolve([]);
   }
 
+  const [invoices, notifications] = await Promise.all([invoicesPromise, notificationsPromise]);
   res.render("dashboard", { invoices, notifications });
+});
+
+// JSON API endpoint for live sync polling
+app.get("/admin/api/invoices", async (req, res) => {
+  const user = req.session.user;
+  let invoicesPromise;
+  let notificationsPromise;
+
+  if (user.role === "TEAM") {
+    invoicesPromise = db.all(
+      `SELECT i.*, c.campaign_name, c.campaign_code
+       FROM invoices i
+       JOIN campaigns c ON c.id = i.campaign_id
+       WHERE c.team_name = ?
+       ORDER BY i.id DESC`,
+      [user.teamName]
+    );
+  } else {
+    invoicesPromise = db.all(
+      `SELECT i.*, c.campaign_name, c.campaign_code
+       FROM invoices i
+       JOIN campaigns c ON c.id = i.campaign_id
+       ORDER BY i.id DESC`
+    );
+  }
+
+  if (user.role === "ACCOUNTS" || user.role === "SUPER_ADMIN") {
+    notificationsPromise = db.all(
+      `SELECT n.*, c.campaign_name, i.creator_name, i.status AS invoice_status
+       FROM notifications n
+       LEFT JOIN campaigns c ON c.id = n.campaign_id
+       LEFT JOIN invoices i ON i.id = n.invoice_id
+       WHERE n.is_read = 0
+       ORDER BY n.id DESC
+       LIMIT 10`
+    );
+  } else {
+    notificationsPromise = Promise.resolve([]);
+  }
+
+  const [invoices, notifications] = await Promise.all([invoicesPromise, notificationsPromise]);
+  res.json({ invoices, notifications });
 });
 
 app.get("/admin/folders", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), async (req, res) => {
