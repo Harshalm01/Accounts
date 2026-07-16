@@ -4622,4 +4622,55 @@ body.creator-page .field.is-invalid .validation-msg {
   font-weight: 600;
 }
 
+/* ═══════════════════════════════════════
+   VECTOR BRAND TEXT LOGO STYLING
+═══════════════════════════════════════ */
+.brand-text-logo {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  user-select: none;
+}
+
+.brand-text-logo .logo-main {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  display: flex;
+  align-items: center;
+}
+
+.brand-text-logo .num-3 {
+  color: #c084fc !important; /* vibrant bright purple */
+  text-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+  margin-right: 1px;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.brand-text-logo .text-folks {
+  color: #ffffff !important; /* white for dark backgrounds */
+  font-weight: 800;
+}
+
+.brand-text-logo .logo-sub {
+  font-size: 9px;
+  font-weight: 700;
+  color: #94a3b8 !important; /* cool grey */
+  letter-spacing: 0.28em;
+  margin-top: 2px;
+  padding-left: 2px;
+}
+
+/* Overrides for light background creator/portal headers */
+body.creator-page .brand-text-logo .text-folks {
+  color: #1e1b4b !important; /* dark navy for light background */
+}
+
+body.creator-page .brand-text-logo .logo-sub {
+  color: #6b7280 !important; /* darker gray */
+}
+
+
 
