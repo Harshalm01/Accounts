@@ -76,8 +76,8 @@
               <input type="text" name="creatorName" required placeholder="e.g. Rahul Sharma" />
             </label>
             <label class="input-label">
-              <span>Mobile *</span>
-              <input type="text" name="mobile" required placeholder="10-digit number" />
+              <span>Serial Number *</span>
+              <input type="text" name="mobile" required placeholder="e.g. SR-101" />
             </label>
             <label class="input-label">
               <span>Predefined Amount *</span>
@@ -94,7 +94,7 @@
           <div class="section-head" style="margin-bottom:20px;">
             <div>
               <h3>Bulk Upload</h3>
-              <p class="subtitle">Upload CSV or Excel with columns: Creator Name, Contact Number, Amount.</p>
+              <p class="subtitle">Upload CSV or Excel with columns: Creator Name, Serial Number, Amount.</p>
             </div>
             <div class="pill pill-accent">Bulk</div>
           </div>
@@ -124,15 +124,15 @@
         </div>
 
         <% if (!creators.length) { %>
-          <div class="empty-state">No creators mapped yet.</div>
+          <div class="empty-state">No creators mapped to this campaign yet.</div>
         <% } else { %>
           <div class="users-table-wrap">
             <table class="users-table">
               <thead>
                 <tr>
-                  <th>#</th>
+                  <th style="width: 60px;">ID</th>
                   <th>Creator</th>
-                  <th>Mobile</th>
+                  <th>Serial Number</th>
                   <th>Predefined Amt</th>
                   <th>Invoice</th>
                   <th>Invoice Amt</th>

@@ -72,7 +72,7 @@
                 <div class="portal-kicker">Campaign validation</div>
                 <h2 class="section-title">Confirm the campaign mapping</h2>
               </div>
-              <p class="section-subtitle">Enter the campaign code and registered mobile number to unlock the invoice workflow.</p>
+              <p class="section-subtitle">Enter the campaign code and registered serial number to unlock the invoice workflow.</p>
             </div>
 
             <form method="post" action="/creator/validate" class="portal-form">
@@ -83,7 +83,7 @@
                 </label>
                 <label class="field field-floating">
                   <input type="text" name="mobile" value="<%= form.mobile || '' %>" placeholder=" " required />
-                  <span>Mobile Number *</span>
+                  <span>Serial Number *</span>
                 </label>
               </div>
               <div class="form-actions form-actions-left">

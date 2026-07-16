@@ -504,7 +504,16 @@ function extractCreatorsFromSheet(filePath) {
 
     return {
       creatorName: String(normalized.creatorname || normalized.creator || normalized.name || "").trim(),
-      mobile: String(normalized.contactnumber || normalized.mobilenumber || normalized.mobile || normalized.contact || "").trim(),
+      mobile: String(
+        normalized.serialnumber ||
+        normalized.serialno ||
+        normalized.serial ||
+        normalized.contactnumber ||
+        normalized.mobilenumber ||
+        normalized.mobile ||
+        normalized.contact ||
+        ""
+      ).trim(),
       amount: Number(normalized.amount || 0)
     };
   });
