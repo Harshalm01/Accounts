@@ -102,7 +102,7 @@ function sessionCookieOptions() {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
-    secure: "auto",
+    secure: false,
     maxAge: 1000 * 60 * 60 * 24
   };
 }
@@ -553,6 +553,14 @@ app.use(
     cookie: sessionCookieOptions()
   })
 );
+
+// Dynamic secure property resolution for connect.sid session cookie
+app.use((req, res, next) => {
+  if (req.session && req.session.cookie) {
+    req.session.cookie.secure = isSecureRequest(req);
+  }
+  next();
+});
 app.use((req, _, next) => {
   if (!req.session.user) {
     const authUser = getAuthenticatedUser(req);
