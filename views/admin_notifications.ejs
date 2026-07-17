@@ -5,76 +5,148 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Notifications</title>
     <link rel="stylesheet" href="/public/styles.css?v=44" />
+    <style>
+      .notification-card {
+        transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.22s;
+        will-change: transform, box-shadow;
+      }
+      .notification-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08) !important;
+        border-color: rgba(124, 58, 237, 0.24) !important;
+      }
+      .notification-unread-indicator {
+        position: relative;
+      }
+      .notification-unread-indicator::before {
+        content: "";
+        position: absolute;
+        top: 24px;
+        left: -12px;
+        width: 8px;
+        height: 8px;
+        background-color: #7c3aed;
+        border-radius: 50%;
+        box-shadow: 0 0 10px rgba(124, 58, 237, 0.6);
+        animation: pulseUnread 2s infinite;
+      }
+      @keyframes pulseUnread {
+        0% { transform: scale(0.9); opacity: 0.8; }
+        50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 14px rgba(124, 58, 237, 0.8); }
+        100% { transform: scale(0.9); opacity: 0.8; }
+      }
+    </style>
   </head>
   <body class="admin-page">
     <div class="shell">
-      <div class="topbar hero-banner">
-        <div>
+      
+      <!-- Topbar Header -->
+      <div class="topbar hero-banner folder-header-banner" style="margin-bottom: 32px;">
+        <div class="header-left">
           <%- include('partials/brand') %>
-          <div class="eyebrow">Accounts inbox</div>
-          <h2>Notifications</h2>
-          <p class="subtitle">Submission alerts from creators appear here.</p>
+          <div class="eyebrow" style="color: #6b7280 !important; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; margin-top: 12px; margin-bottom: 2px;">Accounts inbox</div>
+          <h2 style="margin: 0; font-size: 32px; font-weight: 800; color: #111827; letter-spacing: -0.025em;">Notifications</h2>
+          <p class="subtitle" style="margin: 6px 0 0 0; font-size: 14px; color: #4B5563 !important;">Submission alerts from creators appear here.</p>
         </div>
-        <div class="row">
-          <form method="post" action="/admin/notifications/read">
-            <button class="btn btn-light" type="submit">Mark All Read</button>
+        
+        <div class="header-right" style="flex-direction: row; align-items: center; gap: 8px;">
+          <form method="post" action="/admin/notifications/read" style="margin: 0;">
+            <button class="btn btn-light" type="submit" style="padding: 10px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;">Mark All Read</button>
           </form>
-          <a href="/admin/dashboard"><button class="btn btn-light" type="button">Back</button></a>
+          <a href="/admin/dashboard" style="text-decoration: none;">
+            <button class="btn btn-light" type="button" style="padding: 10px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;">Back</button>
+          </a>
         </div>
       </div>
 
-      <div class="card glass-panel">
-        <div class="section-head">
+      <!-- Notifications List -->
+      <div class="notifications-list-container" style="margin-top: 24px;">
+        <div class="section-head" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
           <div>
-            <h3>All notifications</h3>
-            <p class="subtitle">Newest alerts are shown first.</p>
+            <h3 style="margin: 0 0 4px 0; font-size: 22px; font-weight: 800; color: #111827; letter-spacing: -0.02em;">All Notifications</h3>
+            <p class="subtitle" style="margin: 0; font-size: 14px; color: #6b7280;">Newest alerts are shown first.</p>
           </div>
-          <div class="pill"><%= notifications.length %> items</div>
+          <div class="pill" style="font-size: 12px; font-weight: 600; color: #6d28d9; background: #ede9fe; padding: 6px 14px; border-radius: 9999px; border: 1px solid #ddd6fe;"><%= notifications.length %> items</div>
         </div>
 
         <% if (!notifications.length) { %>
           <div class="empty-state">No notifications yet.</div>
         <% } %>
 
-        <div class="notification-stack">
+        <div class="notification-stack" style="display: flex; flex-direction: column; gap: 16px;">
+          <% const seenInvoices = new Set(); %>
           <% notifications.forEach((note) => { %>
-            <article class="notification-card <%= note.is_read ? 'notification-read' : 'notification-unread' %>">
-              <div class="notification-head">
+            <% 
+              const isLatestForInvoice = !seenInvoices.has(note.invoice_id);
+              if (note.invoice_id) {
+                seenInvoices.add(note.invoice_id);
+              }
+              const isUnread = !note.is_read;
+              const borderLeftStyle = isUnread ? "border-left: 5px solid #7c3aed !important;" : "border-left: 5px solid #cbd5e1 !important;";
+              const cardBg = isUnread ? "background: #ffffff;" : "background: #f8fafc;";
+              const opacityStyle = isUnread ? "opacity: 1;" : "opacity: 0.92;";
+              
+              let statusStyle = "";
+              let displayStatus = note.invoice_status;
+              
+              if (!isLatestForInvoice) {
+                displayStatus = "SUPERSEDED";
+                statusStyle = "color: #64748b; background: #f1f5f9; border: 1px solid #e2e8f0;";
+              } else if (note.invoice_status === 'ACCEPTED') {
+                statusStyle = "color: #15803d; background: #dcfce7; border: 1px solid #bbf7d0;";
+              } else if (note.invoice_status === 'REJECTED') {
+                statusStyle = "color: #b91c1c; background: #fee2e2; border: 1px solid #fca5a5;";
+              } else {
+                statusStyle = "color: #3730a3; background: #e0e7ff; border: 1px solid #c7d2fe;";
+              }
+            %>
+            <article class="notification-card <%= isUnread ? 'notification-unread-indicator' : '' %>" style="padding: 24px; border-radius: 16px; border: 1px solid rgba(15, 23, 42, 0.08); <%= borderLeftStyle %> <%= cardBg %> <%= opacityStyle %> box-shadow: 0 4px 10px rgba(15, 23, 42, 0.03);">
+              <div class="notification-head" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px;">
                 <div>
-                  <div class="eyebrow"><%= note.is_read ? 'Read' : 'Unread' %></div>
-                  <h3><%= note.campaign_name || 'Campaign' %></h3>
-                  <p class="subtitle"><%= note.message %></p>
+                  <div class="eyebrow" style="font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; color: <%= isUnread ? '#7c3aed' : '#94a3b8' %>; margin-bottom: 6px;"><%= isUnread ? 'UNREAD' : 'READ' %></div>
+                  <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: 700; color: #111827;"><%= note.campaign_name || 'Campaign' %></h3>
+                  <p class="subtitle" style="margin: 0; font-size: 14px; color: #475569; font-weight: 500;"><%= note.message %></p>
                 </div>
-                <div class="notification-meta">
-                  <span class="pill"><%= note.created_at %></span>
-                  <% if (note.invoice_status) { %>
-                    <span class="pill"><%= note.invoice_status %></span>
+                <div class="notification-meta" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <%
+                    let formattedDate = note.created_at;
+                    try {
+                      const d = new Date(note.created_at.replace(" ", "T") + "Z");
+                      formattedDate = d.toString();
+                    } catch (e) {
+                      // fallback
+                    }
+                  %>
+                  <span class="pill" style="font-size: 12px; font-weight: 500; color: #475569; background: #e2e8f0; padding: 6px 12px; border-radius: 9999px; border: 1px solid #cbd5e1;"><%= formattedDate %></span>
+                  <% if (note.invoice_status || !isLatestForInvoice) { %>
+                    <span class="pill" style="font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 9999px; <%= statusStyle %>"><%= displayStatus %></span>
                   <% } %>
                 </div>
               </div>
 
-              <div class="notification-grid">
-                <div class="summary-item">
-                  <span>Campaign Code</span>
-                  <strong><%= note.campaign_code || '-' %></strong>
+              <div class="notification-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 16px;">
+                <div class="summary-item" style="display: flex; flex-direction: column; gap: 4px; background: #f8fafc; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                  <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Campaign Code</span>
+                  <strong style="font-size: 14px; color: #1e293b; font-weight: 700;"><%= note.campaign_code || '-' %></strong>
                 </div>
-                <div class="summary-item">
-                  <span>Creator</span>
-                  <strong><%= note.creator_name || '-' %></strong>
+                <div class="summary-item" style="display: flex; flex-direction: column; gap: 4px; background: #f8fafc; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                  <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Creator</span>
+                  <strong style="font-size: 14px; color: #1e293b; font-weight: 700;"><%= note.creator_name || '-' %></strong>
                 </div>
-                <div class="summary-item">
-                  <span>Serial Number</span>
-                  <strong><%= note.creator_mobile || '-' %></strong>
+                <div class="summary-item" style="display: flex; flex-direction: column; gap: 4px; background: #f8fafc; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                  <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Serial Number</span>
+                  <strong style="font-size: 14px; color: #1e293b; font-weight: 700;"><%= note.creator_mobile || '-' %></strong>
                 </div>
-                <div class="summary-item">
-                  <span>Invoice No</span>
-                  <strong><%= note.invoice_no || '-' %></strong>
+                <div class="summary-item" style="display: flex; flex-direction: column; gap: 4px; background: #f8fafc; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                  <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Invoice No</span>
+                  <strong style="font-size: 14px; color: #1e293b; font-weight: 700;"><%= note.invoice_no || '-' %></strong>
                 </div>
               </div>
             </article>
           <% }) %>
         </div>
       </div>
+      
     </div>
   </body>
 </html>

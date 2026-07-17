@@ -8,6 +8,63 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/styles.css?v=44" />
+    <script src="/public/qrious.min.js"></script>
+    <style>
+      .flow-choice {
+        background: rgba(255, 255, 255, 0.96);
+        color: #1e293b;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        cursor: pointer;
+        transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .flow-choice:hover {
+        background: #ffffff;
+        border-color: rgba(15, 23, 42, 0.14);
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+        transform: translateY(-1px);
+      }
+      .flow-choice.flow-choice-active {
+        background: #7c3aed;
+        color: #ffffff;
+        border-color: #7c3aed;
+        box-shadow: 0 8px 20px rgba(124, 58, 237, 0.16);
+      }
+      .folding-card {
+        transform-origin: top center;
+        transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+      }
+      
+      /* Share Modal Styles */
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(8px);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+      }
+      .modal-card {
+        background: #ffffff;
+        padding: 32px;
+        border-radius: 24px;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.15);
+        max-width: 540px;
+        width: 90%;
+        transform: scale(0.9);
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+      }
+    </style>
   </head>
   <body class="admin-page">
     <div class="shell">
@@ -53,6 +110,8 @@
         </div>
       </div>
 
+
+
       <% if (error) { %>
         <div class="alert alert-error"><%= error %></div>
       <% } %>
@@ -61,55 +120,67 @@
       <% } %>
 
       <% if (canEdit) { %>
-        <!-- Add Creator Form -->
-        <div class="card glass-panel" style="margin-bottom:16px;">
-          <div class="section-head" style="margin-bottom:20px;">
-            <div>
-              <h3>Add Creator</h3>
-              <p class="subtitle">Map a single creator to this campaign manually.</p>
-            </div>
-            <div class="pill">Manual</div>
-          </div>
-          <form method="post" action="/admin/campaigns/<%= campaign.id %>/creators" class="grid-3">
-            <label class="input-label">
-              <span>Creator Name *</span>
-              <input type="text" name="creatorName" required placeholder="e.g. Rahul Sharma" />
-            </label>
-            <label class="input-label">
-              <span>Serial Number *</span>
-              <input type="text" name="mobile" required placeholder="e.g. SR-101" />
-            </label>
-            <label class="input-label">
-              <span>Predefined Amount *</span>
-              <input type="number" step="0.01" name="amount" required placeholder="e.g. 25000" />
-            </label>
-            <div style="align-self:end;">
-              <button class="btn btn-3d-nav" type="submit" style="width:100%;">+ Add Creator</button>
-            </div>
-          </form>
+        <!-- Tab Selector Switcher -->
+        <div class="choice-grid" style="display: flex; gap: 12px; margin-bottom: 24px; max-width: 380px;">
+          <button type="button" class="btn flow-choice flow-choice-active" id="manualTabBtn" style="flex: 1; height: 48px; border-radius: 12px; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.02em;">
+            👤 Manual Add
+          </button>
+          <button type="button" class="btn flow-choice" id="bulkTabBtn" style="flex: 1; height: 48px; border-radius: 12px; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.02em;">
+            📂 Bulk Upload
+          </button>
         </div>
 
-        <!-- Bulk Upload -->
-        <div class="card glass-panel" style="margin-bottom:16px;">
-          <div class="section-head" style="margin-bottom:20px;">
-            <div>
-              <h3>Bulk Upload</h3>
-              <p class="subtitle">Upload CSV or Excel with columns: Creator Name, Serial Number, Amount.</p>
+        <div class="folding-card-container" style="perspective: 1200px; margin-bottom: 16px;">
+          <!-- Add Creator Form (Manual) -->
+          <div class="card glass-panel folding-card" id="manualCard" style="margin-bottom:0; max-height: 500px; opacity: 1; transform: rotateX(0deg);">
+            <div class="section-head" style="margin-bottom:20px;">
+              <div>
+                <h3>Add Creator</h3>
+                <p class="subtitle">Map a single creator to this campaign manually.</p>
+              </div>
+              <div class="pill">Manual</div>
             </div>
-            <div class="pill pill-accent">Bulk</div>
+            <form method="post" action="/admin/campaigns/<%= campaign.id %>/creators" class="grid-3">
+              <label class="input-label">
+                <span>Creator Name *</span>
+                <input type="text" name="creatorName" required placeholder="e.g. Rahul Sharma" />
+              </label>
+              <label class="input-label">
+                <span>Serial Number *</span>
+                <input type="text" name="mobile" required placeholder="e.g. SR-101" />
+              </label>
+              <label class="input-label">
+                <span>Predefined Amount *</span>
+                <input type="number" step="0.01" name="amount" required placeholder="e.g. 25000" />
+              </label>
+              <div style="align-self:end;">
+                <button class="btn btn-3d-nav" type="submit" style="width:100%;">+ Add Creator</button>
+              </div>
+            </form>
           </div>
-          <form method="post" action="/admin/campaigns/<%= campaign.id %>/creators/bulk" enctype="multipart/form-data" style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;">
-            <label class="input-label" style="flex:1;min-width:220px;">
-              <span>Select CSV / Excel File</span>
-              <input type="file" name="creatorFile" accept=".csv,.xlsx,.xls" required />
-            </label>
-            <div style="display:flex;gap:8px;padding-bottom:2px;">
-              <button class="btn btn-3d-nav" type="submit">Upload</button>
-              <a href="/public/sample-creators.csv" download>
-                <button class="btn btn-3d-sm btn-3d-open" type="button" style="transform:none;">Sample CSV</button>
-              </a>
+
+          <!-- Bulk Upload Form -->
+          <div class="card glass-panel folding-card" id="bulkCard" style="margin-bottom:0; max-height: 0; opacity: 0; transform: rotateX(-90deg); display: none;">
+            <div class="section-head" style="margin-bottom:20px;">
+              <div>
+                <h3>Bulk Upload</h3>
+                <p class="subtitle">Upload CSV or Excel with columns: Creator Name, Serial Number, Amount.</p>
+              </div>
+              <div class="pill pill-accent">Bulk</div>
             </div>
-          </form>
+            <form method="post" action="/admin/campaigns/<%= campaign.id %>/creators/bulk" enctype="multipart/form-data" style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;">
+              <label class="input-label" style="flex:1;min-width:220px;">
+                <span>Select CSV / Excel File</span>
+                <input type="file" name="creatorFile" accept=".csv,.xlsx,.xls" required />
+              </label>
+              <div style="display:flex;gap:8px;padding-bottom:2px;">
+                <button class="btn btn-3d-nav" type="submit">Upload</button>
+                <a href="/public/sample-creators.csv" download>
+                  <button class="btn btn-3d-sm btn-3d-open" type="button" style="transform:none;">Sample CSV</button>
+                </a>
+              </div>
+            </form>
+          </div>
         </div>
       <% } %>
 
@@ -176,15 +247,14 @@
                       <% } %>
                     </td>
                     <td>
-                      <div style="display:flex;gap:6px;perspective:500px;">
+                      <div style="display:flex;gap:6px;perspective:500px;align-items:center;">
                         <% if (cr.latest_invoice_id) { %>
                           <a href="/admin/invoices/<%= cr.latest_invoice_id %>?from=folders" class="btn btn-3d-sm btn-3d-view">View</a>
                           <% if (cr.latest_pdf_path) { %>
                             <a href="<%= cr.latest_pdf_path %>" target="_blank" class="btn btn-3d-sm btn-3d-open">PDF</a>
                           <% } %>
-                        <% } else { %>
-                          <span style="color:#d1d5db;font-size:12px;">—</span>
                         <% } %>
+                        <button class="btn btn-3d-sm btn-3d-view" style="padding: 6px 12px;" onclick="openShareModal('<%= campaign.campaign_code %>', '<%= cr.mobile %>', '<%= cr.creator_name %>')" type="button">Share</button>
                       </div>
                     </td>
                   </tr>
@@ -194,6 +264,168 @@
           </div>
         <% } %>
       </div>
+
+      <!-- Share Modal Overlay -->
+      <div id="shareModal" class="modal-overlay">
+        <div class="modal-card">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+            <div>
+              <h3 style="margin: 0; font-size: 20px; font-weight: 800; color: #111827; letter-spacing: -0.02em;">Share Creator Onboarding</h3>
+              <p class="subtitle" id="shareModalCreator" style="margin: 4px 0 0 0; font-size: 14px; color: #6b7280; font-weight: 500;"></p>
+            </div>
+            <button onclick="closeShareModal()" style="background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer; line-height: 1; transition: color 0.2s;">&times;</button>
+          </div>
+          
+          <div style="display: flex; gap: 24px; align-items: stretch; flex-wrap: wrap;">
+            <!-- Left Side: Copy Link -->
+            <div style="flex: 1.2; min-width: 220px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+              <div>
+                <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 6px;">Onboarding Link</span>
+                <textarea id="shareModalLink" readonly style="width: 100%; height: 80px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 12px; color: #475569; background: #f8fafc; resize: none; font-family: monospace; outline: none; box-sizing: border-box;"></textarea>
+              </div>
+              <button id="shareModalCopyBtn" class="btn btn-3d-nav" style="width: 100%; height: 44px; font-size: 13px; font-weight:600;" onclick="copyModalLink()">Copy Link</button>
+            </div>
+            
+            <!-- Right Side: QR Code -->
+            <div style="flex: 0.8; min-width: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding-left: 20px; border-left: 1px solid #e2e8f0; box-sizing: border-box;">
+              <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Scan QR Code</span>
+              <div style="background: #ffffff; padding: 8px; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                <canvas id="shareModalQRCanvas" style="width: 120px; height: 120px; display: block;"></canvas>
+              </div>
+              <a id="shareModalQRDownload" href="" download="qr-code.png" target="_blank" style="text-decoration: none; font-size: 12px; font-weight: 700; color: #7c3aed;">Download QR</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <% if (canEdit) { %>
+        <script>
+          document.addEventListener("DOMContentLoaded", () => {
+            const manualTabBtn = document.getElementById("manualTabBtn");
+            const bulkTabBtn = document.getElementById("bulkTabBtn");
+            const manualCard = document.getElementById("manualCard");
+            const bulkCard = document.getElementById("bulkCard");
+
+            function showTab(isManual) {
+              if (isManual) {
+                // Switch tabs active classes
+                manualTabBtn.classList.add("flow-choice-active");
+                bulkTabBtn.classList.remove("flow-choice-active");
+
+                // Fold Bulk
+                bulkCard.style.maxHeight = "0";
+                bulkCard.style.opacity = "0";
+                bulkCard.style.transform = "rotateX(-90deg)";
+                setTimeout(() => {
+                  bulkCard.style.display = "none";
+                  manualCard.style.display = "block";
+                  setTimeout(() => {
+                    manualCard.style.maxHeight = "500px";
+                    manualCard.style.opacity = "1";
+                    manualCard.style.transform = "rotateX(0deg)";
+                  }, 20);
+                }, 350);
+              } else {
+                // Switch tabs active classes
+                bulkTabBtn.classList.add("flow-choice-active");
+                manualTabBtn.classList.remove("flow-choice-active");
+
+                // Fold Manual
+                manualCard.style.maxHeight = "0";
+                manualCard.style.opacity = "0";
+                manualCard.style.transform = "rotateX(-90deg)";
+                setTimeout(() => {
+                  manualCard.style.display = "none";
+                  bulkCard.style.display = "block";
+                  setTimeout(() => {
+                    bulkCard.style.maxHeight = "500px";
+                    bulkCard.style.opacity = "1";
+                    bulkCard.style.transform = "rotateX(0deg)";
+                  }, 20);
+                }, 350);
+              }
+            }
+
+            if (manualTabBtn && bulkTabBtn) {
+              manualTabBtn.addEventListener("click", () => showTab(true));
+              bulkTabBtn.addEventListener("click", () => showTab(false));
+            }
+          });
+        </script>
+      <% } %>
+
+      <!-- Share Modal Controller Script -->
+      <script>
+        document.addEventListener("DOMContentLoaded", () => {
+          const shareModal = document.getElementById("shareModal");
+          const shareModalCreator = document.getElementById("shareModalCreator");
+          const shareModalLink = document.getElementById("shareModalLink");
+          const shareModalQRCanvas = document.getElementById("shareModalQRCanvas");
+          const shareModalQRDownload = document.getElementById("shareModalQRDownload");
+          const shareModalCopyBtn = document.getElementById("shareModalCopyBtn");
+
+          window.openShareModal = function(campaignCode, mobile, creatorName) {
+            const path = '/?campaignCode=' + encodeURIComponent(campaignCode) + '&mobile=' + encodeURIComponent(mobile);
+            const fullUrl = window.location.protocol + '//' + window.location.host + path;
+            
+            shareModalCreator.textContent = "For creator: " + creatorName;
+            shareModalLink.value = fullUrl;
+            
+            // Generate QR Code locally using QRious library
+            if (window.QRious) {
+              const qr = new QRious({
+                element: shareModalQRCanvas,
+                value: fullUrl,
+                size: 250,
+                background: '#ffffff',
+                foreground: '#0f172a',
+                level: 'H'
+              });
+              // Set download link to the local canvas data URL
+              shareModalQRDownload.href = shareModalQRCanvas.toDataURL("image/png");
+            }
+            
+            // Show modal
+            shareModal.style.display = "flex";
+            setTimeout(() => {
+              shareModal.style.opacity = "1";
+              shareModal.querySelector(".modal-card").style.transform = "scale(1)";
+            }, 10);
+          };
+
+          window.closeShareModal = function() {
+            shareModal.style.opacity = "0";
+            shareModal.querySelector(".modal-card").style.transform = "scale(0.9)";
+            setTimeout(() => {
+              shareModal.style.display = "none";
+            }, 250);
+          };
+
+          window.copyModalLink = function() {
+            navigator.clipboard.writeText(shareModalLink.value).then(() => {
+              const originalText = shareModalCopyBtn.innerHTML;
+              shareModalCopyBtn.innerHTML = "✓ Copied!";
+              shareModalCopyBtn.style.background = "#15803d";
+              shareModalCopyBtn.style.color = "#ffffff";
+              
+              setTimeout(() => {
+                shareModalCopyBtn.innerHTML = originalText;
+                shareModalCopyBtn.style.background = "";
+                shareModalCopyBtn.style.color = "";
+              }, 2000);
+            }).catch(err => {
+              console.error("Copy failed", err);
+            });
+          };
+
+          // Close on clicking outside the modal content card
+          shareModal.addEventListener("click", (e) => {
+            if (e.target === shareModal) {
+              closeShareModal();
+            }
+          });
+        });
+      </script>
 
     </div>
   </body>
