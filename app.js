@@ -562,7 +562,12 @@ app.use((req, res, next) => {
   next();
 });
 app.use((req, _, next) => {
-  if (!req.session.user) {
+  // IMPORTANT: Do NOT fall back to the portal_auth cookie when an impersonation
+  // session is active. The portal_auth cookie always holds the original admin
+  // identity and would silently overwrite the impersonated user on every request
+  // (especially critical on Vercel where each request can be a new serverless instance).
+  const isImpersonating = req.session && req.session.isImpersonating;
+  if (!req.session.user && !isImpersonating) {
     const authUser = getAuthenticatedUser(req);
     if (authUser) {
       req.session.user = authUser;
@@ -1464,6 +1469,7 @@ app.get("/admin/users/stop-impersonating", async (req, res) => {
   if (req.session.originalUser) {
     req.session.user = req.session.originalUser;
     delete req.session.originalUser;
+    delete req.session.isImpersonating;
   }
   req.session.save(() => {
     res.redirect("/admin/users");
@@ -1498,8 +1504,13 @@ app.post("/admin/users/:id/impersonate", async (req, res) => {
     role: targetUser.role,
     teamName: targetUser.team_name || null
   };
+  req.session.isImpersonating = true;
 
-  req.session.save(() => {
+  req.session.save((err) => {
+    if (err) {
+      console.error("[Impersonate] session.save error:", err);
+      return res.status(500).send("Session save failed. Try again.");
+    }
     res.redirect("/admin/dashboard");
   });
 });
