@@ -317,6 +317,17 @@
           filterInvoices();
         }
 
+        // Make the entire 3D switch lever container clickable (improves mobile touch responsiveness)
+        const toggleContainer = document.querySelector('.toggle-container');
+        if (toggleContainer && typeToggle) {
+          toggleContainer.addEventListener('click', (e) => {
+            if (e.target !== typeToggle) {
+              typeToggle.checked = !typeToggle.checked;
+              typeToggle.dispatchEvent(new Event('change'));
+            }
+          });
+        }
+
         // Helper to format Indian currency
         function formatInr(val) {
           return Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

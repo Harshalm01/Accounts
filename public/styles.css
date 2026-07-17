@@ -4813,3 +4813,21 @@ body.creator-page .field.is-invalid .validation-msg {
     padding: 16px !important;
   }
 }
+
+/* 8. 3D Lever Switch Scaling and Spacing on Mobile (mobile < 480px) */
+@media (max-width: 480px) {
+  .toggle-container {
+    font-size: 18px !important;
+  }
+  .admin-page .section-head > div[style*="display: flex"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .admin-page .section-head div[style*="margin-top: 40px"] {
+    margin-top: 12px !important;
+  }
+  .admin-page #invoiceCountPill {
+    margin-top: 12px !important;
+  }
+}
