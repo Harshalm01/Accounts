@@ -143,10 +143,10 @@
               <tbody>
                 <% users.forEach((u)=> { %>
                   <tr>
-                    <td class="user-id-cell">
+                    <td class="user-id-cell" data-label="#">
                       <%= u.id %>
                     </td>
-                    <td>
+                    <td data-label="Username">
                       <div class="user-name-cell">
                         <div class="user-avatar">
                           <%= u.username.charAt(0).toUpperCase() %>
@@ -156,15 +156,15 @@
                         </span>
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Role">
                       <span class="role-badge role-<%= u.role.toLowerCase() %>">
                         <%= u.role %>
                       </span>
                     </td>
-                    <td class="team-cell">
+                    <td class="team-cell" data-label="Team">
                       <%= u.team_name || '—' %>
                     </td>
-                    <td>
+                    <td data-label="Impersonate">
                       <% if (u.id !==user.id) { %>
                         <form method="post" action="/admin/users/<%= u.id %>/impersonate">
                           <button class="btn btn-3d-sm btn-3d-view" type="submit">Impersonate</button>
@@ -173,7 +173,7 @@
                           <span style="color: #9ca3af; font-size: 13px; font-weight: 500;">Current User</span>
                           <% } %>
                     </td>
-                    <td>
+                    <td data-label="Reset Password">
                       <form method="post" action="/admin/users/<%= u.id %>/reset"
                         style="display:flex;gap:8px;align-items:center;">
                         <input type="password" name="newPassword" placeholder="New password" required
@@ -181,7 +181,7 @@
                         <button class="btn btn-3d-sm btn-3d-view" type="submit">Reset</button>
                       </form>
                     </td>
-                    <td>
+                    <td data-label="Delete">
                       <form method="post" action="/admin/users/<%= u.id %>/delete"
                         onsubmit="return confirm('Delete user <%= u.username %>?')">
                         <button class="btn btn-3d-sm btn-3d-reject" type="submit">Delete</button>

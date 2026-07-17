@@ -4622,4 +4622,174 @@ body.creator-page .field.is-invalid .validation-msg {
   font-weight: 600;
 }
 
+/* ═══════════════════════════════════════
+   RESPONSIVE MOBILE VIEW OPTIMIZATIONS
+   ═══════════════════════════════════════ */
 
+/* 1. Nav Bar Horizontal Touch Scroll (mobile < 480px) */
+@media (max-width: 480px) {
+  body.admin-page .nav.nav-3d {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 8px !important;
+    padding: 8px !important;
+    border-radius: 14px !important;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+    background: rgba(15, 23, 42, 0.02) !important;
+  }
+  body.admin-page .nav.nav-3d a {
+    display: inline-block !important;
+  }
+  body.admin-page .nav.nav-3d button {
+    height: 40px !important;
+    padding: 0 16px !important;
+    font-size: 13px !important;
+  }
+  body.admin-page .nav.nav-3d::-webkit-scrollbar {
+    display: none !important;
+  }
+}
+
+/* 2. Admin Tables Card Stacking Layout (mobile < 768px) */
+@media (max-width: 768px) {
+  .admin-page table thead {
+    display: none !important;
+  }
+  .admin-page table,
+  .admin-page table tbody,
+  .admin-page table tr,
+  .admin-page table td {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .admin-page table tr {
+    margin-bottom: 20px !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+    border-radius: 20px !important;
+    padding: 20px !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.02) !important;
+  }
+  .admin-page table td {
+    text-align: right !important;
+    padding: 12px 0 !important;
+    border-bottom: 1px dashed rgba(15, 23, 42, 0.06) !important;
+    position: relative !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    min-height: 44px !important;
+  }
+  .admin-page table td:last-child {
+    border-bottom: none !important;
+    padding-top: 14px !important;
+    justify-content: flex-end !important;
+  }
+  /* data-label binding */
+  .admin-page table td[data-label]::before {
+    content: attr(data-label) !important;
+    font-weight: 800 !important;
+    font-size: 11px !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    text-align: left !important;
+    padding-right: 12px !important;
+  }
+  .admin-page table td.user-id-cell,
+  .admin-page table td.campaign-cell,
+  .admin-page table td.type-cell,
+  .admin-page table td.total-cell,
+  .admin-page table td.team-cell,
+  .admin-page table td.action-cell {
+    text-align: right !important;
+  }
+  .admin-page table td div {
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+  }
+}
+
+/* 3. Mobile Stepper Layout (mobile < 480px) */
+@media (max-width: 480px) {
+  body.creator-page .step-bubble .step-label {
+    display: none !important;
+  }
+  body.creator-page .step-bubble.active .step-label {
+    display: block !important;
+    top: 48px !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* 4. Stat Grid Adaptability (mobile < 768px) */
+@media (max-width: 768px) {
+  .admin-page .header-stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .admin-page .header-stat-card {
+    padding: 12px 8px !important;
+    border-radius: 14px !important;
+    min-width: 0 !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+  .admin-page .header-stat-card .stat-icon {
+    font-size: 16px !important;
+    margin-bottom: 4px !important;
+    margin-right: 0 !important;
+  }
+  .admin-page .header-stat-card .stat-value {
+    font-size: 14px !important;
+    line-height: 1.2 !important;
+  }
+  .admin-page .header-stat-card .stat-label {
+    font-size: 9px !important;
+  }
+}
+@media (max-width: 480px) {
+  .admin-page .header-stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  .admin-page .header-stat-card {
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+    padding: 12px !important;
+  }
+  .admin-page .header-stat-card .stat-icon {
+    margin-bottom: 0 !important;
+    margin-right: 12px !important;
+    font-size: 20px !important;
+  }
+}
+
+/* 5. Modal Responsive Sizing (mobile < 540px) */
+@media (max-width: 540px) {
+  .modal-card {
+    padding: 24px 16px !important;
+    border-radius: 20px !important;
+    width: 95% !important;
+  }
+  .modal-card > div[style*="display: flex"] {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+  .modal-card div[style*="border-left"] {
+    border-left: none !important;
+    border-top: 1px dashed #e2e8f0 !important;
+    padding-left: 0 !important;
+    padding-top: 20px !important;
+    align-items: center !important;
+  }
+}

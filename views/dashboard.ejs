@@ -135,24 +135,24 @@
             <% } %>
             <% invoices.forEach((inv) => { %>
               <tr class="context-row">
-                <td style="color: #6B7280; font-weight: 600;">#<%= inv.id %></td>
-                <td class="campaign-cell">
+                <td style="color: #6B7280; font-weight: 600;" data-label="ID">#<%= inv.id %></td>
+                <td class="campaign-cell" data-label="Campaign">
                   <strong><%= inv.campaign_name %></strong><br/>
                   <span><%= inv.campaign_code %></span>
                 </td>
-                <td>
+                <td data-label="Creator">
                   <strong><%= inv.creator_name %></strong><br/>
                   <span style="color: #6B7280; font-size: 12px;"><%= inv.creator_mobile %></span>
                 </td>
-                <td style="font-weight: 500; color: #4B5563;">#<%= inv.invoice_no %></td>
-                <td class="type-cell">
+                <td style="font-weight: 500; color: #4B5563;" data-label="Invoice No">#<%= inv.invoice_no %></td>
+                <td class="type-cell" data-label="Type">
                   <span><%= inv.invoice_type === 'gst' ? 'GST' : 'Non-GST' %></span>
                 </td>
-                <td class="total-cell">₹<%= gstBreakup(inv).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
-                <td>
+                <td class="total-cell" data-label="Total Amount">₹<%= gstBreakup(inv).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                <td data-label="Status">
                   <span class="status-pill <%= inv.status %>"><%= inv.status %></span>
                 </td>
-                <td class="action-cell">
+                <td class="action-cell" data-label="Action">
                   <a href="/admin/invoices/<%= inv.id %>" class="btn btn-3d-sm btn-3d-open">Open</a>
                   <div class="row-hover-overlay">
                     <a href="/admin/invoices/<%= inv.id %>" class="btn btn-3d-sm btn-3d-view">View Details</a>
