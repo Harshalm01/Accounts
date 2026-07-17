@@ -274,10 +274,10 @@
             }
 
             if (show) {
-              row.style.display = '';
+              row.style.removeProperty('display');
               visibleCount++;
             } else {
-              row.style.display = 'none';
+              row.style.setProperty('display', 'none', 'important');
             }
           });
 
