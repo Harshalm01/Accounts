@@ -4679,7 +4679,7 @@ body.creator-page .field.is-invalid .validation-msg {
   }
   .admin-page table td {
     text-align: left !important;
-    padding: 10px 0 !important;
+    padding: 8px 0 !important;
     border-bottom: 1px dashed rgba(15, 23, 42, 0.06) !important;
     position: relative !important;
     min-height: auto !important;
@@ -4697,7 +4697,7 @@ body.creator-page .field.is-invalid .validation-msg {
     color: #94a3b8 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.05em !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 2px !important;
     text-align: left !important;
   }
   .admin-page table td.user-id-cell,
@@ -4708,7 +4708,7 @@ body.creator-page .field.is-invalid .validation-msg {
   .admin-page table td.action-cell {
     text-align: left !important;
   }
-  .admin-page table td div {
+  .admin-page table td > div {
     justify-content: flex-start !important;
     flex-wrap: wrap !important;
   }
