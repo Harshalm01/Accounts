@@ -51,17 +51,23 @@ const upload = multer({ storage });
 
 class SqliteSessionStore extends session.Store {
   get(sid, cb) {
-    db.get("SELECT sess FROM sessions WHERE sid = ? AND expire > ?", [sid, Date.now()])
+    // Store/compare expire as Unix epoch SECONDS to avoid PostgreSQL INTEGER overflow
+    // (milliseconds ~1.7 trillion exceed the 32-bit INTEGER max of ~2.1 billion)
+    const nowSec = Math.floor(Date.now() / 1000);
+    db.get("SELECT sess FROM sessions WHERE sid = ? AND expire > ?", [sid, nowSec])
       .then((row) => cb(null, row ? JSON.parse(row.sess) : null))
       .catch(cb);
   }
 
   set(sid, sess, cb) {
-    const ttl = sess.cookie && sess.cookie.expires ? new Date(sess.cookie.expires).getTime() : Date.now() + 86400000;
+    // Use epoch SECONDS so the value fits safely in a PostgreSQL INTEGER column
+    const ttlSec = sess.cookie && sess.cookie.expires
+      ? Math.floor(new Date(sess.cookie.expires).getTime() / 1000)
+      : Math.floor(Date.now() / 1000) + 86400;
     db.run(
       `INSERT INTO sessions (sid, sess, expire) VALUES (?, ?, ?)
        ON CONFLICT(sid) DO UPDATE SET sess = excluded.sess, expire = excluded.expire`,
-      [sid, JSON.stringify(sess), ttl]
+      [sid, JSON.stringify(sess), ttlSec]
     )
       .then(() => cb && cb(null))
       .catch((error) => cb && cb(error));

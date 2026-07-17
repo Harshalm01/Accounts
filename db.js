@@ -132,6 +132,19 @@ async function init() {
     expire INTEGER NOT NULL
   )`);
 
+  // Migration: upgrade sessions.expire from 32-bit INTEGER to BIGINT on PostgreSQL.
+  // The original schema stored Unix timestamps in milliseconds (~1.7 trillion) which
+  // overflows a PostgreSQL INTEGER (max ~2.1 billion), causing session.save() to fail.
+  // We now store timestamps in seconds, so existing millisecond-based rows are stale
+  // and should be removed. This block is a no-op on SQLite.
+  if (isPostgres) {
+    try {
+      await pool.query(`ALTER TABLE sessions ALTER COLUMN expire TYPE BIGINT`);
+    } catch (_) { /* already BIGINT — ignore */ }
+    // Delete stale sessions that were saved with millisecond timestamps (values > year 3000 in seconds)
+    await pool.query(`DELETE FROM sessions WHERE expire > 32503680000`);
+  }
+
   await run(`CREATE TABLE IF NOT EXISTS campaigns (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     campaign_name TEXT NOT NULL,
