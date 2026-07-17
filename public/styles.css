@@ -4626,11 +4626,12 @@ body.creator-page .field.is-invalid .validation-msg {
    RESPONSIVE MOBILE VIEW OPTIMIZATIONS
    ═══════════════════════════════════════ */
 
-/* 1. Nav Bar Horizontal Touch Scroll (mobile < 480px) */
-@media (max-width: 480px) {
+/* 1. Nav Bar Horizontal Touch Scroll (mobile < 768px) */
+@media (max-width: 768px) {
   body.admin-page .nav.nav-3d {
     display: flex !important;
     flex-direction: row !important;
+    flex-wrap: nowrap !important;
     overflow-x: auto !important;
     white-space: nowrap !important;
     -webkit-overflow-scrolling: touch !important;
@@ -4639,9 +4640,11 @@ body.creator-page .field.is-invalid .validation-msg {
     border-radius: 14px !important;
     box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.03) !important;
     background: rgba(15, 23, 42, 0.02) !important;
+    scrollbar-width: none !important; /* Firefox */
   }
   body.admin-page .nav.nav-3d a {
     display: inline-block !important;
+    flex-shrink: 0 !important;
   }
   body.admin-page .nav.nav-3d button {
     height: 40px !important;
@@ -4649,7 +4652,7 @@ body.creator-page .field.is-invalid .validation-msg {
     font-size: 13px !important;
   }
   body.admin-page .nav.nav-3d::-webkit-scrollbar {
-    display: none !important;
+    display: none !important; /* Chrome/Safari */
   }
 }
 
@@ -4671,34 +4674,31 @@ body.creator-page .field.is-invalid .validation-msg {
     background: #ffffff !important;
     border: 1px solid rgba(15, 23, 42, 0.08) !important;
     border-radius: 20px !important;
-    padding: 20px !important;
+    padding: 16px !important;
     box-shadow: 0 4px 16px rgba(15, 23, 42, 0.02) !important;
   }
   .admin-page table td {
-    text-align: right !important;
-    padding: 12px 0 !important;
+    text-align: left !important;
+    padding: 10px 0 !important;
     border-bottom: 1px dashed rgba(15, 23, 42, 0.06) !important;
     position: relative !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    min-height: 44px !important;
+    min-height: auto !important;
   }
   .admin-page table td:last-child {
     border-bottom: none !important;
     padding-top: 14px !important;
-    justify-content: flex-end !important;
   }
-  /* data-label binding */
+  /* Vertical Stack Labels */
   .admin-page table td[data-label]::before {
     content: attr(data-label) !important;
+    display: block !important;
     font-weight: 800 !important;
-    font-size: 11px !important;
-    color: #64748b !important;
+    font-size: 10px !important;
+    color: #94a3b8 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.05em !important;
+    margin-bottom: 4px !important;
     text-align: left !important;
-    padding-right: 12px !important;
   }
   .admin-page table td.user-id-cell,
   .admin-page table td.campaign-cell,
@@ -4706,10 +4706,10 @@ body.creator-page .field.is-invalid .validation-msg {
   .admin-page table td.total-cell,
   .admin-page table td.team-cell,
   .admin-page table td.action-cell {
-    text-align: right !important;
+    text-align: left !important;
   }
   .admin-page table td div {
-    justify-content: flex-end !important;
+    justify-content: flex-start !important;
     flex-wrap: wrap !important;
   }
 }
@@ -4791,5 +4791,25 @@ body.creator-page .field.is-invalid .validation-msg {
     padding-left: 0 !important;
     padding-top: 20px !important;
     align-items: center !important;
+  }
+}
+
+/* 6. Creator Portal Mobile Dynamic Item Cards (mobile < 900px) */
+@media (max-width: 900px) {
+  body.creator-page .line-item-row {
+    padding: 16px !important;
+    border: 1px solid rgba(124, 58, 237, 0.15) !important;
+    border-radius: 16px !important;
+    background: #ffffff !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.03) !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* 7. Live Preview Paper Padding Compression (mobile < 480px) */
+@media (max-width: 480px) {
+  body.creator-page .live-invoice-paper {
+    padding: 16px !important;
   }
 }
