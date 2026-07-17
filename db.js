@@ -42,11 +42,15 @@ async function run(sql, params = []) {
   if (isPostgres) {
     let converted = convertQuery(sql);
     const isInsert = sql.trim().toUpperCase().startsWith("INSERT");
-    if (isInsert && !converted.toUpperCase().includes("RETURNING")) {
+    // Only append RETURNING id for tables that actually have an id column.
+    // The sessions table uses 'sid' as its primary key — appending RETURNING id
+    // would cause "column id does not exist" and break every session.save() call.
+    const targetsSessionsTable = /INTO\s+sessions\b/i.test(sql);
+    if (isInsert && !converted.toUpperCase().includes("RETURNING") && !targetsSessionsTable) {
       converted += " RETURNING id";
     }
     const res = await pool.query(converted, params);
-    const lastID = isInsert ? (res.rows[0]?.id || null) : null;
+    const lastID = isInsert && !targetsSessionsTable ? (res.rows[0]?.id || null) : null;
     return { lastID, changes: res.rowCount };
   } else {
     return new Promise((resolve, reject) => {
