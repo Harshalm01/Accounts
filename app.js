@@ -607,6 +607,14 @@ app.get("/api/ping", async (req, res) => {
   }
 });
 
+// Prevent dynamic routing cache (vital for correct session redirection, especially on mobile browsers)
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
+
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.error = null;
