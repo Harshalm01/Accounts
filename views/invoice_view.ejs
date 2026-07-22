@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/styles.css?v=44" />
+    <link rel="stylesheet" href="/public/styles.css?v=45" />
   </head>
   <body class="admin-page">
     <div class="shell">
@@ -189,20 +189,511 @@
         </div>
       </div>
 
-      <!-- Accept / Reject Actions -->
+      <!-- 3D Realistic Paper Document Viewer Controls -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 32px 0 16px 0;">
+        <div>
+          <h3 style="font-size: 20px; font-weight: 800; margin: 0; color: #0f172a;">📄 3D Tactical Invoice Paper Viewer</h3>
+          <p class="subtitle" style="margin: 4px 0 0 0; font-size: 13px;">Move mouse over paper to tilt in 3D. Click 'Flip' to view audit trail & Tax breakdown.</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn btn-light" id="flipPaperBtn" style="padding: 8px 16px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+            🔄 Flip Document
+          </button>
+          <button type="button" class="btn btn-light" onclick="window.print()" style="padding: 8px 16px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+            🖨️ Print
+          </button>
+        </div>
+      </div>
+
+      <!-- 3D Paper Document Sheet Container -->
+      <div class="paper3d-perspective-container">
+        <div class="paper3d-sheet" id="paper3dSheet">
+          <div class="paper3d-curl"></div>
+          <div class="paper-flip-hint" style="position: absolute; bottom: 16px; right: 20px; font-size: 11px; font-weight: 700; color: #7c3aed; background: #f3e8ff; padding: 4px 10px; border-radius: 999px; border: 1px solid #d8b4fe; pointer-events: none; opacity: 0.9; z-index: 15;">
+            Click paper to flip 🔄
+          </div>
+          
+          <!-- FRONT SIDE OF PAPER -->
+          <div class="paper3d-front">
+            <!-- Header Brand & Invoice # -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 20px; margin-bottom: 24px;">
+              <div>
+                <img src="/public/logo.png" alt="3Folks Media" style="max-height: 64px; width: auto; margin-bottom: 8px; display: block;" />
+                <div style="font-size: 12px; font-weight: 600; color: #475569;">3Folks Media Private Limited</div>
+                <div style="font-size: 11px; color: #64748b;">GSTIN: 27AACFZ6393B1ZZ · PAN: AACFZ6393B</div>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 28px; font-weight: 900; color: #0f172a; letter-spacing: -1px;">TAX INVOICE</div>
+                <div style="font-size: 14px; font-weight: 700; color: #7c3aed; margin-top: 4px;">#<%= invoice.invoice_no %></div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Date: <%= invoice.invoice_date %></div>
+              </div>
+            </div>
+
+            <!-- Bill To / Bill From Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <div>
+                <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px;">Billed To (Client)</div>
+                <div style="font-weight: 700; color: #0f172a; font-size: 14px; margin-top: 4px;">3Folks Media Pvt Ltd</div>
+                <div style="font-size: 12px; color: #475569; margin-top: 2px;">Campaign: <%= invoice.campaign_name %> (<%= invoice.campaign_code %>)</div>
+              </div>
+              <div>
+                <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px;">Issued By (Creator)</div>
+                <div style="font-weight: 700; color: #0f172a; font-size: 14px; margin-top: 4px;"><%= invoice.creator_name %></div>
+                <div style="font-size: 12px; color: #475569; margin-top: 2px;">Contact: <%= invoice.creator_mobile %></div>
+                <% if (isGstInvoice) { %>
+                  <div style="font-size: 11px; color: #64748b;">GSTIN: <%= invoice.creator_gstin || 'N/A' %></div>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Itemized Table -->
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 13px;">
+              <thead>
+                <tr style="border-bottom: 2px solid #cbd5e1; text-align: left;">
+                  <th style="padding: 8px 4px; color: #475569; font-weight: 700;">Description</th>
+                  <th style="padding: 8px 4px; text-align: center; color: #475569; font-weight: 700;">Qty</th>
+                  <th style="padding: 8px 4px; text-align: right; color: #475569; font-weight: 700;">Rate (₹)</th>
+                  <th style="padding: 8px 4px; text-align: right; color: #475569; font-weight: 700;">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% items.forEach((it) => { %>
+                  <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px 4px; font-weight: 600; color: #1e293b;"><%= it.description %></td>
+                    <td style="padding: 10px 4px; text-align: center; color: #475569;"><%= it.quantity %></td>
+                    <td style="padding: 10px 4px; text-align: right; font-family: monospace; color: #334155;"><%= Number(it.rate || 0).toFixed(2) %></td>
+                    <td style="padding: 10px 4px; text-align: right; font-weight: 700; color: #0f172a; font-family: monospace;">₹<%= Number(it.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+
+            <!-- Calculation Summary Footer -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 2px solid #0f172a; padding-top: 16px;">
+              <div>
+                <!-- Official Rubber Stamp Graphic -->
+                <% const isStampAccepted = invoice.status === 'ACCEPT' || invoice.status === 'ACCEPTED'; %>
+                <% const isStampRejected = invoice.status === 'REJECT' || invoice.status === 'REJECTED'; %>
+                <div style="border: 3px double <%= isStampAccepted ? '#16a34a' : (isStampRejected ? '#dc2624' : '#7c3aed') %>; color: <%= isStampAccepted ? '#16a34a' : (isStampRejected ? '#dc2624' : '#7c3aed') %>; display: inline-block; padding: 6px 16px; border-radius: 6px; transform: rotate(-6deg); font-weight: 900; font-size: 14px; letter-spacing: 1.5px; text-transform: uppercase;">
+                  <%= isStampAccepted ? 'VERIFIED & APPROVED ✓' : (isStampRejected ? 'REJECTED ✕' : 'PENDING AUDIT ⏳') %>
+                </div>
+              </div>
+
+              <div style="text-align: right; min-width: 220px;">
+                <div style="display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 4px;">
+                  <span>Subtotal:</span>
+                  <span style="font-weight: 600; font-family: monospace;">₹<%= taxableAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></span>
+                </div>
+                <% if (isGstInvoice) { %>
+                  <div style="display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 4px;">
+                    <span>Total GST (18%):</span>
+                    <span style="font-weight: 600; font-family: monospace;">₹<%= gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></span>
+                  </div>
+                <% } %>
+                <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #0f172a; border-top: 1px solid #cbd5e1; padding-top: 8px; margin-top: 8px;">
+                  <span>Grand Total:</span>
+                  <span style="color: #7c3aed; font-family: monospace;">₹<%= grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BACK SIDE OF PAPER (Audit Trail & Verification) -->
+          <div class="paper3d-back">
+            <div style="font-size: 40px; margin-bottom: 12px;">🛡️</div>
+            <h3 style="font-size: 22px; font-weight: 900; color: #0f172a; margin: 0 0 8px 0;">Digital Audit & Tax Clearance</h3>
+            <p style="font-size: 13px; color: #64748b; text-align: center; max-width: 400px; margin-bottom: 24px;">This invoice document is cryptographically logged under 3Folks Media accounts ledger.</p>
+            
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; width: 100%; max-width: 440px; margin-bottom: 24px; font-size: 12px; color: #334155;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                <span style="color: #64748b; font-weight: 600;">System ID:</span>
+                <span style="font-family: monospace; font-weight: 700;">INV-3FM-<%= invoice.id %></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                <span style="color: #64748b; font-weight: 600;">Tax Regime:</span>
+                <span style="font-weight: 700;"><%= isGstInvoice ? 'GST Standard 18%' : 'Non-GST Exempt' %></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px;">
+                <span style="color: #64748b; font-weight: 600;">State Matching:</span>
+                <span style="font-weight: 700;"><%= !isGstInvoice ? 'Not Applicable (Non-GST)' : (isIntraState ? 'Intra-state (CGST + SGST)' : 'Inter-state (IGST)') %></span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: #64748b; font-weight: 600;">Digital Signature:</span>
+                <span style="font-family: monospace; font-size: 10px; color: #16a34a; font-weight: 700;">VERIFIED_SECURE_HASH</span>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-light" id="unflipPaperBtn" style="padding: 10px 24px; font-weight: 700; font-size: 13px;">
+              ↩️ Return to Front View
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <style>
+        .paper3d-perspective-container {
+          perspective: 1400px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          padding: 20px 0 40px 0;
+          user-select: none;
+        }
+
+        .paper3d-sheet {
+          position: relative;
+          width: 100%;
+          max-width: 760px;
+          min-height: 880px;
+          background: #ffffff;
+          border-radius: 6px;
+          box-shadow: 
+            0 2px 2px rgba(0,0,0,0.06), 
+            0 8px 0 -4px #f1f5f9, 
+            0 8px 2px -3px rgba(0,0,0,0.1), 
+            0 16px 0 -8px #e2e8f0, 
+            0 16px 2px -7px rgba(0,0,0,0.1),
+            0 25px 50px -12px rgba(15, 23, 42, 0.25);
+          transform-style: preserve-3d;
+          transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+          cursor: grab;
+          border: 1px solid #cbd5e1;
+        }
+
+        .paper3d-sheet:active {
+          cursor: grabbing;
+        }
+
+        .paper3d-curl {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 48px;
+          height: 48px;
+          background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.02) 65%, transparent 65%);
+          pointer-events: none;
+          z-index: 12;
+        }
+
+        .paper3d-sheet.flipped {
+          transform: rotateY(180deg) !important;
+        }
+
+        .paper3d-front, .paper3d-back {
+          width: 100%;
+          min-height: 880px;
+          backface-visibility: hidden;
+          padding: 44px 52px;
+          box-sizing: border-box;
+        }
+
+        .paper3d-back {
+          position: absolute;
+          top: 0;
+          left: 0;
+          transform: rotateY(180deg);
+          background: #f8fafc;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          border-radius: 6px;
+        }
+
+        [data-theme="dark"] .paper3d-front {
+          background: #ffffff !important;
+          color: #0f172a !important;
+        }
+
+        /* Dedicated Print Stylesheet */
+        @media print {
+          @page {
+            margin: 10mm;
+            size: auto;
+          }
+          body, .admin-page, .shell {
+            background: #ffffff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            color: #000000 !important;
+          }
+          .card, .glass-panel, .section-head, .users-table-wrap, header, nav, .topbar, button, #flipPaperBtn, .subtitle, form, .no-print {
+            display: none !important;
+          }
+
+          .paper3d-perspective-container {
+            padding: 0 !important;
+            margin: 0 !important;
+            perspective: none !important;
+            display: block !important;
+          }
+
+          .paper3d-sheet {
+            box-shadow: none !important;
+            border: none !important;
+            transform: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            page-break-inside: avoid;
+          }
+
+          .paper3d-curl, .paper-flip-hint {
+            display: none !important;
+          }
+
+          .paper3d-front {
+            padding: 0 !important;
+            min-height: auto !important;
+          }
+
+          .paper3d-back {
+            display: none !important;
+          }
+        }
+      </style>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', () => {
+          const container = document.querySelector('.paper3d-perspective-container');
+          const sheet = document.getElementById('paper3dSheet');
+          const flipBtn = document.getElementById('flipPaperBtn');
+          const unflipBtn = document.getElementById('unflipPaperBtn');
+          if (!container || !sheet) return;
+
+          let isFlipped = false;
+
+          const toggleFlip = () => {
+            isFlipped = !isFlipped;
+            sheet.classList.toggle('flipped', isFlipped);
+          };
+
+          // Tap / Click directly on paper sheet to flip
+          sheet.addEventListener('click', (e) => {
+            if (e.target.closest('a') || e.target.closest('button') || e.target.closest('input')) return;
+            toggleFlip();
+          });
+
+          container.addEventListener('mousemove', (e) => {
+            if (isFlipped) return;
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const rotateX = ((y - centerY) / centerY) * -10;
+            const rotateY = ((x - centerX) / centerX) * 10;
+            
+            sheet.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.015)`;
+          });
+
+          container.addEventListener('mouseleave', () => {
+            if (isFlipped) return;
+            sheet.style.transform = 'rotateX(0deg) rotateY(0deg) scale(1)';
+          });
+
+          if (flipBtn) {
+            flipBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              toggleFlip();
+            });
+          }
+
+          if (unflipBtn) {
+            unflipBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              isFlipped = false;
+              sheet.classList.remove('flipped');
+            });
+          }
+        });
+      </script>
+
+      <!-- 3D Tactile Rubber Stamp Press Authorization Station -->
       <% if (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN') { %>
-        <div class="card glass-panel" style="padding: 24px 32px;">
-          <div style="display: flex; gap: 16px; justify-content: center; perspective: 1000px;">
-            <form method="post" action="/admin/invoices/<%= invoice.id %>/status" style="display: inline;">
+        <div class="card glass-panel stamp-station-card" style="padding: 28px 32px; margin-top: 24px; text-align: center; overflow: hidden; position: relative;">
+          <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #94a3b8; letter-spacing: 1.5px; margin-bottom: 6px;">
+            🖎 Accounts Authorization Station
+          </div>
+          <h3 style="font-size: 18px; font-weight: 850; color: #0f172a; margin: 0 0 24px 0; letter-spacing: -0.5px;">
+            Click 3D Rubber Stamp Tool to Action Invoice
+          </h3>
+
+          <div class="stamp-tools-container" style="display: flex; gap: 48px; justify-content: center; align-items: center; padding: 12px 0;">
+            <!-- APPROVE STAMP TOOL -->
+            <form method="post" action="/admin/invoices/<%= invoice.id %>/status" id="acceptStampForm" style="margin: 0;">
               <input type="hidden" name="action" value="accept" />
-              <button class="btn btn-3d-sm btn-3d-accept" type="submit" style="padding: 12px 32px; font-size: 13px;">Accept Invoice</button>
+              <button type="button" class="stamp-tool-btn stamp-approve" id="approveStampBtn" title="Click to stamp APPROVED">
+                <div class="stamp-handle"></div>
+                <div class="stamp-block">
+                  <span class="stamp-text">APPROVED ✓</span>
+                </div>
+              </button>
             </form>
-            <form method="post" action="/admin/invoices/<%= invoice.id %>/status" style="display: inline;">
+
+            <!-- REJECT STAMP TOOL -->
+            <form method="post" action="/admin/invoices/<%= invoice.id %>/status" id="rejectStampForm" style="margin: 0;">
               <input type="hidden" name="action" value="reject" />
-              <button class="btn btn-3d-sm btn-3d-reject" type="submit" style="padding: 12px 32px; font-size: 13px;">Reject Invoice</button>
+              <button type="button" class="stamp-tool-btn stamp-reject" id="rejectStampBtn" title="Click to stamp REJECTED">
+                <div class="stamp-handle"></div>
+                <div class="stamp-block">
+                  <span class="stamp-text">REJECTED ✕</span>
+                </div>
+              </button>
             </form>
           </div>
         </div>
+
+        <style>
+          .stamp-tool-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            perspective: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+            padding: 8px;
+            outline: none;
+            user-select: none;
+          }
+
+          .stamp-handle {
+            width: 34px;
+            height: 52px;
+            background: linear-gradient(180deg, #d97706 0%, #b45309 60%, #78350f 100%);
+            border-radius: 18px 18px 6px 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.4);
+            border: 1px solid #92400e;
+            margin-bottom: -6px;
+            z-index: 2;
+            position: relative;
+          }
+
+          .stamp-handle::after {
+            content: "";
+            position: absolute;
+            top: 8px;
+            left: 7px;
+            width: 18px;
+            height: 18px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+          }
+
+          .stamp-block {
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-weight: 900;
+            font-size: 14px;
+            letter-spacing: 1px;
+            color: #ffffff;
+            transform: rotateX(16deg) rotateY(-6deg);
+            transform-style: preserve-3d;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+          }
+
+          .stamp-approve .stamp-block {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            border: 3px double #bbf7d0;
+            box-shadow: 0 12px 24px rgba(22, 163, 74, 0.35), 0 4px 0 #14532d;
+          }
+
+          .stamp-reject .stamp-block {
+            background: linear-gradient(135deg, #dc2624 0%, #b91c1c 100%);
+            border: 3px double #fecaca;
+            box-shadow: 0 12px 24px rgba(220, 38, 36, 0.35), 0 4px 0 #7f1d1d;
+          }
+
+          .stamp-tool-btn:hover {
+            transform: translateY(-8px) scale(1.08);
+          }
+
+          .stamp-tool-btn:hover .stamp-block {
+            transform: rotateX(0deg) rotateY(0deg);
+          }
+
+          .stamp-tool-btn.stamping {
+            animation: stampPressAnim 0.55s ease forwards;
+          }
+
+          @keyframes stampPressAnim {
+            0% { transform: translateY(-8px) scale(1.08); }
+            35% { transform: translateY(-44px) scale(1.25) rotate(-8deg); }
+            70% { transform: translateY(16px) scale(0.92) rotate(0deg); }
+            85% { transform: translateY(-4px) scale(1.02); }
+            100% { transform: translateY(0) scale(1); }
+          }
+        </style>
+
+        <script>
+          document.addEventListener('DOMContentLoaded', () => {
+            const approveBtn = document.getElementById('approveStampBtn');
+            const rejectBtn = document.getElementById('rejectStampBtn');
+            const acceptForm = document.getElementById('acceptStampForm');
+            const rejectForm = document.getElementById('rejectStampForm');
+            const sheet = document.getElementById('paper3dSheet');
+
+            function executeStampPress(btn, form, text, color) {
+              if (btn.classList.contains('stamping')) return;
+              btn.classList.add('stamping');
+
+              // Create temporary ink stamp splash effect on paper
+              if (sheet) {
+                const inkStamp = document.createElement('div');
+                inkStamp.className = 'live-ink-stamp';
+                inkStamp.innerText = text;
+                inkStamp.style.cssText = `
+                  position: absolute;
+                  top: 45%;
+                  left: 50%;
+                  transform: translate(-50%, -50%) scale(2) rotate(-12deg);
+                  border: 4px double ${color};
+                  color: ${color};
+                  padding: 10px 24px;
+                  border-radius: 8px;
+                  font-weight: 900;
+                  font-size: 20px;
+                  letter-spacing: 2px;
+                  opacity: 0;
+                  z-index: 100;
+                  pointer-events: none;
+                  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                `;
+                sheet.appendChild(inkStamp);
+
+                setTimeout(() => {
+                  inkStamp.style.opacity = '0.95';
+                  inkStamp.style.transform = 'translate(-50%, -50%) scale(1) rotate(-6deg)';
+                }, 350);
+              }
+
+              // Submit form after stamp press completes
+              setTimeout(() => {
+                form.submit();
+              }, 600);
+            }
+
+            if (approveBtn && acceptForm) {
+              approveBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                executeStampPress(approveBtn, acceptForm, 'VERIFIED & APPROVED ✓', '#16a34a');
+              });
+            }
+
+            if (rejectBtn && rejectForm) {
+              rejectBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                executeStampPress(rejectBtn, rejectForm, 'REJECTED ✕', '#dc2624');
+              });
+            }
+          });
+        </script>
       <% } %>
     </div>
   </body>

@@ -169,6 +169,42 @@ body.admin-page .btn-danger {
   color: #FFFFFF;
 }
 
+/* Delete Row Button (invoice rows) */
+body.creator-page .delete-row-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.15s;
+  padding: 0;
+  line-height: 1;
+}
+body.creator-page .delete-row-btn:hover {
+  background: rgba(220, 38, 38, 0.16);
+  border-color: rgba(220, 38, 38, 0.35);
+  transform: scale(1.12);
+  box-shadow: 0 2px 8px rgba(220,38,38,0.18);
+}
+body.creator-page .delete-row-btn:active {
+  transform: scale(0.94);
+}
+
+/* Invoice row wrapper */
+body.creator-page .invoice-row-wrap {
+  position: relative;
+}
+
 /* 3D Nav Button */
 body.admin-page .btn-3d-nav,
 body.creator-page .btn-3d-nav {
@@ -3808,6 +3844,14 @@ body.login-page .login-remember span {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.18s;
+  cursor: default;
+  user-select: none;
+}
+
+.admin-page .user-avatar:hover {
+  transform: scale(1.12);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
 }
 
 .admin-page .team-cell {
@@ -4003,6 +4047,9 @@ justify-content: center;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.18s;
+  cursor: default;
+  user-select: none;
 }
 
 .admin-page .team-cell {
@@ -4831,3 +4878,10 @@ body.creator-page .field.is-invalid .validation-msg {
     margin-top: 12px !important;
   }
 }
+
+
+
+
+
+
+

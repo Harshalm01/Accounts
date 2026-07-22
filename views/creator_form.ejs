@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Creator Portal</title>
-    <link rel="stylesheet" href="/public/styles.css?v=44" />
+    <link rel="stylesheet" href="/public/styles.css?v=45" />
   </head>
   <body class="creator-page">
     <div class="shell">
@@ -828,28 +828,31 @@
           const customValue = isCustom ? description : "";
           const rowAmount = Number.isFinite(Number(item.amount)) ? Number(item.amount) : 0;
           const row = document.createElement("div");
-          row.className = "grid-3 line-item-row";
+          row.className = "invoice-row-wrap";
           row.style.marginBottom = "10px";
           row.innerHTML = `
-            <label class="field field-floating">
-              <select name="itemDescriptions" required placeholder=" ">
-                ${deliverableOptions.map((option) => `<option value="${escapeHtml(option)}" ${selectedValue === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
-                <option value="Custom" ${selectedValue === "Custom" ? "selected" : ""}>Custom</option>
-              </select>
-              <span>Deliverable *</span>
-            </label>
-            <label class="field field-floating">
-              <input type="number" name="itemQuantities" step="0.01" min="0" value="${Number(item.quantity || 1)}" required placeholder=" " />
-              <span>Quantity *</span>
-            </label>
-            <label class="field field-floating field-readonly">
-              <input type="number" name="itemAmounts" step="0.01" min="0" value="${rowAmount.toFixed(2)}" readonly required placeholder=" " />
-              <span>Amount</span>
-            </label>
-            <label class="field field-floating field-textarea custom-deliverable" style="grid-column: 1 / -1; margin-top: 8px; ${selectedValue === "Custom" ? "" : "display:none;"}">
-              <input type="text" name="itemCustomDescriptions" value="${escapeHtml(customValue)}" placeholder=" " ${selectedValue === "Custom" ? "required" : ""} />
-              <span>Custom Deliverable</span>
-            </label>
+            <div class="grid-3 line-item-row" style="position:relative;">
+              <label class="field field-floating">
+                <select name="itemDescriptions" required placeholder=" ">
+                  ${deliverableOptions.map((option) => `<option value="${escapeHtml(option)}" ${selectedValue === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+                  <option value="Custom" ${selectedValue === "Custom" ? "selected" : ""}>Custom</option>
+                </select>
+                <span>Deliverable *</span>
+              </label>
+              <label class="field field-floating">
+                <input type="number" name="itemQuantities" step="0.01" min="0" value="${Number(item.quantity || 1)}" required placeholder=" " />
+                <span>Quantity *</span>
+              </label>
+              <label class="field field-floating field-readonly">
+                <input type="number" name="itemAmounts" step="0.01" min="0" value="${rowAmount.toFixed(2)}" readonly required placeholder=" " />
+                <span>Amount</span>
+              </label>
+              <label class="field field-floating field-textarea custom-deliverable" style="grid-column: 1 / -1; margin-top: 8px; ${selectedValue === "Custom" ? "" : "display:none;"}">  
+                <input type="text" name="itemCustomDescriptions" value="${escapeHtml(customValue)}" placeholder=" " ${selectedValue === "Custom" ? "required" : ""} />
+                <span>Custom Deliverable</span>
+              </label>
+              <button type="button" class="delete-row-btn" title="Remove this row" aria-label="Delete row">✕</button>
+            </div>
           `;
 
           const select = row.querySelector("select[name='itemDescriptions']");
@@ -913,17 +916,47 @@
           syncAllPreviewFields();
         }
 
+        function updateDeleteButtons() {
+          const allRows = rowsWrap.querySelectorAll('.invoice-row-wrap');
+          allRows.forEach(r => {
+            const btn = r.querySelector('.delete-row-btn');
+            if (btn) btn.style.display = allRows.length <= 1 ? 'none' : '';
+          });
+        }
+
+        function addRow(item = {}) {
+          const row = rowTemplate(item);
+          // Wire delete button
+          const delBtn = row.querySelector('.delete-row-btn');
+          if (delBtn) {
+            delBtn.addEventListener('click', () => {
+              row.style.transform = 'scale(0.96)';
+              row.style.opacity = '0';
+              row.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
+              setTimeout(() => {
+                row.remove();
+                calculateTotal();
+                updateDeleteButtons();
+              }, 180);
+            });
+          }
+          rowsWrap.appendChild(row);
+          updateDeleteButtons();
+          return row;
+        }
+
         addRowBtn.addEventListener("click", () => {
-          rowsWrap.appendChild(rowTemplate());
+          addRow();
           calculateTotal();
         });
 
         if (initialItems.length) {
-          initialItems.forEach((item) => rowsWrap.appendChild(rowTemplate(item)));
+          initialItems.forEach((item) => addRow(item));
         } else {
-          rowsWrap.appendChild(rowTemplate());
+          addRow();
         }
         calculateTotal();
+        updateDeleteButtons();
 
         // Smooth Quadratic Bezier Canvas Drawing
         const canvas = document.getElementById("signPad");

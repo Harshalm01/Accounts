@@ -1,5 +1,8 @@
-<div class="brand-row brand-row-bounce">
-  <div class="brand-mark" aria-hidden="true">
-    <img src="/public/logo.png" alt="3Folks Media logo" />
-  </div>
+<div class="brand-row brand-row-bounce" style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+  <a href="/admin/dashboard" style="display: inline-block;">
+    <div class="brand-mark" aria-label="3Folks Media logo">
+      <img src="/public/logo.png" alt="3Folks Media logo" class="brand-logo-img" style="max-height: 64px; width: auto; display: block;" />
+    </div>
+  </a>
+  <%- include('darkmode_toggle') %>
 </div>

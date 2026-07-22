@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="/public/styles.css?v=44" />
+  <link rel="stylesheet" href="/public/styles.css?v=45" />
 </head>
 
 <body class="admin-page">
@@ -148,7 +148,7 @@
                     </td>
                     <td data-label="Username">
                       <div class="user-name-cell">
-                        <div class="user-avatar">
+                        <div class="user-avatar" data-name="<%= u.username %>">
                           <%= u.username.charAt(0).toUpperCase() %>
                         </div>
                         <span>
@@ -224,6 +224,32 @@
               // Initialize on load
               toggleTeamInput();
             }
+
+            // Feature #16 — Color-coded avatars (deterministic by name hash)
+            (function colorAvatars() {
+              const PALETTES = [
+                ['#7c3aed', '#4f46e5'],
+                ['#db2777', '#9333ea'],
+                ['#0891b2', '#0e7490'],
+                ['#d97706', '#b45309'],
+                ['#16a34a', '#15803d'],
+                ['#dc2626', '#b91c1c'],
+                ['#0284c7', '#0369a1'],
+                ['#c026d3', '#a21caf'],
+                ['#ea580c', '#c2410c'],
+                ['#65a30d', '#4d7c0f'],
+              ];
+              function hashName(str) {
+                let h = 0;
+                for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+                return Math.abs(h);
+              }
+              document.querySelectorAll('.user-avatar[data-name]').forEach(el => {
+                const name = el.dataset.name || '';
+                const [c1, c2] = PALETTES[hashName(name) % PALETTES.length];
+                el.style.background = `linear-gradient(135deg, ${c1}, ${c2})`;
+              });
+            })();
           });
         </script>
 

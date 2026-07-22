@@ -7,7 +7,38 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/styles.css?v=44" />
+    <link rel="stylesheet" href="/public/styles.css?v=45" />
+    <style>
+      .login-brand-side {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 40px !important;
+        min-height: 380px;
+      }
+      .login-brand-side .brand-side-content {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+      }
+      .login-brand-side .brand-row {
+        justify-content: center !important;
+        width: 100%;
+      }
+      .login-brand-side .brand-logo-img,
+      .login-brand-side .brand-mark img {
+        max-height: 200px !important;
+        width: 100% !important;
+        max-width: 280px !important;
+        object-fit: contain !important;
+        filter: drop-shadow(0 12px 28px rgba(124, 58, 237, 0.2)) !important;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .login-brand-side .brand-logo-img:hover {
+        transform: scale(1.06);
+      }
+    </style>
   </head>
   <body class="login-page">
     <div class="ambient-glow glow-1"></div>

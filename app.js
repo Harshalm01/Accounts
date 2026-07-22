@@ -6,6 +6,8 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const multer = require("multer");
 const xlsx = require("xlsx");
+const http = require('http');
+const { Server: SocketIO } = require('socket.io');
 const db = require("./db");
 const { requireAuth, requireRole, isAdminArea } = require("./middleware/auth");
 const { ensurePdfForInvoice } = require("./services/pdf");
@@ -476,10 +478,26 @@ function itemsFromBody(body) {
 
 async function notifyInvoiceSubmission(invoiceId, campaignId, creatorName, campaignName, isRegenerated) {
   const action = isRegenerated ? "re-generated" : "submitted";
+  const message = `${creatorName} from ${campaignName} has ${action} the invoice.`;
   await db.run(
     "INSERT INTO notifications (invoice_id, campaign_id, message) VALUES (?, ?, ?)",
-    [invoiceId, campaignId, `${creatorName} from ${campaignName} has ${action} the invoice.`]
+    [invoiceId, campaignId, message]
   );
+
+  const io = app.get('io');
+  if (io) {
+    io.emit('new-invoice', {
+      id: invoiceId,
+      invoice_no: invoiceId,
+      creator_name: creatorName,
+      campaign_name: campaignName,
+      message: message
+    });
+    io.emit('notification', {
+      invoice_id: invoiceId,
+      message: message
+    });
+  }
 }
 
 function normalizeHeader(value) {
@@ -1460,6 +1478,16 @@ app.post("/admin/invoices/:id/status", requireRole(["ACCOUNTS", "SUPER_ADMIN"]),
 
   const nextStatus = action === "accept" ? "ACCEPTED" : "REJECTED";
   await db.run("UPDATE invoices SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [nextStatus, invoice.id]);
+
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('invoice-status-updated', {
+      id: invoice.id,
+      invoice_no: invoice.invoice_no,
+      status: nextStatus
+    });
+  }
+
   res.redirect(req.get("referer") || "/admin/dashboard");
 });
 
@@ -1567,6 +1595,41 @@ app.use((req, res, next) => {
 });
 
 async function startServer(port) {
+  try {
+    const server = http.createServer(app);
+    const io = new SocketIO(server, {
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+      }
+    });
+
+    app.set('io', io);
+
+    io.on('connection', (socket) => {
+      console.log('⚡ Socket connected:', socket.id);
+    });
+
+    server.listen(port, () => {
+      console.log(`Portal running at http://localhost:${port}`);
+    });
+
+    server.on("error", (error) => {
+      if (error.code === "EADDRINUSE" && port < 3100 && !process.env.PORT) {
+        console.warn(`Port ${port} is busy, trying ${port + 1}...`);
+        startServer(port + 1);
+        return;
+      }
+      throw error;
+    });
+  } catch (error) {
+    if (error.code === "EADDRINUSE" && port < 3100 && !process.env.PORT) {
+      console.warn(`Port ${port} is busy, trying ${port + 1}...`);
+      return startServer(port + 1);
+    }
+    throw error;
+  }
+}
   try {
     const server = app.listen(port, () => {
       console.log(`Portal running at http://localhost:${port}`);
