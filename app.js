@@ -13,6 +13,7 @@ try {
   console.warn("socket.io not loaded:", e.message);
 }
 const db = require("./db");
+const dbReady = db.init();
 const { requireAuth, requireRole, isAdminArea } = require("./middleware/auth");
 const { ensurePdfForInvoice } = require("./services/pdf");
 
