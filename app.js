@@ -13,7 +13,6 @@ try {
   console.warn("socket.io not loaded:", e.message);
 }
 const db = require("./db");
-const dbReady = db.init();
 const { requireAuth, requireRole, isAdminArea } = require("./middleware/auth");
 const { ensurePdfForInvoice } = require("./services/pdf");
 
@@ -1208,6 +1207,10 @@ app.get("/admin/dashboard", async (req, res) => {
        ORDER BY n.id DESC
        LIMIT 10`
     );
+  } else {
+    notificationsPromise = Promise.resolve([]);
+  }
+
   const creatorLedgerPromise = db.all(
     `SELECT 
        i.id AS invoice_id,
