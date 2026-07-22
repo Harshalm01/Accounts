@@ -6,8 +6,12 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const multer = require("multer");
 const xlsx = require("xlsx");
-const http = require('http');
-const { Server: SocketIO } = require('socket.io');
+let SocketIO = null;
+try {
+  SocketIO = require('socket.io').Server;
+} catch (e) {
+  console.warn("socket.io not loaded:", e.message);
+}
 const db = require("./db");
 const { requireAuth, requireRole, isAdminArea } = require("./middleware/auth");
 const { ensurePdfForInvoice } = require("./services/pdf");
@@ -1596,19 +1600,23 @@ app.use((req, res, next) => {
 
 async function startServer(port) {
   try {
+    const http = require('http');
     const server = http.createServer(app);
-    const io = new SocketIO(server, {
-      cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-      }
-    });
 
-    app.set('io', io);
+    if (SocketIO) {
+      const io = new SocketIO(server, {
+        cors: {
+          origin: "*",
+          methods: ["GET", "POST"]
+        }
+      });
 
-    io.on('connection', (socket) => {
-      console.log('⚡ Socket connected:', socket.id);
-    });
+      app.set('io', io);
+
+      io.on('connection', (socket) => {
+        console.log('⚡ Socket connected:', socket.id);
+      });
+    }
 
     server.listen(port, () => {
       console.log(`Portal running at http://localhost:${port}`);
