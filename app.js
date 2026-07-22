@@ -1554,15 +1554,51 @@ app.post("/admin/users/:id/impersonate", async (req, res) => {
 });
 
 app.get("/admin/users", requireRole(["SUPER_ADMIN"]), async (req, res) => {
-  const users = await db.all("SELECT id, username, role, team_name, created_at FROM users ORDER BY id DESC");
-  res.render("users", { users, error: null });
+  const usersPromise = db.all("SELECT id, username, role, team_name, created_at FROM users ORDER BY id DESC");
+  const creatorLedgerPromise = db.all(
+    `SELECT 
+       i.id AS invoice_id,
+       i.creator_name,
+       i.creator_mobile,
+       i.invoice_no,
+       i.invoice_date,
+       i.final_amount,
+       i.total_amount,
+       i.status AS invoice_status,
+       c.campaign_name,
+       c.campaign_code,
+       c.created_at AS campaign_created_at
+     FROM invoices i
+     LEFT JOIN campaigns c ON c.id = i.campaign_id
+     ORDER BY i.id DESC`
+  );
+  const [users, creatorLedger] = await Promise.all([usersPromise, creatorLedgerPromise]);
+  res.render("users", { users, creatorLedger, error: null });
 });
 
 app.post("/admin/users", requireRole(["SUPER_ADMIN"]), async (req, res) => {
   const { username, password, role, teamName } = req.body;
   if (!username || !password || !role) {
-    const users = await db.all("SELECT id, username, role, team_name, created_at FROM users ORDER BY id DESC");
-    return res.render("users", { users, error: "Username, password and role are required." });
+    const usersPromise = db.all("SELECT id, username, role, team_name, created_at FROM users ORDER BY id DESC");
+    const creatorLedgerPromise = db.all(
+      `SELECT 
+         i.id AS invoice_id,
+         i.creator_name,
+         i.creator_mobile,
+         i.invoice_no,
+         i.invoice_date,
+         i.final_amount,
+         i.total_amount,
+         i.status AS invoice_status,
+         c.campaign_name,
+         c.campaign_code,
+         c.created_at AS campaign_created_at
+       FROM invoices i
+       LEFT JOIN campaigns c ON c.id = i.campaign_id
+       ORDER BY i.id DESC`
+    );
+    const [users, creatorLedger] = await Promise.all([usersPromise, creatorLedgerPromise]);
+    return res.render("users", { users, creatorLedger, error: "Username, password and role are required." });
   }
 
   const hash = await bcrypt.hash(password, 10);
