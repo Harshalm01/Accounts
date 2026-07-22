@@ -1630,27 +1630,6 @@ async function startServer(port) {
     throw error;
   }
 }
-  try {
-    const server = app.listen(port, () => {
-      console.log(`Portal running at http://localhost:${port}`);
-    });
-
-    server.on("error", (error) => {
-      if (error.code === "EADDRINUSE" && port < 3100 && !process.env.PORT) {
-        console.warn(`Port ${port} is busy, trying ${port + 1}...`);
-        startServer(port + 1);
-        return;
-      }
-      throw error;
-    });
-  } catch (error) {
-    if (error.code === "EADDRINUSE" && port < 3100 && !process.env.PORT) {
-      console.warn(`Port ${port} is busy, trying ${port + 1}...`);
-      return startServer(port + 1);
-    }
-    throw error;
-  }
-}
 
 if (require.main === module) {
   dbReady.then(() => startServer(START_PORT));
