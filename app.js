@@ -1207,12 +1207,26 @@ app.get("/admin/dashboard", async (req, res) => {
        ORDER BY n.id DESC
        LIMIT 10`
     );
-  } else {
-    notificationsPromise = Promise.resolve([]);
-  }
+  const creatorLedgerPromise = db.all(
+    `SELECT 
+       i.id AS invoice_id,
+       i.creator_name,
+       i.creator_mobile,
+       i.invoice_no,
+       i.invoice_date,
+       i.final_amount,
+       i.total_amount,
+       i.status AS invoice_status,
+       c.campaign_name,
+       c.campaign_code,
+       c.created_at AS campaign_created_at
+     FROM invoices i
+     LEFT JOIN campaigns c ON c.id = i.campaign_id
+     ORDER BY i.id DESC`
+  );
 
-  const [invoices, notifications] = await Promise.all([invoicesPromise, notificationsPromise]);
-  res.render("dashboard", { invoices, notifications });
+  const [invoices, notifications, creatorLedger] = await Promise.all([invoicesPromise, notificationsPromise, creatorLedgerPromise]);
+  res.render("dashboard", { invoices, notifications, creatorLedger });
 });
 
 // JSON API endpoint for live sync polling
