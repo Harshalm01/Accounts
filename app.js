@@ -1210,19 +1210,19 @@ app.get("/admin/dashboard", async (req, res) => {
   const creatorLedgerPromise = db.all(
     `SELECT 
        i.id AS invoice_id,
-       i.creator_name,
-       i.creator_mobile,
+       COALESCE(i.creator_name, cc.creator_name) AS creator_name,
+       COALESCE(i.creator_mobile, cc.mobile) AS creator_mobile,
        i.invoice_no,
        i.invoice_date,
-       i.final_amount,
-       i.total_amount,
-       i.status AS invoice_status,
+       COALESCE(i.final_amount, i.total_amount, cc.amount, 0) AS final_amount,
+       COALESCE(i.status, 'NOT SUBMITTED') AS invoice_status,
        c.campaign_name,
        c.campaign_code,
        c.created_at AS campaign_created_at
-     FROM invoices i
-     LEFT JOIN campaigns c ON c.id = i.campaign_id
-     ORDER BY i.id DESC`
+     FROM campaign_creators cc
+     JOIN campaigns c ON c.id = cc.campaign_id
+     LEFT JOIN invoices i ON (i.campaign_id = cc.campaign_id AND (i.creator_mobile = cc.mobile OR LOWER(i.creator_name) = LOWER(cc.creator_name)))
+     ORDER BY cc.id DESC`
   );
 
   const [invoices, notifications, creatorLedger] = await Promise.all([invoicesPromise, notificationsPromise, creatorLedgerPromise]);
