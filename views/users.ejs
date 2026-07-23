@@ -157,6 +157,7 @@
                 <span>Role *</span>
                 <select name="role" required>
                   <option value="" disabled selected>Select Role...</option>
+                  <option value="HEAD">HEAD (Team Head)</option>
                   <option value="TEAM">TEAM</option>
                   <option value="ACCOUNTS">ACCOUNTS</option>
                   <option value="SUPER_ADMIN">SUPER_ADMIN</option>
@@ -170,7 +171,7 @@
                 style="max-height: 0; opacity: 0; transform: rotateX(-90deg); transform-origin: top center; transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden;">
                 <div style="padding: 16px 0 8px 0; border-top: 1px dashed rgba(15, 23, 42, 0.08); margin-top: 16px;">
                   <label class="input-label" style="max-width: 320px; display: block;">
-                    <span>Team Name (for TEAM role) *</span>
+                    <span>Team Name (for HEAD & TEAM roles) *</span>
                     <input type="text" name="teamName" placeholder="e.g. TEAM_1"
                       style="width: 100%; margin-top: 6px;" />
                   </label>

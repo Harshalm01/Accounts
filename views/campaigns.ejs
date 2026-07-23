@@ -99,6 +99,9 @@
           <div style="display:flex;gap:8px;padding-bottom:2px;">
             <button class="btn btn-3d-nav" type="submit">Filter</button>
             <a href="/admin/campaigns"><button class="btn btn-3d-sm btn-3d-open" type="button" style="transform:none;">Clear</button></a>
+            <button class="btn btn-3d-sm btn-3d-open" type="button" id="sortAlphabeticalBtn" onclick="toggleAlphabeticalSort()" style="transform:none; background: linear-gradient(135deg, #7c3aed, #4f46e5); color:#fff; border:none; font-weight:700;">
+              🔤 Sort A-Z
+            </button>
           </div>
         </form>
       </div>
@@ -117,9 +120,9 @@
           <div class="empty-state">No campaigns match your filter.</div>
         <% } %>
 
-        <div class="folder-grid folder-grid-books" style="margin-top: 16px;">
+        <div class="folder-grid folder-grid-books" id="campaignFolderGrid" style="margin-top: 16px;">
           <% campaigns.forEach((c) => { %>
-            <div class="folder-card-wrap">
+            <div class="folder-card-wrap" data-name="<%= (c.campaign_name || '').toLowerCase() %>">
               <a class="book" href="/admin/campaigns/<%= c.id %>/creators">
 
                 <!-- Inside of Book (creators list) -->
@@ -165,5 +168,25 @@
       </div>
 
     </div>
+
+    <script>
+      let isAscending = true;
+      function toggleAlphabeticalSort() {
+        const grid = document.getElementById("campaignFolderGrid");
+        const btn = document.getElementById("sortAlphabeticalBtn");
+        if (!grid || !btn) return;
+
+        const cards = Array.from(grid.querySelectorAll(".folder-card-wrap"));
+        cards.sort((a, b) => {
+          const nameA = a.getAttribute("data-name") || "";
+          const nameB = b.getAttribute("data-name") || "";
+          return isAscending ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+        });
+
+        cards.forEach((card) => grid.appendChild(card));
+        btn.innerHTML = isAscending ? "🔤 Sort Z-A" : "🔤 Sort A-Z";
+        isAscending = !isAscending;
+      }
+    </script>
   </body>
 </html>

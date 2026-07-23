@@ -118,6 +118,12 @@ async function seedDefaultUsers() {
     "TEAM",
     "TEAM_1"
   ]);
+  await run("INSERT INTO users (username, password_hash, role, team_name) VALUES (?, ?, ?, ?)", [
+    "head1",
+    teamHash,
+    "HEAD",
+    "TEAM_1"
+  ]);
 }
 
 async function init() {
@@ -242,6 +248,7 @@ async function init() {
   let hasFinalAmount = false;
   let hasLockedAmount = false;
   let hasRevisionCount = false;
+  let hasRejectionReason = false;
 
   if (isPostgres) {
     const checkColumn = async (table, column) => {
@@ -267,6 +274,7 @@ async function init() {
     hasFinalAmount = await checkColumn("invoices", "final_amount");
     hasLockedAmount = await checkColumn("invoices", "locked_amount");
     hasRevisionCount = await checkColumn("invoices", "revision_count");
+    hasRejectionReason = await checkColumn("invoices", "rejection_reason");
   } else {
     const creatorColumns = await all("PRAGMA table_info(campaign_creators)");
     hasCreatorAmount = creatorColumns.some((c) => c.name === "amount");
@@ -287,6 +295,7 @@ async function init() {
     hasFinalAmount = invoiceColumns.some((c) => c.name === "final_amount");
     hasLockedAmount = invoiceColumns.some((c) => c.name === "locked_amount");
     hasRevisionCount = invoiceColumns.some((c) => c.name === "revision_count");
+    hasRejectionReason = invoiceColumns.some((c) => c.name === "rejection_reason");
   }
 
   if (!hasCreatorAmount) {
@@ -337,6 +346,9 @@ async function init() {
   }
   if (!hasRevisionCount) {
     await run("ALTER TABLE invoices ADD COLUMN revision_count INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!hasRejectionReason) {
+    await run("ALTER TABLE invoices ADD COLUMN rejection_reason TEXT");
   }
 
   await run(`CREATE TABLE IF NOT EXISTS invoice_items (

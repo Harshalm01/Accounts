@@ -274,7 +274,7 @@ async function loadCampaignCards(user, search = "") {
   const like = `%${normalizedSearch}%`;
   let campaigns;
 
-  if (user.role === "TEAM") {
+  if (user.role === "TEAM" || user.role === "HEAD") {
     if (normalizedSearch) {
       campaigns = await db.all(
         `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
@@ -524,24 +524,29 @@ function extractCreatorsFromSheet(filePath) {
     throw new Error("Uploaded file is empty.");
   }
 
-  return rows.map((row) => {
+  return rows.map((row, idx) => {
     const normalized = Object.keys(row).reduce((acc, key) => {
       acc[normalizeHeader(key)] = row[key];
       return acc;
     }, {});
 
+    const name = String(normalized.creatorname || normalized.creator || normalized.name || "").trim();
+    let mob = String(
+      normalized.mobile ||
+      normalized.mobilenumber ||
+      normalized.contact ||
+      normalized.contactnumber ||
+      ""
+    ).trim();
+
+    if (!mob) {
+      const sr = String(normalized.srno || normalized.sno || normalized.sr || idx + 1).replace(/\D/g, "");
+      mob = `99${String(sr).padStart(8, '0')}`;
+    }
+
     return {
-      creatorName: String(normalized.creatorname || normalized.creator || normalized.name || "").trim(),
-      mobile: String(
-        normalized.serialnumber ||
-        normalized.serialno ||
-        normalized.serial ||
-        normalized.contactnumber ||
-        normalized.mobilenumber ||
-        normalized.mobile ||
-        normalized.contact ||
-        ""
-      ).trim(),
+      creatorName: name,
+      mobile: mob,
       amount: Number(normalized.amount || 0)
     };
   });
@@ -1179,20 +1184,22 @@ app.get("/admin/dashboard", async (req, res) => {
   let invoicesPromise;
   let notificationsPromise;
 
-  if (user.role === "TEAM") {
+  if (user.role === "TEAM" || user.role === "HEAD") {
     invoicesPromise = db.all(
-      `SELECT i.*, c.campaign_name, c.campaign_code
+      `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
        FROM invoices i
        JOIN campaigns c ON c.id = i.campaign_id
+       LEFT JOIN users u ON u.id = c.created_by
        WHERE c.team_name = ?
        ORDER BY i.id DESC`,
       [user.teamName]
     );
   } else {
     invoicesPromise = db.all(
-      `SELECT i.*, c.campaign_name, c.campaign_code
+      `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
        FROM invoices i
        JOIN campaigns c ON c.id = i.campaign_id
+       LEFT JOIN users u ON u.id = c.created_by
        ORDER BY i.id DESC`
     );
   }
@@ -1257,20 +1264,22 @@ app.get("/admin/api/invoices", async (req, res) => {
   let invoicesPromise;
   let notificationsPromise;
 
-  if (user.role === "TEAM") {
+  if (user.role === "TEAM" || user.role === "HEAD") {
     invoicesPromise = db.all(
-      `SELECT i.*, c.campaign_name, c.campaign_code
+      `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
        FROM invoices i
        JOIN campaigns c ON c.id = i.campaign_id
+       LEFT JOIN users u ON u.id = c.created_by
        WHERE c.team_name = ?
        ORDER BY i.id DESC`,
       [user.teamName]
     );
   } else {
     invoicesPromise = db.all(
-      `SELECT i.*, c.campaign_name, c.campaign_code
+      `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
        FROM invoices i
        JOIN campaigns c ON c.id = i.campaign_id
+       LEFT JOIN users u ON u.id = c.created_by
        ORDER BY i.id DESC`
     );
   }
@@ -1314,7 +1323,7 @@ app.post("/admin/notifications/read", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), 
   res.redirect(req.get("referer") || "/admin/dashboard");
 });
 
-app.get("/admin/campaigns", requireRole(["ACCOUNTS", "TEAM", "SUPER_ADMIN"]), async (req, res) => {
+app.get("/admin/campaigns", requireRole(["ACCOUNTS", "TEAM", "HEAD", "SUPER_ADMIN"]), async (req, res) => {
   const user = req.session.user;
   const search = (req.query.search || "").trim();
   const campaignCards = await loadCampaignCards(user, search);
@@ -1323,11 +1332,11 @@ app.get("/admin/campaigns", requireRole(["ACCOUNTS", "TEAM", "SUPER_ADMIN"]), as
     error: null,
     success: null,
     search,
-    canEdit: user.role !== "ACCOUNTS"
+    canEdit: user.role === "HEAD" || user.role === "SUPER_ADMIN"
   });
 });
 
-app.post("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, res) => {
+app.post("/admin/campaigns", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, res) => {
   try {
     const user = req.session.user;
     const { campaignName, campaignCode, teamName } = req.body;
@@ -1352,7 +1361,7 @@ app.post("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, r
       });
     }
 
-    const appliedTeam = user.role === "TEAM" ? user.teamName : teamName;
+    const appliedTeam = (user.role === "HEAD" || user.role === "TEAM") ? user.teamName : teamName;
 
     const result = await db.run(
       "INSERT INTO campaigns (campaign_name, campaign_code, amount, team_name, created_by) VALUES (?, ?, ?, ?, ?)",
@@ -1372,9 +1381,13 @@ app.post("/admin/campaigns", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, r
   }
 });
 
-app.get("/admin/campaigns/:id/creators", requireRole(["ACCOUNTS", "TEAM", "SUPER_ADMIN"]), async (req, res) => {
+app.get("/admin/campaigns/:id/creators", requireRole(["ACCOUNTS", "TEAM", "HEAD", "SUPER_ADMIN"]), async (req, res) => {
   const campaign = await db.get("SELECT * FROM campaigns WHERE id = ?", [req.params.id]);
   if (!campaign) {
+    return res.redirect("/admin/campaigns");
+  }
+
+  if ((req.session.user.role === "TEAM" || req.session.user.role === "HEAD") && campaign.team_name !== req.session.user.teamName) {
     return res.redirect("/admin/campaigns");
   }
 
@@ -1384,12 +1397,12 @@ app.get("/admin/campaigns/:id/creators", requireRole(["ACCOUNTS", "TEAM", "SUPER
     creators,
     error: null,
     success: null,
-    canEdit: req.session.user.role !== "ACCOUNTS",
+    canEdit: req.session.user.role === "HEAD" || req.session.user.role === "SUPER_ADMIN",
     backUrl: "/admin/folders"
   });
 });
 
-app.post("/admin/campaigns/:id/creators", requireRole(["TEAM", "SUPER_ADMIN"]), async (req, res) => {
+app.post("/admin/campaigns/:id/creators", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, res) => {
   const campaign = await db.get("SELECT * FROM campaigns WHERE id = ?", [req.params.id]);
   if (!campaign) {
     return res.redirect("/admin/campaigns");
@@ -1416,7 +1429,7 @@ app.post("/admin/campaigns/:id/creators", requireRole(["TEAM", "SUPER_ADMIN"]), 
   res.redirect(`/admin/campaigns/${campaign.id}/creators`);
 });
 
-app.post("/admin/campaigns/:id/creators/bulk", requireRole(["TEAM", "SUPER_ADMIN"]), upload.single("creatorFile"), async (req, res) => {
+app.post("/admin/campaigns/:id/creators/bulk", requireRole(["HEAD", "SUPER_ADMIN"]), upload.single("creatorFile"), async (req, res) => {
   const campaign = await db.get("SELECT * FROM campaigns WHERE id = ?", [req.params.id]);
   if (!campaign) {
     return res.redirect("/admin/campaigns");
@@ -1510,21 +1523,37 @@ app.get("/admin/invoices/:id", async (req, res) => {
 });
 
 app.post("/admin/invoices/:id/status", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), async (req, res) => {
-  const { action } = req.body;
+  const { action, reason } = req.body;
   const invoice = await db.get("SELECT * FROM invoices WHERE id = ?", [req.params.id]);
   if (!invoice) {
     return res.redirect("/admin/dashboard");
   }
 
   const nextStatus = action === "accept" ? "ACCEPTED" : "REJECTED";
-  await db.run("UPDATE invoices SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [nextStatus, invoice.id]);
+  const rejectionReason = nextStatus === "REJECTED" ? String(reason || "").trim() : null;
+
+  if (nextStatus === "REJECTED" && !rejectionReason) {
+    const items = await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [invoice.id]);
+    return res.render("invoice_view", {
+      invoice,
+      items,
+      error: "Rejection Reason is compulsory when rejecting an invoice.",
+      backUrl: "/admin/dashboard"
+    });
+  }
+
+  await db.run(
+    "UPDATE invoices SET status = ?, rejection_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    [nextStatus, rejectionReason, invoice.id]
+  );
 
   const io = req.app.get('io');
   if (io) {
     io.emit('invoice-status-updated', {
       id: invoice.id,
       invoice_no: invoice.invoice_no,
-      status: nextStatus
+      status: nextStatus,
+      rejection_reason: rejectionReason
     });
   }
 
