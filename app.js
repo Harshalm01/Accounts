@@ -1649,7 +1649,7 @@ app.get("/admin/users", requireRole(["SUPER_ADMIN"]), async (req, res) => {
 
 app.post("/admin/users", requireRole(["SUPER_ADMIN"]), async (req, res) => {
   const { username, password, role, teamName } = req.body;
-  if (!username || !password || !role) {
+  if (!username || !password || !role || ((role === "TEAM" || role === "HEAD") && (!teamName || !teamName.trim()))) {
     const usersPromise = db.all("SELECT id, username, role, team_name, created_at FROM users ORDER BY id DESC");
     const creatorLedgerPromise = db.all(
       `SELECT 
@@ -1669,7 +1669,7 @@ app.post("/admin/users", requireRole(["SUPER_ADMIN"]), async (req, res) => {
        ORDER BY i.id DESC`
     );
     const [users, creatorLedger] = await Promise.all([usersPromise, creatorLedgerPromise]);
-    return res.render("users", { users, creatorLedger, error: "Username, password and role are required." });
+    return res.render("users", { users, creatorLedger, error: "Username, Password, Role, and Team Name (for HEAD & TEAM roles) are required." });
   }
 
   const hash = await bcrypt.hash(password, 10);

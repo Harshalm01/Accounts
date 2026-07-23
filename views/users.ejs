@@ -144,10 +144,10 @@
             </div>
           </div>
           <form method="post" action="/admin/users" class="portal-form">
-            <div class="grid-3" style="margin-bottom: 0;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 16px;">
               <label class="input-label">
                 <span>Username *</span>
-                <input type="text" name="username" required placeholder="e.g. john_accounts" />
+                <input type="text" name="username" required placeholder="e.g. john_head" />
               </label>
               <label class="input-label">
                 <span>Password *</span>
@@ -163,20 +163,10 @@
                   <option value="SUPER_ADMIN">SUPER_ADMIN</option>
                 </select>
               </label>
-            </div>
-
-            <!-- Folding Row for Team Name -->
-            <div class="accordion-row-container" style="perspective: 1000px;">
-              <div class="accordion-row" id="teamNameWrapper"
-                style="max-height: 0; opacity: 0; transform: rotateX(-90deg); transform-origin: top center; transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden;">
-                <div style="padding: 16px 0 8px 0; border-top: 1px dashed rgba(15, 23, 42, 0.08); margin-top: 16px;">
-                  <label class="input-label" style="max-width: 320px; display: block;">
-                    <span>Team Name (for HEAD & TEAM roles) *</span>
-                    <input type="text" name="teamName" placeholder="e.g. TEAM_1"
-                      style="width: 100%; margin-top: 6px;" />
-                  </label>
-                </div>
-              </div>
+              <label class="input-label" id="teamNameInputGroup">
+                <span id="teamNameLabel">Team Name (for HEAD & TEAM) *</span>
+                <input type="text" name="teamName" id="teamNameInput" placeholder="e.g. TEAM_1" />
+              </label>
             </div>
 
             <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
@@ -289,31 +279,32 @@
 
           document.addEventListener("DOMContentLoaded", () => {
             const roleSelect = document.querySelector('select[name="role"]');
-            const teamNameWrapper = document.getElementById("teamNameWrapper");
-            const teamNameInput = teamNameWrapper ? teamNameWrapper.querySelector('input[name="teamName"]') : null;
+            const teamNameInputGroup = document.getElementById("teamNameInputGroup");
+            const teamNameInput = document.getElementById("teamNameInput");
 
             function toggleTeamInput() {
-              if (!roleSelect || !teamNameWrapper) return;
-              const isTeam = roleSelect.value === "TEAM";
-              if (isTeam) {
-                teamNameWrapper.style.maxHeight = "120px";
-                teamNameWrapper.style.opacity = "1";
-                teamNameWrapper.style.transform = "rotateX(0deg)";
-                if (teamNameInput) teamNameInput.required = true;
+              if (!roleSelect || !teamNameInputGroup) return;
+              const isTeamOrHead = roleSelect.value === "TEAM" || roleSelect.value === "HEAD";
+              if (isTeamOrHead) {
+                teamNameInputGroup.style.opacity = "1";
+                teamNameInputGroup.style.filter = "none";
+                if (teamNameInput) {
+                  teamNameInput.required = true;
+                  teamNameInput.placeholder = "e.g. TEAM_1";
+                }
               } else {
-                teamNameWrapper.style.maxHeight = "0";
-                teamNameWrapper.style.opacity = "0";
-                teamNameWrapper.style.transform = "rotateX(-90deg)";
+                teamNameInputGroup.style.opacity = "0.45";
+                teamNameInputGroup.style.filter = "grayscale(50%)";
                 if (teamNameInput) {
                   teamNameInput.required = false;
                   teamNameInput.value = "";
+                  teamNameInput.placeholder = "Optional";
                 }
               }
             }
 
             if (roleSelect) {
               roleSelect.addEventListener("change", toggleTeamInput);
-              // Initialize on load
               toggleTeamInput();
             }
 
