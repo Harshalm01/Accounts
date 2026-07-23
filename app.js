@@ -1329,7 +1329,7 @@ app.post("/admin/notifications/read", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), 
   res.redirect(req.get("referer") || "/admin/dashboard");
 });
 
-app.get("/admin/campaigns", requireRole(["ACCOUNTS", "TEAM", "HEAD", "SUPER_ADMIN"]), async (req, res) => {
+app.get("/admin/campaigns", requireRole(["ACCOUNTS", "HEAD", "SUPER_ADMIN"]), async (req, res) => {
   const user = req.session.user;
   const search = (req.query.search || "").trim();
   const campaignCards = await loadCampaignCards(user, search);
@@ -1387,7 +1387,7 @@ app.post("/admin/campaigns", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, r
   }
 });
 
-app.get("/admin/campaigns/:id/creators", requireRole(["ACCOUNTS", "TEAM", "HEAD", "SUPER_ADMIN"]), async (req, res) => {
+app.get("/admin/campaigns/:id/creators", requireRole(["ACCOUNTS", "HEAD", "SUPER_ADMIN"]), async (req, res) => {
   const campaign = await db.get("SELECT * FROM campaigns WHERE id = ?", [req.params.id]);
   if (!campaign) {
     return res.redirect("/admin/campaigns");
