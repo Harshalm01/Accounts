@@ -1229,9 +1229,12 @@ app.get("/admin/dashboard", async (req, res) => {
        i.status AS invoice_status,
        c.campaign_name,
        c.campaign_code,
+       c.team_name,
+       u.username AS head_username,
        c.created_at AS campaign_created_at
      FROM invoices i
      LEFT JOIN campaigns c ON c.id = i.campaign_id
+     LEFT JOIN users u ON u.id = c.created_by
 
      UNION ALL
 
@@ -1245,9 +1248,12 @@ app.get("/admin/dashboard", async (req, res) => {
        'NOT SUBMITTED' AS invoice_status,
        c.campaign_name,
        c.campaign_code,
+       c.team_name,
+       u.username AS head_username,
        c.created_at AS campaign_created_at
      FROM campaign_creators cc
      JOIN campaigns c ON c.id = cc.campaign_id
+     LEFT JOIN users u ON u.id = c.created_by
      WHERE NOT EXISTS (
        SELECT 1 FROM invoices inv WHERE inv.campaign_id = cc.campaign_id AND (inv.creator_mobile = cc.mobile OR LOWER(inv.creator_name) = LOWER(cc.creator_name))
      )

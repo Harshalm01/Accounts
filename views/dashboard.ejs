@@ -245,6 +245,7 @@
                                 <tr>
                                   <th>Creator Name</th>
                                   <th>Campaign Name</th>
+                                  <th>Team Name</th>
                                   <th>Invoice Amount (₹)</th>
                                   <th>Campaign Date & Year</th>
                                   <th>Status</th>
@@ -266,6 +267,8 @@
                                   invoice_status: inv.status,
                                   campaign_name: inv.campaign_name,
                                   campaign_code: inv.campaign_code,
+                                  team_name: inv.team_name,
+                                  head_username: inv.head_username,
                                   campaign_created_at: inv.created_at
                                   });
                                   });
@@ -289,6 +292,7 @@
                                         year: 'numeric' }) : 'N/A' ; const yearStr=!isNaN(d.getTime()) ? d.getFullYear()
                                         : 'N/A' ; const displayAmount=row.final_amount || row.total_amount || 0; const
                                         searchToken=((row.creator_name || '' ) + ' ' + (row.campaign_name || '' ) + ' '
+                                        + (row.team_name || '') + ' ' + (row.head_username || '') + ' '
                                         + yearStr + ' ' + (row.creator_mobile || '' ) + ' ' + (row.invoice_no || ''
                                         )).toLowerCase(); %>
                                         <tr class="sa-creator-row" data-search="<%= searchToken %>">
@@ -309,6 +313,14 @@
                                               <%= row.campaign_code || 'N/A' %>
                                             </span>
                                           </td>
+                                          <td data-label="Team Name">
+                                             <strong style="color: #7c3aed; font-size: 13px;">
+                                               <%= row.team_name || '—' %>
+                                             </strong><br />
+                                             <span style="font-size: 11px; color: #64748b; font-weight: 600;">
+                                               Head: <%= row.head_username || '—' %>
+                                             </span>
+                                           </td>
                                           <td data-label="Invoice Amount">
                                             <span
                                               style="font-weight: 800; font-family: monospace; color: #0f172a; font-size: 14px;">
@@ -436,6 +448,7 @@
                               <tr>
                                 <th>ID</th>
                                 <th>Campaign</th>
+                                <th>Team Name</th>
                                 <th>Creator</th>
                                 <th>Invoice No</th>
                                 <th>Type</th>
@@ -447,7 +460,7 @@
                             <tbody id="invoiceTableBody">
                               <% if (!invoices.length) { %>
                                 <tr>
-                                  <td colspan="8" style="text-align: center; color: #6b7280; padding: 30px;">No invoices
+                                  <td colspan="9" style="text-align: center; color: #6b7280; padding: 30px;">No invoices
                                     yet.</td>
                                 </tr>
                                 <% } %>
@@ -461,9 +474,14 @@
                                         </strong><br />
                                         <span style="font-size: 11px; color: #64748b;">
                                           <%= inv.campaign_code %>
-                                        </span><br />
-                                        <span style="font-size: 10px; font-weight: 800; color: #7c3aed; background: #f3e8ff; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 2px;">
-                                          🏷️ <%= inv.team_name || 'Team' %> <% if (inv.head_username) { %>• Head: <%= inv.head_username %><% } %>
+                                        </span>
+                                      </td>
+                                      <td data-label="Team Name">
+                                        <strong style="color: #7c3aed; font-size: 13px;">
+                                          <%= inv.team_name || '—' %>
+                                        </strong><br />
+                                        <span style="font-size: 11px; color: #64748b; font-weight: 600;">
+                                          Head: <%= inv.head_username || '—' %>
                                         </span>
                                       </td>
                                       <td data-label="Creator">
