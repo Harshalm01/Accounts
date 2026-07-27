@@ -2147,7 +2147,10 @@ app.get("/admin/creators/dossier/pdf", requireAuth, async (req, res) => {
 
 app.use((req, res, next) => {
   if (isAdminArea(req.path)) {
-    return res.redirect("/admin");
+    if (req.path === "/admin" || req.path === "/admin/") {
+      return next();
+    }
+    return res.status(404).render("admin_login", { error: "Page not found (404)." });
   }
   next();
 });
