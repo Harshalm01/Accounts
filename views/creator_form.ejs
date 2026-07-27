@@ -162,7 +162,7 @@
                 </button>
               </div>
 
-              <form method="post" action="/creator/submit" enctype="multipart/form-data" id="invoiceForm" class="portal-form stack-layout">
+              <form method="post" action="/creator/submit" enctype="multipart/form-data" id="invoiceForm" class="portal-form stack-layout" novalidate>
                 <input type="hidden" name="validated" value="true" />
                 <input type="hidden" name="invoiceType" id="invoiceType" value="<%= selectedInvoiceType %>" />
                 <% if (existingInvoice) { %>
@@ -624,13 +624,58 @@
 
           const inputs = activeStepContainer.querySelectorAll("input, textarea, select");
           let stepValid = true;
+          let firstInvalidInput = null;
           inputs.forEach((input) => {
             const ok = validateField(input);
-            if (!ok) stepValid = false;
+            if (!ok) {
+              stepValid = false;
+              if (!firstInvalidInput) firstInvalidInput = input;
+            }
           });
+
+          if (!stepValid && firstInvalidInput) {
+            try {
+              firstInvalidInput.focus();
+            } catch (err) {
+              // Ignore focus error if hidden
+            }
+          }
 
           return stepValid;
         }
+
+        function validateAllSteps() {
+          const steps = [1, 2, 3, 4];
+          for (const stepNum of steps) {
+            const stepContainer = document.querySelector(`.stepper-step[data-step='${stepNum}']`);
+            if (!stepContainer) continue;
+            const inputs = stepContainer.querySelectorAll("input, textarea, select");
+            for (const input of inputs) {
+              if (!validateField(input)) {
+                currentStep = stepNum;
+                updateStepUI();
+                setTimeout(() => {
+                  try {
+                    input.focus();
+                    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  } catch (err) {}
+                }, 100);
+                return false;
+              }
+            }
+          }
+          return true;
+        }
+
+        // Auto-uppercase formatting for PAN, GSTIN, IFSC Code
+        ["pan", "gstin", "ifscCode"].forEach((fieldName) => {
+          const input = document.querySelector(`[name='${fieldName}']`);
+          if (input) {
+            input.addEventListener("input", () => {
+              input.value = input.value.toUpperCase().replace(/\s+/g, "");
+            });
+          }
+        });
 
         document.querySelectorAll(".btn-next").forEach((btn) => {
           btn.addEventListener("click", () => {
@@ -1095,9 +1140,9 @@
         formEl.addEventListener("submit", (e) => {
           calculateTotal();
 
-          if (!validateCurrentStep()) {
+          if (!validateAllSteps()) {
             e.preventDefault();
-            alert("Please correct the validation errors in the fields.");
+            alert("Please correct the validation errors in the highlighted fields.");
             return;
           }
 
