@@ -79,10 +79,17 @@
         </div>
 
         <div class="header-right">
-          <div class="header-actions-row">
+          <div class="header-actions-row" style="display:flex; gap:10px; align-items:center;">
             <a href="<%= typeof backUrl !== 'undefined' ? backUrl : '/admin/folders' %>">
               <button class="btn btn-3d-nav" type="button">← Back</button>
             </a>
+            <% if (user.role === 'HEAD' || user.role === 'SUPER_ADMIN' || user.role === 'ACCOUNTS') { %>
+              <form method="post" action="/admin/campaigns/<%= campaign.id %>/delete" onsubmit="return confirm('⚠️ Are you sure you want to delete this entire campaign (&quot;<%= campaign.campaign_name %>&quot;)? All mapped creators and invoices will be permanently deleted.');" style="display:inline;">
+                <button class="btn btn-3d-nav" type="submit" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; border: none; font-weight: 800;">
+                  🗑️ Delete Campaign
+                </button>
+              </form>
+            <% } %>
           </div>
           <div class="header-stats-grid">
             <div class="header-stat-card">
