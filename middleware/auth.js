@@ -1,6 +1,62 @@
+const crypto = require("crypto");
+
+const AUTH_COOKIE_NAME = "3fm_auth";
+
+function readCookie(req, name) {
+  const header = (req && req.headers && req.headers.cookie) || "";
+  const parts = header.split(";").map((part) => part.trim());
+  for (const part of parts) {
+    const separatorIndex = part.indexOf("=");
+    if (separatorIndex === -1) continue;
+    const cookieName = part.slice(0, separatorIndex);
+    if (cookieName === name) {
+      return decodeURIComponent(part.slice(separatorIndex + 1));
+    }
+  }
+  return null;
+}
+
+function verifyAuthPayload(value) {
+  if (!value) return null;
+  const [data, signature] = String(value).split(".");
+  if (!data || !signature) return null;
+
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.SESSION_SECRET || "replace-this-in-production")
+    .update(data)
+    .digest("base64url");
+
+  if (signature !== expectedSignature) return null;
+
+  try {
+    const parsed = JSON.parse(Buffer.from(data, "base64url").toString("utf8"));
+    if (!parsed || !parsed.id || !parsed.username || !parsed.role) return null;
+    return {
+      id: parsed.id,
+      username: parsed.username,
+      role: parsed.role,
+      teamName: parsed.teamName || null
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function getUserFromReq(req) {
+  if (req && req.session && req.session.user) {
+    return req.session.user;
+  }
+  return verifyAuthPayload(readCookie(req, AUTH_COOKIE_NAME));
+}
+
 function requireAuth(req, res, next) {
+  const user = getUserFromReq(req);
+  if (user && req.session && !req.session.user) {
+    req.session.user = user;
+  }
+
   const isLoginPage = req.path === "/admin" || req.path === "/admin/" || req.originalUrl === "/admin" || req.originalUrl === "/admin/";
-  if (!req.session || !req.session.user) {
+  if (!user) {
     if (isLoginPage) {
       return next();
     }
@@ -12,8 +68,12 @@ function requireAuth(req, res, next) {
 
 function requireRole(roles = []) {
   return (req, res, next) => {
+    const user = getUserFromReq(req);
+    if (user && req.session && !req.session.user) {
+      req.session.user = user;
+    }
+
     const isLoginPage = req.path === "/admin" || req.path === "/admin/" || req.originalUrl === "/admin" || req.originalUrl === "/admin/";
-    const user = req.session ? req.session.user : null;
     if (!user) {
       if (isLoginPage) {
         return next();
@@ -43,6 +103,7 @@ function isAdminArea(pathname) {
 }
 
 module.exports = {
+  getUserFromReq,
   requireAuth,
   requireRole,
   isAdminArea
