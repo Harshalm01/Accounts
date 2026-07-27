@@ -1461,11 +1461,13 @@ app.post("/admin/campaigns", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, r
       });
     }
 
-    const appliedTeam = (user.role === "HEAD" || user.role === "TEAM") ? user.teamName : teamName;
+    const appliedTeam = (user.role === "HEAD" || user.role === "TEAM") 
+      ? (user.teamName || "Jhalak Moiz") 
+      : (teamName || user.teamName || "Jhalak Moiz");
 
     const result = await db.run(
       "INSERT INTO campaigns (campaign_name, campaign_code, amount, team_name, created_by) VALUES (?, ?, ?, ?, ?)",
-      [campaignName.trim(), campaignCode.trim(), 0, appliedTeam || "DEFAULT", user.id]
+      [campaignName.trim(), campaignCode.trim(), 0, appliedTeam, user.id]
     );
     ensureCampaignFolders({ id: result.lastID, campaign_name: campaignName.trim() });
 
