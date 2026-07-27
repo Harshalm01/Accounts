@@ -55,13 +55,12 @@ function requireAuth(req, res, next) {
     req.session.user = user;
   }
 
-  const isLoginPage = req.path === "/admin" || req.path === "/admin/" || req.originalUrl === "/admin" || req.originalUrl === "/admin/";
   if (!user) {
-    if (isLoginPage) {
-      return next();
+    // Zero-Redirect Fallback: Render login page directly instead of sending HTTP 302 redirects to prevent Vercel edge loops
+    if (req.accepts("html")) {
+      return res.status(200).render("admin_login", { error: "Session expired. Please log in again." });
     }
-    const safeTarget = encodeURIComponent(req.originalUrl || "/admin/dashboard");
-    return res.redirect(`/admin?redirect=${safeTarget}`);
+    return res.status(401).json({ error: "Unauthorized" });
   }
   next();
 }
@@ -73,13 +72,11 @@ function requireRole(roles = []) {
       req.session.user = user;
     }
 
-    const isLoginPage = req.path === "/admin" || req.path === "/admin/" || req.originalUrl === "/admin" || req.originalUrl === "/admin/";
     if (!user) {
-      if (isLoginPage) {
-        return next();
+      if (req.accepts("html")) {
+        return res.status(200).render("admin_login", { error: "Session expired. Please log in again." });
       }
-      const safeTarget = encodeURIComponent(req.originalUrl || "/admin/dashboard");
-      return res.redirect(`/admin?redirect=${safeTarget}`);
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     const userRole = String(user.role || "").trim().toUpperCase();
@@ -88,7 +85,6 @@ function requireRole(roles = []) {
       const isTeamRole = userRole === "TEAM" || userRole === "HEAD";
       const target = isTeamRole ? "/admin/folders" : "/admin/dashboard";
       
-      // Stop any self-redirection or endless redirect loops
       if (req.path === target || req.originalUrl === target || req.path.startsWith(target)) {
         return res.status(403).send("Access Denied: Insufficient permissions for this role.");
       }
