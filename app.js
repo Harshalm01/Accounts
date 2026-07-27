@@ -1607,6 +1607,65 @@ app.post("/admin/campaigns/:id/creators/bulk", requireRole(["HEAD", "SUPER_ADMIN
   }
 });
 
+// Delete Campaign Route (HEAD, ACCOUNTS, SUPER_ADMIN)
+app.post("/admin/campaigns/:id/delete", requireRole(["HEAD", "SUPER_ADMIN", "ACCOUNTS"]), async (req, res) => {
+  try {
+    const campaignId = Number(req.params.id);
+    const campaign = await db.get("SELECT * FROM campaigns WHERE id = ?", [campaignId]);
+    if (!campaign) {
+      return res.redirect("/admin/folders");
+    }
+
+    const user = req.session.user;
+    if (user.role === "HEAD" && user.teamName) {
+      if (String(campaign.team_name || "").trim().toLowerCase() !== String(user.teamName).trim().toLowerCase()) {
+        return res.status(403).send("Access Denied: You can only delete campaigns belonging to your team.");
+      }
+    }
+
+    const invs = await db.all("SELECT id FROM invoices WHERE campaign_id = ?", [campaignId]);
+    for (const inv of invs) {
+      await db.run("DELETE FROM invoice_items WHERE invoice_id = ?", [inv.id]);
+    }
+    await db.run("DELETE FROM invoices WHERE campaign_id = ?", [campaignId]);
+    await db.run("DELETE FROM notifications WHERE campaign_id = ?", [campaignId]);
+    await db.run("DELETE FROM campaign_creators WHERE campaign_id = ?", [campaignId]);
+    await db.run("DELETE FROM campaigns WHERE id = ?", [campaignId]);
+
+    const redirectUrl = req.get("referer") || "/admin/folders";
+    return res.redirect(redirectUrl);
+  } catch (err) {
+    console.error("Delete Campaign Error:", err);
+    return res.status(500).send("Failed to delete campaign: " + err.message);
+  }
+});
+
+// Delete Creator from Campaign Route (HEAD, ACCOUNTS, SUPER_ADMIN)
+app.post("/admin/campaigns/:campaignId/creators/:creatorId/delete", requireRole(["HEAD", "SUPER_ADMIN", "ACCOUNTS"]), async (req, res) => {
+  try {
+    const campaignId = Number(req.params.campaignId);
+    const creatorId = Number(req.params.creatorId);
+
+    const campaign = await db.get("SELECT * FROM campaigns WHERE id = ?", [campaignId]);
+    if (!campaign) {
+      return res.redirect("/admin/folders");
+    }
+
+    const user = req.session.user;
+    if (user.role === "HEAD" && user.teamName) {
+      if (String(campaign.team_name || "").trim().toLowerCase() !== String(user.teamName).trim().toLowerCase()) {
+        return res.status(403).send("Access Denied: You can only edit campaigns belonging to your team.");
+      }
+    }
+
+    await db.run("DELETE FROM campaign_creators WHERE id = ? AND campaign_id = ?", [creatorId, campaignId]);
+    return res.redirect(`/admin/campaigns/${campaignId}/creators`);
+  } catch (err) {
+    console.error("Delete Creator Error:", err);
+    return res.status(500).send("Failed to delete creator: " + err.message);
+  }
+});
+
 
 
 app.post("/admin/upload-utr", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), upload.single("utrFile"), async (req, res) => {

@@ -258,6 +258,13 @@
                           <% } %>
                         <% } %>
                         <button class="btn btn-3d-sm btn-3d-view" style="padding: 6px 12px;" onclick="openShareModal('<%= campaign.campaign_code %>', '<%= cr.mobile %>', '<%= cr.creator_name %>')" type="button">Share</button>
+                        <% if (user.role === 'HEAD' || user.role === 'SUPER_ADMIN' || user.role === 'ACCOUNTS') { %>
+                          <form method="post" action="/admin/campaigns/<%= campaign.id %>/creators/<%= cr.id %>/delete" onsubmit="return confirm('⚠️ Are you sure you want to remove creator &quot;<%= cr.creator_name %>&quot; from this campaign?');" style="display:inline;">
+                            <button type="submit" class="btn btn-3d-sm" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:800; font-size:11px; padding:6px 10px;" title="Delete Creator">
+                              🗑️ Delete
+                            </button>
+                          </form>
+                        <% } %>
                       </div>
                     </td>
                   </tr>
