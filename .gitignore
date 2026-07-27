@@ -4,4 +4,7 @@ node_modules/
 uploads/
 generated/
 portal.db
+*.sqlite
+*.bak
+scratch_source.js
 *.log

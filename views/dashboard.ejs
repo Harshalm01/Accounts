@@ -186,21 +186,198 @@
                       </div>
                     </div>
 
-                    <div class="nav nav-3d" style="margin-bottom: 20px;">
-                      <a href="/admin/dashboard"><button class="btn btn-3d-nav" type="button">Invoices</button></a>
-                      <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' ) { %>
-                        <a href="/admin/folders"><button class="btn btn-3d-nav" type="button">Folders</button></a>
-                        <a href="/admin/notifications"><button class="btn btn-3d-nav"
-                            type="button">Notifications</button></a>
+                    <% if (typeof utrSuccess !== 'undefined' && utrSuccess) { %>
+                      <div class="alert alert-success" style="margin-bottom: 16px; background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px 16px; border-radius: 10px; font-weight: 600; font-size: 14px;">
+                        ✅ <%= utrSuccess %>
+                      </div>
+                    <% } %>
+                    <% if (typeof utrError !== 'undefined' && utrError) { %>
+                      <div class="alert alert-error" style="margin-bottom: 16px; background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 12px 16px; border-radius: 10px; font-weight: 600; font-size: 14px;">
+                        ⚠️ <%= utrError %>
+                      </div>
+                    <% } %>
+                    <div class="nav nav-3d" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <a href="/admin/dashboard"><button class="btn btn-3d-nav" type="button">Invoices</button></a>
+                        <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' || user.role==='TEAM' || user.role==='HEAD' ) { %>
+                          <a href="/admin/folders"><button class="btn btn-3d-nav" type="button">Folders</button></a>
                         <% } %>
-                          <% if (user.role==='HEAD' || user.role==='SUPER_ADMIN' ) { %>
-                            <a href="/admin/campaigns"><button class="btn btn-3d-nav"
-                                type="button">Campaigns</button></a>
-                            <% } %>
-                              <% if (user.role==='SUPER_ADMIN' ) { %>
-                                <a href="/admin/users"><button class="btn btn-3d-nav" type="button">Users</button></a>
-                                <% } %>
+                        <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' ) { %>
+                          <a href="/admin/notifications"><button class="btn btn-3d-nav" type="button">Notifications</button></a>
+                        <% } %>
+                        <% if (user.role==='HEAD' || user.role==='SUPER_ADMIN' ) { %>
+                          <a href="/admin/campaigns"><button class="btn btn-3d-nav" type="button">Campaigns</button></a>
+                        <% } %>
+                        <% if (user.role==='SUPER_ADMIN' ) { %>
+                          <a href="/admin/users"><button class="btn btn-3d-nav" type="button">Users</button></a>
+                        <% } %>
+                      </div>
                     </div>
+
+                    <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' ) { %>
+                      <!-- Accounts UTR Settlement Card -->
+                      <div class="card glass-panel" style="margin-bottom: 20px;">
+                        <div class="section-head" style="margin-bottom: 0;">
+                          <div>
+                            <div class="eyebrow" style="color: #059669 !important; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; margin-bottom: 2px;">
+                              Accounts Station
+                            </div>
+                            <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: #1e293b;">UTR Payment Settlement</h3>
+                            <p class="subtitle" style="margin-top: 4px; color: #64748b !important;">
+                              Download formatted Excel templates or bulk upload creator payment UTR details.
+                            </p>
+                          </div>
+                          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <a href="/admin/utr-template/download" download="UTR_Payment_Format.xlsx" class="btn btn-3d-nav" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                              📥 Download Format
+                            </a>
+                            <button type="button" class="btn btn-3d-nav" onclick="openUtrModal()" style="display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; border: none;">
+                              📤 Upload UTR Excel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- UTR Upload Modal -->
+                      <div id="utrUploadModal" class="modal-overlay" style="display: none; opacity: 0; transition: opacity 0.25s ease;">
+                        <div class="modal-card" style="position: relative;">
+                          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                            <div>
+                              <h3 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0;">Upload UTR Payment Batch</h3>
+                              <p class="subtitle" style="margin-top: 4px; font-size: 14px; color: #64748b;">
+                                Upload an Excel (.xlsx, .xls) or CSV file to update creator payment UTRs.
+                              </p>
+                            </div>
+                            <button onclick="closeUtrModal()" style="background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer; line-height: 1; transition: color 0.2s;" onmouseover="this.style.color='#0f172a'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+                          </div>
+
+                          <!-- Required Headers Info Box -->
+                          <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 14px; padding: 14px 16px; margin-bottom: 20px;">
+                            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; margin-bottom: 8px;">
+                              Required Column Headers:
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                              <span style="background: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #334155; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">Sr No</span>
+                              <span style="background: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #334155; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">Campaign Name</span>
+                              <span style="background: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #334155; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">Creator Name</span>
+                              <span style="background: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #334155; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">Amount</span>
+                              <span style="background: #ecfdf5; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 800; color: #059669; border: 1px solid #a7f3d0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">✨ UTR</span>
+                            </div>
+                          </div>
+
+                          <!-- Upload Form with Drag & Drop Area -->
+                          <form method="post" action="/admin/upload-utr" enctype="multipart/form-data" id="utrUploadForm">
+                            <div id="dropZone" style="border: 2px dashed #cbd5e1; background: #f8fafc; border-radius: 16px; padding: 28px 20px; text-align: center; cursor: pointer; transition: all 0.25s ease-in-out; margin-bottom: 20px;" onclick="document.getElementById('utrFileInput').click()">
+                              <input type="file" id="utrFileInput" name="utrFile" accept=".xlsx,.xls,.csv" required style="display: none;" onchange="handleUtrFileSelect(this)" />
+                              
+                              <div id="dropZonePrompt">
+                                <div style="font-size: 32px; margin-bottom: 8px;">📂</div>
+                                <div style="font-size: 14px; font-weight: 700; color: #334155; margin-bottom: 4px;">
+                                  Drag & Drop your file here
+                                </div>
+                                <div style="font-size: 12px; color: #64748b; font-weight: 500;">
+                                  or <span style="color: #7c3aed; font-weight: 700; text-decoration: underline;">click to browse files</span>
+                                </div>
+                              </div>
+
+                              <div id="filePreview" style="display: none; align-items: center; justify-content: space-between; background: #ffffff; border: 1px solid #10b981; padding: 12px 16px; border-radius: 12px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);">
+                                <div style="display: flex; align-items: center; gap: 10px; text-align: left; overflow: hidden;">
+                                  <span style="font-size: 24px;">📊</span>
+                                  <div>
+                                    <div id="fileNameDisplay" style="font-size: 13px; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px;"></div>
+                                    <div id="fileSizeDisplay" style="font-size: 11px; color: #059669; font-weight: 600;"></div>
+                                  </div>
+                                </div>
+                                <button type="button" onclick="event.stopPropagation(); clearUtrFileSelection();" style="background: #fef2f2; border: 1px solid #fecaca; color: #ef4444; border-radius: 8px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px;">✕</button>
+                              </div>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                              <a href="/admin/utr-template/download" download="UTR_Payment_Format.xlsx" style="font-size: 13px; font-weight: 700; color: #7c3aed; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+                                📥 Download Sample Format
+                              </a>
+                              <div style="display: flex; gap: 10px;">
+                                <button type="button" onclick="closeUtrModal()" class="btn btn-3d-nav" style="padding: 10px 18px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; font-weight: 700;">Cancel</button>
+                                <button type="submit" id="utrSubmitBtn" class="btn btn-3d-nav" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; border: none; font-weight: 800; padding: 10px 22px;">Upload & Update</button>
+                              </div>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+
+                      <script>
+                        function openUtrModal() {
+                          const modal = document.getElementById('utrUploadModal');
+                          modal.style.display = 'flex';
+                          setTimeout(() => {
+                            modal.style.opacity = '1';
+                            const card = modal.querySelector('.modal-card');
+                            if (card) card.style.transform = 'scale(1)';
+                          }, 10);
+                        }
+
+                        function closeUtrModal() {
+                          const modal = document.getElementById('utrUploadModal');
+                          modal.style.opacity = '0';
+                          const card = modal.querySelector('.modal-card');
+                          if (card) card.style.transform = 'scale(0.9)';
+                          setTimeout(() => {
+                            modal.style.display = 'none';
+                            clearUtrFileSelection();
+                          }, 250);
+                        }
+
+                        function handleUtrFileSelect(input) {
+                          if (input.files && input.files[0]) {
+                            const file = input.files[0];
+                            document.getElementById('fileNameDisplay').innerText = file.name;
+                            document.getElementById('fileSizeDisplay').innerText = (file.size / 1024).toFixed(1) + ' KB';
+                            document.getElementById('dropZonePrompt').style.display = 'none';
+                            document.getElementById('filePreview').style.display = 'flex';
+                          }
+                        }
+
+                        function clearUtrFileSelection() {
+                          const input = document.getElementById('utrFileInput');
+                          if (input) input.value = '';
+                          document.getElementById('dropZonePrompt').style.display = 'block';
+                          document.getElementById('filePreview').style.display = 'none';
+                        }
+
+                        document.addEventListener("DOMContentLoaded", () => {
+                          const dropZone = document.getElementById('dropZone');
+                          if (!dropZone) return;
+
+                          ['dragenter', 'dragover'].forEach(eventName => {
+                            dropZone.addEventListener(eventName, (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              dropZone.style.borderColor = '#10b981';
+                              dropZone.style.background = '#ecfdf5';
+                            }, false);
+                          });
+
+                          ['dragleave', 'drop'].forEach(eventName => {
+                            dropZone.addEventListener(eventName, (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              dropZone.style.borderColor = '#cbd5e1';
+                              dropZone.style.background = '#f8fafc';
+                            }, false);
+                          });
+
+                          dropZone.addEventListener('drop', (e) => {
+                            const dt = e.dataTransfer;
+                            const files = dt.files;
+                            if (files && files.length > 0) {
+                              const input = document.getElementById('utrFileInput');
+                              input.files = files;
+                              handleUtrFileSelect(input);
+                            }
+                          }, false);
+                        });
+                      </script>
+                    <% } %>
 
                     <!-- SuperAdmin Compact Creator Search Engine -->
                     <% if (user.role==='SUPER_ADMIN' ) { %>
@@ -485,12 +662,17 @@
                                         </span>
                                       </td>
                                       <td data-label="Creator">
-                                        <strong>
-                                          <%= inv.creator_name %>
-                                        </strong><br />
+                                         <strong data-creator-hover="<%= inv.creator_name %>" style="cursor: pointer;">
+                                           <%= inv.creator_name %>
+                                         </strong><br />
                                         <span style="color: #6B7280; font-size: 12px;">
                                           <%= inv.creator_mobile %>
                                         </span>
+                                        <% if (inv.utr) { %>
+                                          <br /><span class="utr-copy-badge" onclick="copyUtrToClipboard('<%= inv.utr %>', this)" style="font-size: 10px; font-weight: 800; color: #059669; background: rgba(16, 185, 129, 0.12); padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; border: 1px solid rgba(16, 185, 129, 0.3); cursor: pointer; transition: all 0.2s ease;" title="Click to copy UTR: <%= inv.utr %>">
+                                            ✨ UTR: <%= inv.utr %> <span style="font-size: 11px; opacity: 0.8;">📋</span>
+                                          </span>
+                                        <% } %>
                                       </td>
                                       <td style="font-weight: 500; color: #4B5563;" data-label="Invoice No">#<%=
                                           inv.invoice_no %>
@@ -594,7 +776,7 @@
             headers: {
               "Content-Type": "application/x-www-form-urlencoded"
             }
-          }).catch(err => console.error("Error marking notifications as read:", err));
+          }).then(null, err => console.error("Error marking notifications as read:", err));
         });
 
         const closeDrawer = () => {
@@ -624,18 +806,23 @@
           function filterInvoices() {
             if (!typeToggle) return;
             const showNonGst = typeToggle.checked;
-            const invoiceRows = document.querySelectorAll('.context-row');
+            const invoiceRows = document.querySelectorAll('#invoiceTableBody .context-row');
             let visibleCount = 0;
 
             invoiceRows.forEach(row => {
-              const typeCell = row.querySelector('.type-cell span');
-              if (!typeCell) return;
+              const typeCell = row.querySelector('.type-cell');
+              if (!typeCell) {
+                row.style.removeProperty('display');
+                visibleCount++;
+                return;
+              }
               const typeText = typeCell.textContent.trim().toLowerCase();
-              let show = false;
+              const isNonGst = typeText.includes('non');
 
-              if (!showNonGst && typeText === 'gst') {
+              let show = false;
+              if (!showNonGst && !isNonGst) {
                 show = true;
-              } else if (showNonGst && typeText === 'non-gst') {
+              } else if (showNonGst && isNonGst) {
                 show = true;
               }
 
@@ -720,22 +907,23 @@
             return `${invHash}#${noteHash}`;
           }
 
-          async function pollData() {
-            try {
-              const res = await fetch('/admin/api/invoices');
-              if (!res.ok) return;
-              const data = await res.json();
-              const newHash = computeHash(data);
-
-              // Only update DOM if the database state has actually changed
-              if (newHash !== currentStateHash) {
-                currentStateHash = newHash;
-                updateDashboardUI(data);
-              }
-            } catch (e) {
-              console.error("Live sync check failed:", e);
-            }
+          function pollData() {
+            fetch('/admin/api/invoices')
+              .then(res => res.ok ? res.json() : null)
+              .then(data => {
+                if (!data) return;
+                const newHash = computeHash(data);
+                if (newHash !== currentStateHash) {
+                  currentStateHash = newHash;
+                  updateDashboardUI(data);
+                }
+              })
+              .then(null, e => {
+                console.error("Live sync check failed:", e);
+              });
           }
+
+          window.pollData = pollData;
 
           function updateDashboardUI(data) {
             // 1. Update stats count
@@ -765,37 +953,22 @@
                   const isGstStr = inv.invoice_type === 'gst' ? 'GST' : 'Non-GST';
                   const finalAmt = gstBreakup(inv);
                   const pdfBtn = inv.pdf_path
-                    ? `<a href="${inv.pdf_path}" target="_blank" class="btn btn-3d-sm btn-3d-open">Download PDF</a>`
+                    ? '<a href="' + inv.pdf_path + '" target="_blank" class="btn btn-3d-sm btn-3d-open">Download PDF</a>'
                     : '';
 
-                  return `
-                  <tr class="context-row">
-                    <td style="color: #6B7280; font-weight: 600;">#${inv.id}</td>
-                    <td class="campaign-cell">
-                      <strong>${inv.campaign_name}</strong><br/>
-                      <span>${inv.campaign_code}</span>
-                    </td>
-                    <td>
-                      <strong>${inv.creator_name}</strong><br/>
-                      <span style="color: #6B7280; font-size: 12px;">${inv.creator_mobile}</span>
-                    </td>
-                    <td style="font-weight: 500; color: #4B5563;">#${inv.invoice_no}</td>
-                    <td class="type-cell">
-                      <span>${isGstStr}</span>
-                    </td>
-                    <td class="total-cell">₹${formatInr(finalAmt)}</td>
-                    <td>
-                      <span class="status-pill ${inv.status}">${inv.status}</span>
-                    </td>
-                    <td class="action-cell">
-                      <a href="/admin/invoices/${inv.id}" class="btn btn-3d-sm btn-3d-open">Open</a>
-                      <div class="row-hover-overlay">
-                        <a href="/admin/invoices/${inv.id}" class="btn btn-3d-sm btn-3d-view">View Details</a>
-                        ${pdfBtn}
-                      </div>
-                    </td>
-                  </tr>
-                `;
+                  const utrSpan = inv.utr ? '<br/><span class="utr-copy-badge" onclick="copyUtrToClipboard(\'' + inv.utr + '\', this)" style="font-size: 10px; font-weight: 800; color: #059669; background: rgba(16, 185, 129, 0.12); padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; border: 1px solid rgba(16, 185, 129, 0.3); cursor: pointer; transition: all 0.2s ease;" title="Click to copy UTR: ' + inv.utr + '">✨ UTR: ' + inv.utr + ' <span style="font-size: 11px; opacity: 0.8;">📋</span></span>' : '';
+
+                  return '<tr class="context-row">' +
+                    '<td style="color: #6B7280; font-weight: 600;" data-label="ID">#' + inv.id + '</td>' +
+                    '<td class="campaign-cell" data-label="Campaign"><strong>' + (inv.campaign_name || '') + '</strong><br/><span style="font-size: 11px; color: #64748b;">' + (inv.campaign_code || '') + '</span></td>' +
+                    '<td data-label="Team Name"><strong style="color: #7c3aed; font-size: 13px;">' + (inv.team_name || '—') + '</strong><br/><span style="font-size: 11px; color: #64748b; font-weight: 600;">Head: ' + (inv.head_username || '—') + '</span></td>' +
+                    '<td data-label="Creator"><strong data-creator-hover="' + (inv.creator_name || '') + '" style="cursor: pointer;">' + (inv.creator_name || '') + '</strong><br/><span style="color: #6B7280; font-size: 12px;">' + (inv.creator_mobile || '') + '</span>' + utrSpan + '</td>' +
+                    '<td style="font-weight: 500; color: #4B5563;" data-label="Invoice No">#' + (inv.invoice_no || '') + '</td>' +
+                    '<td class="type-cell" data-label="Type"><span>' + isGstStr + '</span></td>' +
+                    '<td class="total-cell" data-label="Total Amount">₹' + formatInr(finalAmt) + '</td>' +
+                    '<td data-label="Status"><span class="status-pill ' + inv.status + '">' + inv.status + '</span></td>' +
+                    '<td class="action-cell" data-label="Action"><a href="/admin/invoices/' + inv.id + '" class="btn btn-3d-sm btn-3d-open">Open</a><div class="row-hover-overlay"><a href="/admin/invoices/' + inv.id + '" class="btn btn-3d-sm btn-3d-view">View Details</a>' + pdfBtn + '</div></td>' +
+                  '</tr>';
                 }).join('');
               }
             }
@@ -819,31 +992,16 @@
               } else {
                 drawerBody.innerHTML = data.notifications.map(note => {
                   const actionBlock = note.invoice_id
-                    ? `
-                    <a href="/admin/invoices/${note.invoice_id}" class="btn btn-3d-sm btn-3d-open">Open</a>
-                    <form method="post" action="/admin/invoices/${note.invoice_id}/status" style="display: inline;">
-                      <input type="hidden" name="action" value="accept" />
-                      <button type="submit" class="btn btn-3d-sm btn-3d-accept">Accept</button>
-                    </form>
-                    <form method="post" action="/admin/invoices/${note.invoice_id}/status" style="display: inline;" onsubmit="return handleDashboardReject(event, this)">
-                      <input type="hidden" name="action" value="reject" />
-                      <button type="submit" class="btn btn-3d-sm btn-3d-reject">Reject</button>
-                    </form>
-                  `
+                    ? '<a href="/admin/invoices/' + note.invoice_id + '" class="btn btn-3d-sm btn-3d-open">Open</a>' +
+                      '<form method="post" action="/admin/invoices/' + note.invoice_id + '/status" style="display: inline;"><input type="hidden" name="action" value="accept" /><button type="submit" class="btn btn-3d-sm btn-3d-accept">Accept</button></form>' +
+                      '<form method="post" action="/admin/invoices/' + note.invoice_id + '/status" style="display: inline;" onsubmit="return handleDashboardReject(event, this)"><input type="hidden" name="action" value="reject" /><button type="submit" class="btn btn-3d-sm btn-3d-reject">Reject</button></form>'
                     : '';
 
-                  return `
-                  <div class="drawer-card">
-                    <div class="drawer-card-header">
-                      <span class="eyebrow">${note.campaign_name || 'Campaign'}</span>
-                      <span class="pill status-pill ${note.invoice_status}" style="font-size: 10px;">${note.invoice_status}</span>
-                    </div>
-                    <p class="drawer-message">${note.message}</p>
-                    <div class="drawer-actions">
-                      ${actionBlock}
-                    </div>
-                  </div>
-                `;
+                  return '<div class="drawer-card">' +
+                    '<div class="drawer-card-header"><span class="eyebrow">' + (note.campaign_name || 'Campaign') + '</span><span class="pill status-pill ' + note.invoice_status + '" style="font-size: 10px;">' + note.invoice_status + '</span></div>' +
+                    '<p class="drawer-message">' + note.message + '</p>' +
+                    '<div class="drawer-actions">' + actionBlock + '</div>' +
+                  '</div>';
                 }).join('');
               }
             }
@@ -856,15 +1014,22 @@
           const initialInvoices = [];
           document.querySelectorAll('#invoiceTableBody .context-row').forEach(row => {
             const cells = row.querySelectorAll('td');
-            if (cells.length < 8) return;
-            const id = cells[0].textContent.replace('#', '').trim();
-            const campaignName = row.querySelector('.campaign-cell strong').textContent.trim();
-            const campaignCode = row.querySelector('.campaign-cell span').textContent.trim();
-            const creatorName = cells[2].querySelector('strong').textContent.trim();
-            const creatorMobile = cells[2].querySelector('span').textContent.trim();
-            const invoiceNo = cells[3].textContent.replace('#', '').trim();
-            const type = cells[4].querySelector('span').textContent.trim().toLowerCase() === 'gst' ? 'gst' : 'non_gst';
-            const status = cells[6].querySelector('.status-pill').textContent.trim();
+            if (cells.length < 5) return;
+            const id = cells[0] ? cells[0].textContent.replace('#', '').trim() : '';
+            const campStrong = row.querySelector('.campaign-cell strong');
+            const campSpan = row.querySelector('.campaign-cell span');
+            const creatorStrong = cells[2] ? cells[2].querySelector('strong') : null;
+            const creatorSpan = cells[2] ? cells[2].querySelector('span') : null;
+            const statusPill = row.querySelector('.status-pill');
+            const typeSpan = row.querySelector('.type-cell span');
+
+            const campaignName = campStrong ? campStrong.textContent.trim() : '';
+            const campaignCode = campSpan ? campSpan.textContent.trim() : '';
+            const creatorName = creatorStrong ? creatorStrong.textContent.trim() : (cells[2] ? cells[2].textContent.trim() : '');
+            const creatorMobile = creatorSpan ? creatorSpan.textContent.trim() : '';
+            const invoiceNo = cells[3] ? cells[3].textContent.replace('#', '').trim() : '';
+            const type = typeSpan && typeSpan.textContent.trim().toLowerCase() === 'gst' ? 'gst' : 'non_gst';
+            const status = statusPill ? statusPill.textContent.trim() : '';
             initialInvoices.push({ id, status, invoice_type: type, total_amount: 0 });
           });
 
@@ -899,6 +1064,32 @@
           reasonInput.value = reason.trim();
           form.submit();
           return true;
+        }
+
+        function copyUtrToClipboard(utrText, element) {
+          if (!utrText) return;
+          const origHtml = element.innerHTML;
+          navigator.clipboard.writeText(utrText).then(() => {
+            element.innerHTML = '✓ Copied!';
+            element.style.background = '#d1fae5';
+            element.style.borderColor = '#10b981';
+            element.style.color = '#047857';
+            setTimeout(() => {
+              element.innerHTML = origHtml;
+              element.style.background = '';
+              element.style.borderColor = '';
+              element.style.color = '';
+            }, 1800);
+          }).catch(() => {
+            const el = document.createElement('textarea');
+            el.value = utrText;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            element.innerHTML = '✓ Copied!';
+            setTimeout(() => { element.innerHTML = origHtml; }, 1800);
+          });
         }
       </script>
 </body>

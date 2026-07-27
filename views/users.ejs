@@ -78,6 +78,81 @@
         border-radius: 0.8rem;
       }
     }
+
+    /* Role Filter Bar Styles */
+    .user-filters-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      align-items: center;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .user-filter-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #9CA3AF;
+      margin-right: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .user-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: #1e222a;
+      border: 1px solid #323846;
+      color: #d1d5db;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+      font-family: inherit;
+    }
+
+    .user-filter-btn:hover {
+      background: #2a2f3a;
+      border-color: #4b5563;
+      color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .user-filter-btn.active {
+      background: linear-gradient(135deg, #FFD43B 0%, #FF6600 100%);
+      color: #14161a;
+      border-color: transparent;
+      font-weight: 800;
+      box-shadow: 0 4px 14px rgba(255, 102, 0, 0.35);
+    }
+
+    .filter-count-badge {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .user-filter-btn.active .filter-count-badge {
+      background: rgba(0, 0, 0, 0.2);
+      color: #14161a;
+    }
+
+    .admin-page .role-head {
+      background: rgba(245, 158, 11, 0.12);
+      color: #d97706;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
   </style>
 </head>
 
@@ -177,14 +252,34 @@
 
         <!-- Users Table -->
         <div class="card glass-panel">
-          <div class="section-head" style="margin-bottom: 20px;">
+          <div class="section-head" style="margin-bottom: 16px;">
             <div>
               <h3>All Users</h3>
               <p class="subtitle">Manage existing portal users — reset passwords or remove access.</p>
             </div>
-            <div class="pill">
+            <div class="pill" id="userCountBadge">
               <%= users.length %> users
             </div>
+          </div>
+
+          <!-- Role Filter Bar -->
+          <div class="user-filters-bar">
+            <span class="user-filter-label">⚡ Filter Role:</span>
+            <button type="button" class="user-filter-btn active" onclick="filterUsers('ALL', this)">
+              All Users <span class="filter-count-badge"><%= users.length %></span>
+            </button>
+            <button type="button" class="user-filter-btn" onclick="filterUsers('TEAM', this)">
+              Team Users <span class="filter-count-badge"><%= users.filter(u => u.role === 'TEAM').length %></span>
+            </button>
+            <button type="button" class="user-filter-btn" onclick="filterUsers('SUPER_ADMIN', this)">
+              Superadmin Users <span class="filter-count-badge"><%= users.filter(u => u.role === 'SUPER_ADMIN').length %></span>
+            </button>
+            <button type="button" class="user-filter-btn" onclick="filterUsers('HEAD', this)">
+              Heads Users <span class="filter-count-badge"><%= users.filter(u => u.role === 'HEAD').length %></span>
+            </button>
+            <button type="button" class="user-filter-btn" onclick="filterUsers('ACCOUNTS', this)">
+              Accounts Users <span class="filter-count-badge"><%= users.filter(u => u.role === 'ACCOUNTS').length %></span>
+            </button>
           </div>
 
           <div class="users-table-wrap">
@@ -200,9 +295,9 @@
                   <th>Delete</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="usersTableBody">
                 <% users.forEach((u)=> { %>
-                  <tr>
+                  <tr class="user-row" data-role="<%= u.role %>">
                     <td class="user-id-cell" data-label="#">
                       <%= u.id %>
                     </td>
@@ -251,10 +346,42 @@
                   <% }) %>
               </tbody>
             </table>
+            <div id="noUsersFilterMessage" class="empty-state" style="display: none; padding: 32px 16px; text-align: center; color: #9CA3AF; font-weight: 500;">
+              No users found matching the selected role filter.
+            </div>
           </div>
         </div>
 
         <script>
+          window.filterUsers = function (selectedRole, btnElement) {
+            if (btnElement) {
+              document.querySelectorAll('.user-filter-btn').forEach(btn => btn.classList.remove('active'));
+              btnElement.classList.add('active');
+            }
+
+            const rows = document.querySelectorAll('#usersTableBody tr.user-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+              const role = row.getAttribute('data-role');
+              if (selectedRole === 'ALL' || role === selectedRole) {
+                row.style.display = '';
+                visibleCount++;
+              } else {
+                row.style.display = 'none';
+              }
+            });
+
+            const countBadge = document.getElementById('userCountBadge');
+            if (countBadge) {
+              countBadge.innerText = visibleCount + ' users';
+            }
+
+            const noMsg = document.getElementById('noUsersFilterMessage');
+            if (noMsg) {
+              noMsg.style.display = (visibleCount === 0) ? 'block' : 'none';
+            }
+          };
           window.performCreatorSearch = function () {
             const input = document.getElementById('creatorSearchInput');
             const filter = (input ? input.value : '').toLowerCase().trim();

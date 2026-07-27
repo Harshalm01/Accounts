@@ -14,7 +14,7 @@ try {
 }
 const db = require("./db");
 const { requireAuth, requireRole, isAdminArea } = require("./middleware/auth");
-const { ensurePdfForInvoice } = require("./services/pdf");
+const { ensurePdfForInvoice, generateCreatorDossierPdf } = require("./services/pdf");
 
 const app = express();
 const START_PORT = Number(process.env.PORT || 3000);
@@ -189,7 +189,8 @@ function setAuthCookie(res, req, user) {
 }
 
 function clearAuthCookie(res, req) {
-  res.clearCookie(AUTH_COOKIE_NAME, authCookieOptions(req));
+  const { maxAge, ...options } = authCookieOptions(req);
+  res.clearCookie(AUTH_COOKIE_NAME, options);
 }
 
 function safeFolderName(value, fallback = "campaign") {
@@ -212,15 +213,29 @@ function ensureCampaignFolders(campaign) {
   return folder;
 }
 
-async function loadCampaignFolderCards() {
-  const campaigns = await db.all(
-    `SELECT c.*, COUNT(DISTINCT cc.id) AS creator_count, COUNT(DISTINCT i.id) AS invoice_count
-     FROM campaigns c
-     LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-     LEFT JOIN invoices i ON i.campaign_id = c.id
-     GROUP BY c.id
-     ORDER BY c.id DESC`
-  );
+async function loadCampaignFolderCards(user = null) {
+  let campaigns;
+  if (user && (user.role === "TEAM" || user.role === "HEAD") && user.teamName) {
+    campaigns = await db.all(
+      `SELECT c.*, COUNT(DISTINCT cc.id) AS creator_count, COUNT(DISTINCT i.id) AS invoice_count, COALESCE(SUM(cc.amount), 0) AS total_amount
+       FROM campaigns c
+       LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
+       LEFT JOIN invoices i ON i.campaign_id = c.id
+       WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?))
+       GROUP BY c.id
+       ORDER BY c.id DESC`,
+      [user.teamName]
+    );
+  } else {
+    campaigns = await db.all(
+      `SELECT c.*, COUNT(DISTINCT cc.id) AS creator_count, COUNT(DISTINCT i.id) AS invoice_count, COALESCE(SUM(cc.amount), 0) AS total_amount
+       FROM campaigns c
+       LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
+       LEFT JOIN invoices i ON i.campaign_id = c.id
+       GROUP BY c.id
+       ORDER BY c.id DESC`
+    );
+  }
 
   const folders = [];
   for (const campaign of campaigns) {
@@ -255,6 +270,7 @@ async function loadCampaignFolderCards() {
       teamName: campaign.team_name,
       creatorCount: Number(campaign.creator_count || 0),
       invoiceCount: Number(campaign.invoice_count || 0),
+      totalAmount: Number(campaign.total_amount || 0),
       latestInvoiceId: creators
         .map((creator) => Number(creator.latest_invoice_id || 0))
         .filter((invoiceId) => invoiceId > 0)
@@ -274,13 +290,13 @@ async function loadCampaignCards(user, search = "") {
   const like = `%${normalizedSearch}%`;
   let campaigns;
 
-  if (user.role === "TEAM" || user.role === "HEAD") {
+  if (user && (user.role === "TEAM" || user.role === "HEAD") && user.teamName) {
     if (normalizedSearch) {
       campaigns = await db.all(
         `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
          FROM campaigns c
          LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-         WHERE c.team_name = ? AND (c.campaign_name LIKE ? OR c.campaign_code LIKE ?)
+         WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?)) AND (c.campaign_name LIKE ? OR c.campaign_code LIKE ?)
          GROUP BY c.id
          ORDER BY c.id DESC`,
         [user.teamName, like, like]
@@ -290,7 +306,7 @@ async function loadCampaignCards(user, search = "") {
         `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
          FROM campaigns c
          LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-         WHERE c.team_name = ?
+         WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?))
          GROUP BY c.id
          ORDER BY c.id DESC`,
         [user.teamName]
@@ -393,7 +409,14 @@ async function loadCampaignCreatorsWithInvoices(campaignId) {
         WHERE ${invoiceMatch}
         ORDER BY i2.id DESC
         LIMIT 1
-      ) AS latest_invoice_amount
+      ) AS latest_invoice_amount,
+      (
+        SELECT i2.utr
+        FROM invoices i2
+        WHERE ${invoiceMatch}
+        ORDER BY i2.id DESC
+        LIMIT 1
+      ) AS latest_invoice_utr
      FROM campaign_creators cc
      LEFT JOIN invoices i ON ${joinMatch}
      WHERE cc.campaign_id = ?
@@ -559,7 +582,7 @@ app.set("trust proxy", 1);
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; base-uri 'self'; connect-src 'self' https://vercel.live; form-action 'self'; img-src 'self' data:; object-src 'none'; script-src 'self' 'unsafe-inline' https://vercel.live; script-src-elem 'self' 'unsafe-inline' https://vercel.live; worker-src 'self' blob:; frame-src 'self' https://vercel.live; child-src 'self' https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'"
+    "default-src 'self'; base-uri 'self'; connect-src 'self' https://vercel.live wss: ws:; form-action 'self'; img-src 'self' data:; object-src 'none'; script-src 'self' 'unsafe-inline' https://vercel.live https://cdn.socket.io; script-src-elem 'self' 'unsafe-inline' https://vercel.live https://cdn.socket.io; worker-src 'self' blob:; frame-src 'self' https://vercel.live; child-src 'self' https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'"
   );
   next();
 });
@@ -594,16 +617,23 @@ app.use((req, res, next) => {
   }
   next();
 });
-app.use((req, _, next) => {
-  // IMPORTANT: Do NOT fall back to the portal_auth cookie when an impersonation
-  // session is active. The portal_auth cookie always holds the original admin
-  // identity and would silently overwrite the impersonated user on every request
-  // (especially critical on Vercel where each request can be a new serverless instance).
+app.use(async (req, _, next) => {
   const isImpersonating = req.session && req.session.isImpersonating;
   if (!req.session.user && !isImpersonating) {
     const authUser = getAuthenticatedUser(req);
     if (authUser) {
       req.session.user = authUser;
+    }
+  }
+  if (req.session && req.session.user && req.session.user.id) {
+    try {
+      const dbUser = await db.get("SELECT id, username, role, team_name FROM users WHERE id = ?", [req.session.user.id]);
+      if (dbUser) {
+        req.session.user.role = dbUser.role;
+        req.session.user.teamName = dbUser.team_name || null;
+      }
+    } catch (e) {
+      // ignore
     }
   }
   next();
@@ -904,6 +934,24 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       });
     }
 
+    const { termsAccepted } = req.body;
+    if (!termsAccepted) {
+      return res.render("creator_form", {
+        error: "You must accept the Self Declaration & Terms and Conditions before submitting your invoice.",
+        success: null,
+        form: {
+          validated: true,
+          campaignId,
+          campaignCode,
+          mobile,
+          campaignName: campaign.campaign_name,
+          creatorName: mapping.creator_name,
+          amount: mapping.amount,
+          ...req.body
+        }
+      });
+    }
+
     const total = items.reduce((sum, row) => sum + row.amount, 0);
     if (Number(total.toFixed(2)) !== Number(Number(mapping.amount).toFixed(2))) {
       return res.render("creator_form", {
@@ -1137,14 +1185,19 @@ app.get("/creator/submitted", async (req, res) => {
 });
 
 app.get("/admin", (req, res) => {
-  if (getAuthenticatedUser(req)) {
-    return res.redirect("/admin/dashboard");
+  const user = getAuthenticatedUser(req) || (req.session && req.session.user);
+  if (user) {
+    const isTeamRole = user.role === "TEAM" || user.role === "HEAD";
+    return res.redirect(isTeamRole ? "/admin/folders" : "/admin/dashboard");
   }
   res.render("admin_login", { error: null });
 });
 
 app.get("/admin/login/success", requireAuth, (req, res) => {
-  res.render("admin_login_success", { nextUrl: "/admin/dashboard" });
+  const user = req.session ? req.session.user : null;
+  const isTeamRole = user && (user.role === "TEAM" || user.role === "HEAD");
+  const nextUrl = isTeamRole ? "/admin/folders" : "/admin/dashboard";
+  res.render("admin_login_success", { nextUrl });
 });
 
 app.post("/admin/login", async (req, res) => {
@@ -1177,7 +1230,41 @@ app.post("/admin/logout", requireAuth, (req, res) => {
   req.session.destroy(() => res.redirect("/admin"));
 });
 
+app.use("/admin", (req, res, next) => {
+  const user = getAuthenticatedUser(req);
+  if (user && req.session) {
+    req.session.user = user;
+  }
+  next();
+});
 app.use("/admin", requireAuth);
+
+app.get("/admin/utr-template/download", (req, res) => {
+  try {
+    const wb = xlsx.utils.book_new();
+    const headers = [["Sr No", "Campaign Name", "Creator Name", "Amount", "UTR"]];
+    const ws = xlsx.utils.aoa_to_sheet(headers);
+
+    ws["!cols"] = [
+      { wch: 10 },
+      { wch: 25 },
+      { wch: 25 },
+      { wch: 15 },
+      { wch: 22 }
+    ];
+
+    xlsx.utils.book_append_sheet(wb, ws, "UTR_Format");
+    const buffer = xlsx.write(wb, { type: "buffer", bookType: "xlsx" });
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", 'attachment; filename="UTR_Payment_Format.xlsx"');
+    res.setHeader("Content-Length", buffer.length);
+    return res.end(buffer);
+  } catch (err) {
+    console.error("UTR Download Error:", err);
+    return res.status(500).send("Failed to generate UTR template file.");
+  }
+});
 
 app.get("/admin/dashboard", async (req, res) => {
   const user = req.session.user;
@@ -1190,7 +1277,7 @@ app.get("/admin/dashboard", async (req, res) => {
        FROM invoices i
        JOIN campaigns c ON c.id = i.campaign_id
        LEFT JOIN users u ON u.id = c.created_by
-       WHERE c.team_name = ?
+       WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?))
        ORDER BY i.id DESC`,
       [user.teamName]
     );
@@ -1261,7 +1348,11 @@ app.get("/admin/dashboard", async (req, res) => {
   );
 
   const [invoices, notifications, creatorLedger] = await Promise.all([invoicesPromise, notificationsPromise, creatorLedgerPromise]);
-  res.render("dashboard", { invoices, notifications, creatorLedger });
+  const utrSuccess = req.session.utrSuccess || null;
+  const utrError = req.session.utrError || null;
+  delete req.session.utrSuccess;
+  delete req.session.utrError;
+  res.render("dashboard", { invoices, notifications, creatorLedger, utrSuccess, utrError });
 });
 
 // JSON API endpoint for live sync polling
@@ -1276,7 +1367,7 @@ app.get("/admin/api/invoices", async (req, res) => {
        FROM invoices i
        JOIN campaigns c ON c.id = i.campaign_id
        LEFT JOIN users u ON u.id = c.created_by
-       WHERE c.team_name = ?
+       WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?))
        ORDER BY i.id DESC`,
       [user.teamName]
     );
@@ -1308,8 +1399,8 @@ app.get("/admin/api/invoices", async (req, res) => {
   res.json({ invoices, notifications });
 });
 
-app.get("/admin/folders", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), async (req, res) => {
-  const folders = await loadCampaignFolderCards();
+app.get("/admin/folders", requireRole(["ACCOUNTS", "SUPER_ADMIN", "HEAD", "TEAM"]), async (req, res) => {
+  const folders = await loadCampaignFolderCards(req.session.user);
   res.render("admin_folders", { folders });
 });
 
@@ -1329,7 +1420,7 @@ app.post("/admin/notifications/read", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), 
   res.redirect(req.get("referer") || "/admin/dashboard");
 });
 
-app.get("/admin/campaigns", requireRole(["ACCOUNTS", "HEAD", "SUPER_ADMIN"]), async (req, res) => {
+app.get("/admin/campaigns", requireRole(["ACCOUNTS", "HEAD", "SUPER_ADMIN", "TEAM"]), async (req, res) => {
   const user = req.session.user;
   const search = (req.query.search || "").trim();
   const campaignCards = await loadCampaignCards(user, search);
@@ -1345,6 +1436,7 @@ app.get("/admin/campaigns", requireRole(["ACCOUNTS", "HEAD", "SUPER_ADMIN"]), as
 app.post("/admin/campaigns", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, res) => {
   try {
     const user = req.session.user;
+    const canEdit = user.role === "HEAD" || user.role === "SUPER_ADMIN";
     const { campaignName, campaignCode, teamName } = req.body;
     const campaigns = await loadCampaignCards(user, req.body.search || "");
 
@@ -1353,7 +1445,8 @@ app.post("/admin/campaigns", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, r
         campaigns,
         error: "Campaign Name and Code are required.",
         success: null,
-        search: ""
+        search: "",
+        canEdit
       });
     }
 
@@ -1363,7 +1456,8 @@ app.post("/admin/campaigns", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, r
         campaigns,
         error: "Campaign Code already exists. Use a different code.",
         success: null,
-        search: ""
+        search: "",
+        canEdit
       });
     }
 
@@ -1377,17 +1471,20 @@ app.post("/admin/campaigns", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, r
 
     res.redirect("/admin/campaigns");
   } catch (error) {
-    const campaigns = await loadCampaignCards(req.session.user, req.body.search || "");
+    const user = req.session.user;
+    const canEdit = user ? (user.role === "HEAD" || user.role === "SUPER_ADMIN") : false;
+    const campaigns = await loadCampaignCards(user, req.body.search || "");
     return res.render("campaigns", {
       campaigns,
       error: error.code === "SQLITE_CONSTRAINT" ? "Campaign Code already exists. Use a different code." : "Unable to create campaign.",
       success: null,
-      search: ""
+      search: "",
+      canEdit
     });
   }
 });
 
-app.get("/admin/campaigns/:id/creators", requireRole(["ACCOUNTS", "HEAD", "SUPER_ADMIN"]), async (req, res) => {
+app.get("/admin/campaigns/:id/creators", requireRole(["ACCOUNTS", "HEAD", "SUPER_ADMIN", "TEAM"]), async (req, res) => {
   const campaign = await db.get("SELECT * FROM campaigns WHERE id = ?", [req.params.id]);
   if (!campaign) {
     return res.redirect("/admin/campaigns");
@@ -1508,6 +1605,94 @@ app.post("/admin/campaigns/:id/creators/bulk", requireRole(["HEAD", "SUPER_ADMIN
       fs.unlinkSync(req.file.path);
     }
   }
+});
+
+
+
+app.post("/admin/upload-utr", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), upload.single("utrFile"), async (req, res) => {
+  if (!req.file) {
+    req.session.utrError = "Please select a valid CSV or Excel file to upload.";
+    return res.redirect("/admin/dashboard");
+  }
+
+  try {
+    const workbook = xlsx.readFile(req.file.path, { cellDates: false });
+    const firstSheetName = workbook.SheetNames[0];
+    if (!firstSheetName) {
+      throw new Error("File does not contain any sheets.");
+    }
+
+    const sheet = workbook.Sheets[firstSheetName];
+    const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+
+    if (!rawRows.length) {
+      throw new Error("Uploaded file is empty.");
+    }
+
+    let updatedCount = 0;
+    let skippedCount = 0;
+
+    for (const row of rawRows) {
+      const normalized = Object.keys(row).reduce((acc, key) => {
+        acc[normalizeHeader(key)] = row[key];
+        return acc;
+      }, {});
+
+      const creatorName = String(normalized.creatorname || normalized.creator || normalized.name || "").trim();
+      const srNo = String(normalized.srno || normalized.serialnumber || normalized.sr || normalized.mobile || "").trim();
+      const campaignName = String(normalized.campaignname || normalized.campaign || normalized.code || "").trim();
+      const utr = String(normalized.utr || normalized.utrnumber || normalized.utrno || "").trim();
+
+      if (!utr || (!creatorName && !srNo)) {
+        skippedCount++;
+        continue;
+      }
+
+      let query = `UPDATE invoices SET utr = ?, updated_at = CURRENT_TIMESTAMP WHERE (`;
+      let params = [utr];
+      let conditions = [];
+
+      if (creatorName) {
+        conditions.push(`LOWER(TRIM(creator_name)) = LOWER(TRIM(?)) OR LOWER(TRIM(full_name)) = LOWER(TRIM(?))`);
+        params.push(creatorName, creatorName);
+      }
+      if (srNo) {
+        conditions.push(`REPLACE(REPLACE(REPLACE(TRIM(creator_mobile), ' ', ''), '-', ''), '+91', '') = REPLACE(REPLACE(REPLACE(TRIM(?), ' ', ''), '-', ''), '+91', '')`);
+        params.push(srNo);
+      }
+
+      query += conditions.join(" OR ") + `)`;
+
+      if (campaignName) {
+        query += ` AND campaign_id IN (SELECT id FROM campaigns WHERE LOWER(TRIM(campaign_name)) = LOWER(TRIM(?)) OR LOWER(TRIM(campaign_code)) = LOWER(TRIM(?)))`;
+        params.push(campaignName, campaignName);
+      }
+
+      const result = await db.run(query, params);
+
+      if (result.changes > 0) {
+        updatedCount += result.changes;
+      } else {
+        skippedCount++;
+      }
+    }
+
+    try { fs.unlinkSync(req.file.path); } catch (_) {}
+
+    if (updatedCount > 0) {
+      req.session.utrSuccess = `Successfully updated UTR for ${updatedCount} invoice(s)! (${skippedCount} rows skipped/unmatched)`;
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('notification', { message: `✨ UTR payment batch updated for ${updatedCount} invoice(s)!` });
+      }
+    } else {
+      req.session.utrError = `No matching invoices found for the creator names in the uploaded file (${skippedCount} rows skipped).`;
+    }
+  } catch (err) {
+    req.session.utrError = "Failed to process UTR file: " + err.message;
+  }
+
+  res.redirect("/admin/dashboard");
 });
 
 app.get("/admin/invoices/:id", async (req, res) => {
@@ -1696,6 +1881,268 @@ app.post("/admin/users/:id/reset", requireRole(["SUPER_ADMIN"]), async (req, res
 app.post("/admin/users/:id/delete", requireRole(["SUPER_ADMIN"]), async (req, res) => {
   await db.run("DELETE FROM users WHERE id = ?", [req.params.id]);
   res.redirect("/admin/users");
+});
+
+app.get("/admin/api/creator-summary", requireAuth, async (req, res) => {
+  try {
+    const creatorName = String(req.query.name || "").trim();
+    const creatorMobile = String(req.query.mobile || "").trim();
+
+    if (!creatorName) {
+      return res.json({ success: false, message: "Creator name required" });
+    }
+
+    let mapQuery = `
+      SELECT cc.id, cc.campaign_id, cc.creator_name, cc.mobile, cc.amount, c.campaign_name, c.campaign_code, c.team_name, c.created_by
+      FROM campaign_creators cc
+      JOIN campaigns c ON c.id = cc.campaign_id
+      WHERE LOWER(TRIM(cc.creator_name)) = LOWER(TRIM(?))
+    `;
+    let mapParams = [creatorName];
+    if (creatorMobile) {
+      mapQuery += " AND LOWER(TRIM(cc.mobile)) = LOWER(TRIM(?))";
+      mapParams.push(creatorMobile);
+    }
+    mapQuery += " ORDER BY cc.id DESC";
+    const creatorCampaigns = await db.all(mapQuery, mapParams);
+
+    let invQuery = `
+      SELECT i.*, c.campaign_name, c.campaign_code
+      FROM invoices i
+      JOIN campaigns c ON c.id = i.campaign_id
+      WHERE LOWER(TRIM(i.creator_name)) = LOWER(TRIM(?))
+    `;
+    let invParams = [creatorName];
+    if (creatorMobile) {
+      invQuery += " AND LOWER(TRIM(i.creator_mobile)) = LOWER(TRIM(?))";
+      invParams.push(creatorMobile);
+    }
+    invQuery += " ORDER BY i.id DESC";
+    const creatorInvoices = await db.all(invQuery, invParams);
+
+    // Fetch all users for resolving created_by IDs and Team Heads
+    const allUsers = await db.all("SELECT id, username, role, team_name FROM users");
+    const userById = {};
+    const teamHeadsMap = {};
+
+    allUsers.forEach(u => {
+      userById[u.id] = u.username;
+      userById[u.username] = u.username;
+      if (u.role === 'HEAD' && u.team_name) {
+        if (!teamHeadsMap[u.team_name]) teamHeadsMap[u.team_name] = [];
+        teamHeadsMap[u.team_name].push(u.username);
+      }
+    });
+
+    const latestInvoice = creatorInvoices.length > 0 ? creatorInvoices[0] : null;
+
+    const isGstRegistered = Boolean(
+      latestInvoice && 
+      latestInvoice.creator_gstin && 
+      String(latestInvoice.creator_gstin).trim().length > 0 && 
+      String(latestInvoice.invoice_type).toLowerCase() === "gst"
+    );
+
+    const reqCampaignId = req.query.campaign_id ? Number(req.query.campaign_id) : null;
+
+    const totalCampaigns = creatorCampaigns.length;
+    const predefinedBudget = creatorCampaigns.reduce((s, c) => s + Number(c.amount || 0), 0);
+
+    let usualAmount = 0;
+    if (reqCampaignId) {
+      const matchMap = creatorCampaigns.find(c => Number(c.campaign_id) === reqCampaignId);
+      if (matchMap) {
+        usualAmount = Number(matchMap.amount || 0);
+      }
+    }
+    if (!usualAmount && creatorCampaigns.length > 0) {
+      usualAmount = Number(creatorCampaigns[0].amount || 0);
+    }
+
+    const settledPayout = creatorInvoices.filter(i => i.utr && String(i.utr).trim().length > 0).reduce((s, i) => s + Number(i.total_amount || 0), 0);
+    const pendingPayout = creatorInvoices.filter(i => (!i.utr || String(i.utr).trim().length === 0) && ['ACCEPTED', 'SUBMITTED', 'REGENERATED'].includes(i.status)).reduce((s, i) => s + Number(i.total_amount || 0), 0);
+
+    const latestSettledInvoice = creatorInvoices.find(i => i.utr && String(i.utr).trim().length > 0);
+
+    let lastPaymentText = "No payment settled yet";
+    if (latestSettledInvoice) {
+      const dt = new Date(latestSettledInvoice.updated_at || latestSettledInvoice.created_at);
+      const diffMs = Date.now() - dt.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      let timeAgo = "Recently";
+      if (diffDays <= 0) timeAgo = "Today";
+      else if (diffDays === 1) timeAgo = "1 Day Ago";
+      else if (diffDays < 30) timeAgo = `${diffDays} Days Ago`;
+      else if (diffDays < 365) timeAgo = `${Math.floor(diffDays / 30)} Month(s) Ago`;
+      else timeAgo = `${Math.floor(diffDays / 365)} Year(s) Ago`;
+
+      lastPaymentText = `${timeAgo} (${latestSettledInvoice.utr})`;
+    } else if (pendingPayout > 0) {
+      lastPaymentText = "Payment Pending (No UTR)";
+    }
+
+    const campaignsList = creatorCampaigns.map(cc => {
+      const inv = creatorInvoices.find(i => i.campaign_id === cc.campaign_id);
+      const createdByUsername = userById[cc.created_by] || 'Admin';
+      return {
+        campaignId: cc.campaign_id,
+        campaignName: cc.campaign_name,
+        campaignCode: cc.campaign_code,
+        teamName: cc.team_name || '—',
+        createdBy: createdByUsername,
+        predefinedAmount: Number(cc.amount || 0),
+        invoiceNo: inv ? (inv.invoice_no || `#${inv.id}`) : null,
+        invoiceStatus: inv ? inv.status : 'NOT_SUBMITTED',
+        invoiceAmount: inv ? Number(inv.total_amount || 0) : null,
+        utr: inv ? (inv.utr || null) : null
+      };
+    });
+
+    // Compute Monthly & Yearly Breakdown
+    const monthlyMap = {};
+    const yearlyMap = {};
+
+    creatorCampaigns.forEach(cc => {
+      const dt = new Date(cc.created_at || Date.now());
+      const monthKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+      const yearKey = `${dt.getFullYear()}`;
+      const monthLabel = dt.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const amount = Number(cc.amount || 0);
+
+      if (!monthlyMap[monthKey]) {
+        monthlyMap[monthKey] = { periodKey: monthKey, periodLabel: monthLabel, campaignsCount: 0, grossAmount: 0, settledAmount: 0, pendingAmount: 0 };
+      }
+      monthlyMap[monthKey].campaignsCount += 1;
+      monthlyMap[monthKey].grossAmount += amount;
+
+      if (!yearlyMap[yearKey]) {
+        yearlyMap[yearKey] = { periodKey: yearKey, periodLabel: yearKey, campaignsCount: 0, grossAmount: 0, settledAmount: 0, pendingAmount: 0 };
+      }
+      yearlyMap[yearKey].campaignsCount += 1;
+      yearlyMap[yearKey].grossAmount += amount;
+    });
+
+    creatorInvoices.forEach(inv => {
+      const dt = new Date(inv.created_at || Date.now());
+      const monthKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+      const yearKey = `${dt.getFullYear()}`;
+      const amount = Number(inv.total_amount || 0);
+      const isSettled = inv.utr && String(inv.utr).trim().length > 0;
+
+      if (monthlyMap[monthKey]) {
+        if (isSettled) monthlyMap[monthKey].settledAmount += amount;
+        else if (['ACCEPTED', 'SUBMITTED', 'REGENERATED'].includes(inv.status)) monthlyMap[monthKey].pendingAmount += amount;
+      }
+
+      if (yearlyMap[yearKey]) {
+        if (isSettled) yearlyMap[yearKey].settledAmount += amount;
+        else if (['ACCEPTED', 'SUBMITTED', 'REGENERATED'].includes(inv.status)) yearlyMap[yearKey].pendingAmount += amount;
+      }
+    });
+
+    const monthlyBreakdown = Object.values(monthlyMap).sort((a, b) => b.periodKey.localeCompare(a.periodKey));
+    const yearlyBreakdown = Object.values(yearlyMap).sort((a, b) => b.periodKey.localeCompare(a.periodKey));
+
+    // Calculate Tenure Text
+    let tenureText = "1 Month";
+    if (creatorCampaigns.length > 0) {
+      const dates = creatorCampaigns.map(c => new Date(c.created_at || Date.now()).getTime());
+      const minDate = new Date(Math.min(...dates));
+      const maxDate = new Date(Math.max(...dates));
+      const monthDiff = (maxDate.getFullYear() - minDate.getFullYear()) * 12 + (maxDate.getMonth() - minDate.getMonth()) + 1;
+      if (monthDiff >= 12) {
+        const yrs = Math.floor(monthDiff / 12);
+        const mos = monthDiff % 12;
+        tenureText = `${yrs} Year${yrs > 1 ? 's' : ''}${mos > 0 ? ` ${mos} Month${mos > 1 ? 's' : ''}` : ''}`;
+      } else {
+        tenureText = `${monthDiff} Month${monthDiff > 1 ? 's' : ''}`;
+      }
+    }
+
+    // Compute Team Leads & POC Directory
+    const pocMap = {};
+    creatorCampaigns.forEach(cc => {
+      const inv = creatorInvoices.find(i => i.campaign_id === cc.campaign_id);
+      const teamName = cc.team_name || 'General Team';
+      const createdByUsername = userById[cc.created_by] || 'Admin';
+      const headNames = teamHeadsMap[teamName] ? teamHeadsMap[teamName].join(' / ') : null;
+
+      let pocName = '—';
+      if (inv && inv.poc_name && String(inv.poc_name).trim().length > 0) {
+        pocName = inv.poc_name;
+      } else if (headNames) {
+        pocName = headNames;
+      } else {
+        pocName = createdByUsername;
+      }
+
+      const key = `${teamName}|${pocName}`;
+
+      if (!pocMap[key]) {
+        pocMap[key] = {
+          teamName,
+          pocName,
+          createdBy: createdByUsername,
+          campaignsCount: 0,
+          campaignsList: []
+        };
+      }
+      pocMap[key].campaignsCount += 1;
+      if (!pocMap[key].campaignsList.includes(cc.campaign_name)) {
+        pocMap[key].campaignsList.push(cc.campaign_name);
+      }
+    });
+    const teamLeadsDirectory = Object.values(pocMap);
+
+    return res.json({
+      success: true,
+      creatorName,
+      creatorMobile: creatorMobile || (latestInvoice ? latestInvoice.creator_mobile : '') || '—',
+      email: latestInvoice && latestInvoice.email ? latestInvoice.email : '—',
+      address: latestInvoice && latestInvoice.address ? latestInvoice.address : '—',
+      fullBillingName: latestInvoice && latestInvoice.full_name ? latestInvoice.full_name : creatorName,
+      totalCampaigns: `${totalCampaigns} Campaign${totalCampaigns === 1 ? '' : 's'}`,
+      predefinedBudgetFormatted: `₹${predefinedBudget.toLocaleString('en-IN')}`,
+      usualAmountFormatted: `₹${Math.round(usualAmount).toLocaleString('en-IN')}`,
+      settledPayoutFormatted: `₹${settledPayout.toLocaleString('en-IN')}`,
+      pendingPayoutFormatted: `₹${pendingPayout.toLocaleString('en-IN')}`,
+      lastCampaignName: creatorCampaigns.length > 0 ? creatorCampaigns[0].campaign_name : '—',
+      lastCampaignCode: creatorCampaigns.length > 0 ? creatorCampaigns[0].campaign_code : '—',
+      lastPaymentText,
+      taxStatus: isGstRegistered ? "GST Registered" : "Non-GST Exempt",
+      isGstRegistered,
+      pan: latestInvoice && latestInvoice.pan ? latestInvoice.pan : '—',
+      gstin: isGstRegistered && latestInvoice ? latestInvoice.creator_gstin : '—',
+      accountName: latestInvoice && latestInvoice.account_name ? latestInvoice.account_name : '—',
+      bankName: latestInvoice && latestInvoice.bank_name ? latestInvoice.bank_name : '—',
+      accountNo: latestInvoice && latestInvoice.account_no ? `••••${latestInvoice.account_no.slice(-4)}` : '—',
+      ifscCode: latestInvoice && latestInvoice.ifsc_code ? latestInvoice.ifsc_code : '—',
+      branch: latestInvoice && latestInvoice.branch ? latestInvoice.branch : '—',
+      upiId: latestInvoice && latestInvoice.upi_id ? latestInvoice.upi_id : '—',
+      campaignsList,
+      tenureText,
+      monthlyBreakdown,
+      yearlyBreakdown,
+      teamLeadsDirectory
+    });
+  } catch (err) {
+    console.error("Creator Summary API Error:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+app.get("/admin/creators/dossier/pdf", requireAuth, async (req, res) => {
+  try {
+    const creatorName = String(req.query.name || "").trim();
+    const creatorMobile = String(req.query.mobile || "").trim();
+    if (!creatorName) {
+      return res.status(400).send("Creator name required");
+    }
+    const pdfPath = await generateCreatorDossierPdf(creatorName, creatorMobile);
+    return res.redirect(pdfPath);
+  } catch (err) {
+    console.error("PDF Dossier Export Error:", err);
+    return res.status(500).send("Failed to generate PDF Dossier: " + err.message);
+  }
 });
 
 app.use((req, res, next) => {

@@ -1,5 +1,5 @@
 function requireAuth(req, res, next) {
-  if (!req.session.user) {
+  if (!req.session || !req.session.user) {
     return res.redirect("/admin");
   }
   next();
@@ -7,10 +7,12 @@ function requireAuth(req, res, next) {
 
 function requireRole(roles = []) {
   return (req, res, next) => {
-    const user = req.session.user;
+    const user = req.session ? req.session.user : null;
     if (!user) return res.redirect("/admin");
-    if (!roles.includes(user.role)) {
-      return res.status(403).send("Forbidden");
+    const userRole = String(user.role || "").trim().toUpperCase();
+    const allowedRoles = roles.map((r) => String(r).trim().toUpperCase());
+    if (!allowedRoles.includes(userRole)) {
+      return res.redirect("/admin/dashboard");
     }
     next();
   };

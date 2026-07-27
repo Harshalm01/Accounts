@@ -249,6 +249,7 @@ async function init() {
   let hasLockedAmount = false;
   let hasRevisionCount = false;
   let hasRejectionReason = false;
+  let hasUtr = false;
 
   if (isPostgres) {
     const checkColumn = async (table, column) => {
@@ -275,6 +276,7 @@ async function init() {
     hasLockedAmount = await checkColumn("invoices", "locked_amount");
     hasRevisionCount = await checkColumn("invoices", "revision_count");
     hasRejectionReason = await checkColumn("invoices", "rejection_reason");
+    hasUtr = await checkColumn("invoices", "utr");
   } else {
     const creatorColumns = await all("PRAGMA table_info(campaign_creators)");
     hasCreatorAmount = creatorColumns.some((c) => c.name === "amount");
@@ -296,6 +298,7 @@ async function init() {
     hasLockedAmount = invoiceColumns.some((c) => c.name === "locked_amount");
     hasRevisionCount = invoiceColumns.some((c) => c.name === "revision_count");
     hasRejectionReason = invoiceColumns.some((c) => c.name === "rejection_reason");
+    hasUtr = invoiceColumns.some((c) => c.name === "utr");
   }
 
   if (!hasCreatorAmount) {
@@ -349,6 +352,9 @@ async function init() {
   }
   if (!hasRejectionReason) {
     await run("ALTER TABLE invoices ADD COLUMN rejection_reason TEXT");
+  }
+  if (!hasUtr) {
+    await run("ALTER TABLE invoices ADD COLUMN utr TEXT");
   }
 
   await run(`CREATE TABLE IF NOT EXISTS invoice_items (

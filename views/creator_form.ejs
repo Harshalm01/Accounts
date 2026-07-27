@@ -388,6 +388,27 @@
                     </div>
                   </div>
 
+                  <!-- TERMS AND CONDITIONS / SELF DECLARATION CARD -->
+                  <div class="content-card" style="margin-top: 20px; border: 1.5px solid rgba(124, 58, 237, 0.25); background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(245, 243, 255, 0.9)); border-radius: 16px; padding: 20px; box-shadow: 0 8px 30px rgba(124, 58, 237, 0.06);">
+                    <div class="section-head" style="margin-bottom: 12px;">
+                      <div>
+                        <div class="portal-kicker" style="color: #7c3aed; font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: 0.08em;">Self Declaration & Agreement</div>
+                        <h3 style="margin: 4px 0 0 0; font-size: 16px; font-weight: 800; color: #1e1b4b;">Terms & Conditions Authorization</h3>
+                      </div>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.85); border: 1px solid #e0e7ff; border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; font-size: 13.5px; color: #1e1b4b; font-weight: 700; line-height: 1.6;">
+                      My signature or authorization confirms the accuracy of the information provided above.
+                    </div>
+
+                    <label class="terms-checkbox-wrap" style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; user-select: none;">
+                      <input type="checkbox" id="termsAccepted" name="termsAccepted" value="true" required style="width: 20px; height: 20px; min-width: 20px; accent-color: #7c3aed; margin-top: 2px; cursor: pointer;" />
+                      <span style="font-size: 13px; font-weight: 700; color: #1e1b4b; line-height: 1.4;">
+                        My signature or authorization confirms the accuracy of the information provided above. <span style="color: #dc2626;">*</span>
+                      </span>
+                    </label>
+                  </div>
+
                   <div class="form-actions form-actions-between" style="margin-top: 20px;">
                     <button type="button" class="btn btn-3d-sm btn-3d-open btn-prev">Back</button>
                     <button class="btn btn-3d-nav btn-3d-accept btn-submit" type="submit" id="submitBtn">
@@ -1077,6 +1098,14 @@
           if (!validateCurrentStep()) {
             e.preventDefault();
             alert("Please correct the validation errors in the fields.");
+            return;
+          }
+
+          const termsAccepted = document.getElementById("termsAccepted");
+          if (termsAccepted && !termsAccepted.checked) {
+            e.preventDefault();
+            alert("Please tick the Self Declaration & Terms and Conditions checkbox before submitting your invoice.");
+            termsAccepted.focus();
             return;
           }
 

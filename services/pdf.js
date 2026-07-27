@@ -278,6 +278,110 @@ async function ensurePdfForInvoice(invoiceId) {
   return rel;
 }
 
+async function generateCreatorDossierPdf(creatorName, creatorMobile) {
+  let invQuery = "SELECT i.*, c.campaign_name, c.campaign_code FROM invoices i JOIN campaigns c ON c.id = i.campaign_id WHERE LOWER(TRIM(i.creator_name)) = LOWER(TRIM(?))";
+  let invParams = [creatorName];
+  if (creatorMobile) {
+    invQuery += " AND LOWER(TRIM(i.creator_mobile)) = LOWER(TRIM(?))";
+    invParams.push(creatorMobile);
+  }
+  invQuery += " ORDER BY i.id DESC";
+  const creatorInvoices = await db.all(invQuery, invParams);
+
+  let mapQuery = "SELECT cc.*, c.campaign_name, c.campaign_code, c.team_name FROM campaign_creators cc JOIN campaigns c ON c.id = cc.campaign_id WHERE LOWER(TRIM(cc.creator_name)) = LOWER(TRIM(?))";
+  let mapParams = [creatorName];
+  if (creatorMobile) {
+    mapQuery += " AND LOWER(TRIM(cc.mobile)) = LOWER(TRIM(?))";
+    mapParams.push(creatorMobile);
+  }
+  mapQuery += " ORDER BY cc.id DESC";
+  const creatorCampaigns = await db.all(mapQuery, mapParams);
+
+  const latestInv = creatorInvoices.length > 0 ? creatorInvoices[0] : null;
+  const fileName = `dossier-${safeFolderName(creatorName)}-${Date.now()}.pdf`;
+  const targetPath = path.join(generatedDir, fileName);
+
+  const doc = new PDFDocument({ margin: 36, size: 'A4' });
+  const stream = fs.createWriteStream(targetPath);
+  doc.pipe(stream);
+
+  const primaryColor = "#7c3aed";
+  const textColor = "#0f172a";
+  const mutedColor = "#64748b";
+
+  doc.fillColor(primaryColor).fontSize(22).font("Helvetica-Bold").text("3Folks Media", 36, 36);
+  doc.fillColor(textColor).fontSize(14).font("Helvetica-Bold").text("CREATOR EXECUTIVE DOSSIER", 36, 62);
+  doc.fillColor(mutedColor).fontSize(9).font("Helvetica").text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 420, 40, { align: 'right' });
+
+  doc.moveTo(36, 85).lineTo(559, 85).strokeColor("#e2e8f0").lineWidth(1).stroke();
+
+  let y = 100;
+  doc.fillColor(textColor).fontSize(12).font("Helvetica-Bold").text(`Creator Name: ${creatorName}`, 36, y);
+  doc.fillColor(mutedColor).fontSize(10).font("Helvetica").text(`Mobile / SR: ${creatorMobile || (latestInv ? latestInv.creator_mobile : '—')}`, 300, y);
+  y += 18;
+  doc.text(`Email: ${latestInv && latestInv.email ? latestInv.email : '—'}`, 36, y);
+  doc.text(`PAN: ${latestInv && latestInv.pan ? latestInv.pan : '—'}`, 300, y);
+  y += 18;
+  doc.text(`GSTIN: ${latestInv && latestInv.creator_gstin ? latestInv.creator_gstin : 'Non-GST Exempt'}`, 36, y);
+  doc.text(`Bank: ${latestInv && latestInv.bank_name ? `${latestInv.bank_name} (••••${(latestInv.account_no||'').slice(-4)})` : '—'}`, 300, y);
+  y += 24;
+
+  const totalCampaigns = creatorCampaigns.length;
+  const predefinedBudget = creatorCampaigns.reduce((s, c) => s + Number(c.amount || 0), 0);
+  const settledPayout = creatorInvoices.filter(i => i.utr).reduce((s, i) => s + Number(i.total_amount || 0), 0);
+  const pendingPayout = creatorInvoices.filter(i => !i.utr && ['ACCEPTED', 'SUBMITTED', 'REGENERATED'].includes(i.status)).reduce((s, i) => s + Number(i.total_amount || 0), 0);
+
+  doc.rect(36, y, 523, 44).fillAndStroke("#f8fafc", "#cbd5e1");
+  doc.fillColor(textColor).fontSize(10).font("Helvetica-Bold");
+  doc.text(`Total Campaigns: ${totalCampaigns}`, 48, y + 14);
+  doc.text(`Predefined Budget: Rs.${predefinedBudget.toLocaleString('en-IN')}`, 160, y + 14);
+  doc.fillColor("#059669").text(`Settled Paid: Rs.${settledPayout.toLocaleString('en-IN')}`, 320, y + 14);
+  doc.fillColor("#d97706").text(`Pending: Rs.${pendingPayout.toLocaleString('en-IN')}`, 450, y + 14);
+
+  y += 60;
+
+  doc.fillColor(primaryColor).fontSize(12).font("Helvetica-Bold").text("Campaign & Payment History", 36, y);
+  y += 18;
+
+  doc.rect(36, y, 523, 20).fill("#f1f5f9");
+  doc.fillColor(textColor).fontSize(9).font("Helvetica-Bold");
+  doc.text("Campaign Name", 42, y + 5);
+  doc.text("Code", 180, y + 5);
+  doc.text("Budget", 260, y + 5);
+  doc.text("Status", 340, y + 5);
+  doc.text("UTR Settlement", 430, y + 5);
+  y += 20;
+
+  doc.font("Helvetica").fontSize(9);
+  creatorCampaigns.forEach((cc) => {
+    const inv = creatorInvoices.find(i => i.campaign_id === cc.campaign_id);
+    if (y > 750) {
+      doc.addPage();
+      y = 36;
+    }
+    doc.fillColor(textColor).text(cc.campaign_name.slice(0, 24), 42, y + 4);
+    doc.fillColor(mutedColor).text(cc.campaign_code, 180, y + 4);
+    doc.fillColor(primaryColor).font("Helvetica-Bold").text(`Rs.${Number(cc.amount||0).toLocaleString('en-IN')}`, 260, y + 4).font("Helvetica");
+
+    const st = inv ? inv.status : 'NOT SUBMITTED';
+    doc.fillColor(st === 'ACCEPTED' ? "#059669" : (st === 'SUBMITTED' ? "#1d4ed8" : "#64748b")).text(st, 340, y + 4);
+    doc.fillColor(inv && inv.utr ? "#059669" : "#94a3b8").text(inv && inv.utr ? inv.utr : "—", 430, y + 4);
+
+    doc.moveTo(36, y + 18).lineTo(559, y + 18).strokeColor("#f1f5f9").lineWidth(0.5).stroke();
+    y += 20;
+  });
+
+  doc.end();
+
+  await new Promise((res, rej) => {
+    stream.on("finish", res);
+    stream.on("error", rej);
+  });
+
+  return `/generated/${fileName}`;
+}
+
 module.exports = {
-  ensurePdfForInvoice
+  ensurePdfForInvoice,
+  generateCreatorDossierPdf
 };

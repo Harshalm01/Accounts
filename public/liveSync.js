@@ -149,6 +149,7 @@
       
       window.sendDesktopNotification(title, body, '/public/logo.png', url);
       window.showInAppToast(title, body, url);
+      if (typeof window.pollData === 'function') window.pollData();
     });
 
     // Event 2: Invoice Status Change (Accepted / Rejected)
@@ -159,6 +160,7 @@
 
       window.sendDesktopNotification(title, body, '/public/logo.png', url);
       window.showInAppToast(title, body, url);
+      if (typeof window.pollData === 'function') window.pollData();
     });
 
     // Event 3: General System Notification
@@ -169,6 +171,7 @@
 
       window.sendDesktopNotification(title, body, '/public/logo.png', url);
       window.showInAppToast(title, body, url);
+      if (typeof window.pollData === 'function') window.pollData();
     });
   }
 

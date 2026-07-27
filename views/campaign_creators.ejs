@@ -217,7 +217,7 @@
                     <td data-label="Creator">
                       <div class="user-name-cell">
                         <div class="user-avatar" data-name="<%= cr.creator_name %>"><%= cr.creator_name.charAt(0).toUpperCase() %></div>
-                        <span style="font-weight:600;color:#111827;"><%= cr.creator_name %></span>
+                        <span style="font-weight:600;color:#111827;cursor:pointer;" data-creator-hover="<%= cr.creator_name %>"><%= cr.creator_name %></span>
                       </div>
                     </td>
                     <td style="color:#6B7280;font-size:12px;font-weight:500;" data-label="Serial Number"><%= cr.mobile %></td>
@@ -228,8 +228,11 @@
                       <% if (cr.latest_invoice_id) { %>
                         <div style="display:flex;flex-direction:column;gap:4px;">
                           <span style="font-size:12px;font-weight:600;color:#1f2937;"><%= cr.latest_invoice_no || `#${cr.latest_invoice_id}` %></span>
-                          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                          <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
                             <span class="status-pill <%= cr.latest_invoice_status %>" style="font-size:10px;padding:3px 8px;"><%= cr.latest_invoice_status %></span>
+                            <% if (cr.latest_invoice_utr) { %>
+                              <span class="pill utr-copy-badge" onclick="copyUtrToClipboard('<%= cr.latest_invoice_utr %>', this)" style="font-size:10px;padding:3px 8px;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all 0.2s ease;" title="Click to copy UTR: <%= cr.latest_invoice_utr %>">✨ UTR: <%= cr.latest_invoice_utr %> <span style="font-size:11px;opacity:0.8;">📋</span></span>
+                            <% } %>
                             <% if (Number(cr.invoice_count||0) > 1) { %>
                               <span class="pill" style="font-size:10px;"><%= cr.invoice_count %> total</span>
                             <% } %>
@@ -451,6 +454,32 @@
             el.style.background = `linear-gradient(135deg, ${c1}, ${c2})`;
           });
         })();
+        // Feature — 1-click Copy UTR to clipboard
+        function copyUtrToClipboard(utrText, element) {
+          if (!utrText) return;
+          const origText = element.innerHTML;
+          navigator.clipboard.writeText(utrText).then(() => {
+            element.innerHTML = '✓ Copied!';
+            element.style.background = '#d1fae5';
+            element.style.borderColor = '#10b981';
+            element.style.color = '#047857';
+            setTimeout(() => {
+              element.innerHTML = origText;
+              element.style.background = '';
+              element.style.borderColor = '';
+              element.style.color = '';
+            }, 1800);
+          }).catch(() => {
+            const el = document.createElement('textarea');
+            el.value = utrText;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            element.innerHTML = '✓ Copied!';
+            setTimeout(() => { element.innerHTML = origText; }, 1800);
+          });
+        }
       </script>
 
     </div>
