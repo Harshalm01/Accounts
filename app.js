@@ -582,7 +582,7 @@ app.set("trust proxy", 1);
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; base-uri 'self'; connect-src 'self' https://vercel.live wss: ws:; form-action 'self'; img-src 'self' data:; object-src 'none'; script-src 'self' 'unsafe-inline' https://vercel.live https://cdn.socket.io; script-src-elem 'self' 'unsafe-inline' https://vercel.live https://cdn.socket.io; worker-src 'self' blob:; frame-src 'self' https://vercel.live; child-src 'self' https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'"
+    "default-src 'self'; base-uri 'self'; connect-src 'self' https://vercel.live https://cdn.socket.io wss: ws: blob:; form-action 'self'; img-src 'self' data:; object-src 'none'; script-src 'self' 'unsafe-inline' https://vercel.live https://cdn.socket.io; script-src-elem 'self' 'unsafe-inline' https://vercel.live https://cdn.socket.io; worker-src 'self' blob:; frame-src 'self' https://vercel.live; child-src 'self' https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'"
   );
   next();
 });
