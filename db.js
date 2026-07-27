@@ -93,37 +93,53 @@ async function all(sql, params = []) {
 }
 
 async function seedDefaultUsers() {
-  const any = await get("SELECT id FROM users LIMIT 1");
-  if (any) return;
+  const defaultUsers = [
+    { username: 'superadmin', hash: '$2a$10$g0XqykEjiJD1IHr5trcjoeecvtfeMfFybI200YMP05oezWk8XkvD.', role: 'SUPER_ADMIN', team_name: null },
+    { username: 'accounts', hash: '$2a$10$IjPkw7vydGVIrKRVpXkNs..frvrxKWfMGeR0suPhFlxizxsfV2rqG', role: 'ACCOUNTS', team_name: null },
+    { username: 'Moiz Shaikh', hash: '$2a$10$ys6ZlbAhN6FHYCeihaB1tO.RZVKbRvCsAhvHRjh4OPIm1j1UHH2QW', role: 'HEAD', team_name: 'Jhalak Moiz' },
+    { username: 'Jhalak Tated', hash: '$2a$10$EgT6lm55Sm.yDssy3TsFzukUELMblp203coFwMD/RhpQUbpNio1CO', role: 'HEAD', team_name: 'Jhalak Moiz' },
+    { username: 'Harshal Mehta', hash: '$2a$10$hTaJFWJfWHZTnXRcASGz5Ob8GGJy.QbqnMLtf6WRNFDMJgQoUImfe', role: 'TEAM', team_name: 'Jhalak Moiz' },
+    { username: 'Khushee Bagtharia', hash: '$2a$10$l/s5QYbk6pj08tDUqPdDKe/qrm7ncVHC0QZzo8RyWGDb1/x.XtMVa', role: 'TEAM', team_name: 'Jhalak Moiz' },
+    { username: 'Disha Jain', hash: '$2a$10$NOYtxxrhylDmkoUpkmKSJ.1xGtrYLQaS6P5DPWIo9knY9xrVNg2bS', role: 'TEAM', team_name: 'Jhalak Moiz' },
+    { username: 'Atharva Shinde', hash: '$2a$10$i60G6dsHpztAmq71fprSCOgmjeeqR9iLXWTvmxiuPxhbRTy/yHklq', role: 'TEAM', team_name: 'Jhalak Moiz' },
+    { username: 'Om Sawant', hash: '$2a$10$RWzcN4U0yYKl1UEA5gcoXOnUuGPmmUSMWLrOwAIQNGfoMAoqeN3ra', role: 'TEAM', team_name: 'Jhalak Moiz' },
+    { username: 'Nidhi Parsekar', hash: '$2a$10$wFQ9yn9r9z1SeHF0.bZAd.FcOswNbnPn8wPG/ttQ14t117ErVy8MK', role: 'TEAM', team_name: 'Jhalak Moiz' },
+    { username: 'Riti Tated', hash: '$2a$10$sS0IBOyyGF1OTMOz6cKT/.fRvSgvL1ossQezIeyYBTKcvtFkCzRye', role: 'HEAD', team_name: 'Team Riti' },
+    { username: 'Nirav Pipalia', hash: '$2a$10$LmNdlftIe7FL7zQCzARSo.y/HEuDsZZ/zT/IbtkixkR4fP/Xw.FYi', role: 'TEAM', team_name: 'Team Riti' },
+    { username: 'Navneet Dehad', hash: '$2a$10$Bp6Vy.xgtQYpk6.BO6Zo6.1dSBa9B7kuvel9bPVq4lnMMBVFES9wW', role: 'TEAM', team_name: 'Team Riti' },
+    { username: 'Bhumisha Rajgar', hash: '$2a$10$X8LAf7UoB3PbrYcoawohke2ghbImJKsCyC1eDZuPiZxIRf9HtbdOu', role: 'HEAD', team_name: 'Team Bhumisha' },
+    { username: 'Navya Jain', hash: '$2a$10$zWWhUfkVYSz4waMDuuWdz.HG7VJ1B56EJzw6BnhT0Lc1mlKp7gjy2', role: 'TEAM', team_name: 'Team Bhumisha' },
+    { username: 'Tauqir Khan', hash: '$2a$10$HsojbfShwGWrkHAPuFMsauuY2ucqkAaX/R2i9rHf34XC32npjP3b.', role: 'TEAM', team_name: 'Team Bhumisha' },
+    { username: 'Krisha Modi', hash: '$2a$10$rP6PQ0R28pVJgpnKWcJJn.gNfLwa8KvHs.9iXHjRzVC0uYHcZhOfS', role: 'TEAM', team_name: 'Team Bhumisha' },
+    { username: 'Deepak Lokhande', hash: '$2a$10$lQbsg9wrRdAk9bTSw2rgE.yCImj/dN3J2EmnFUI8mkrondjVz9kzG', role: 'ACCOUNTS', team_name: null },
+    { username: 'Priya Vasani', hash: '$2a$10$.rsZKGT4tp/xa7okxIt7fOQJz.rDk53RNUQTbpJRRwtS5Qzq3nlNO', role: 'HEAD', team_name: 'Team Priya' },
+    { username: 'Dhruven Gosia', hash: '$2a$10$XJMIiaQuVTFhp7BMBRYbsOLVXxSv.dWXmugd2ZVeJNnJqFXJ6eDXm', role: 'TEAM', team_name: 'Team Priya' },
+    { username: 'Siddhi Gala', hash: '$2a$10$Qisim9WAuY.ae2QluBNh..ORO/56zGunB8nfLPh5cWZvVmYuORuW6', role: 'TEAM', team_name: 'Team Priya' },
+    { username: 'Priyal Gada', hash: '$2a$10$Jxn.kP1uZeP8Q65lvYCkQuVz726OZYQFO3KiRo.TEVHNnhLBzNQ2O', role: 'TEAM', team_name: 'Team Priya' },
+    { username: 'Rishita Soni', hash: '$2a$10$BzusGg2AnIJBh7Ft3d8xiu9CsGfoiGdWx9sgZorsHfkUld9gh5EVC', role: 'TEAM', team_name: 'Team Priya' },
+    { username: 'Deep Shah', hash: '$2a$10$41i0ED.IYnKul6uN9jcqP.dXHUK2EVKWQt0S7wAtCtGmFNVjMXeC.', role: 'SUPER_ADMIN', team_name: null },
+    { username: 'Rahil Shah', hash: '$2a$10$5n05NAMow/y9L0SFMabozuCfgtyH7JqFw8RZ7JrXvQf8lprlrhiyS', role: 'SUPER_ADMIN', team_name: null },
+    { username: 'Shubh Shah', hash: '$2a$10$548CKTMyI47kQm7gsfMHmOmSopuCjy4ugmol53pOGox/l3MvMKxN6', role: 'SUPER_ADMIN', team_name: null },
+    { username: 'Sanjana Mehta', hash: '$2a$10$cx99vkbEGXPfJ.abQSuRSOL/wqaCRzbIAGGyI.nmvel5bXbemI.JO', role: 'HEAD', team_name: 'Talents' },
+    { username: 'Sakshi Pumniya', hash: '$2a$10$k.BsxVQc5t0ff9SIFnhPq.KSIJ4dX3Sa0DVhA2XEiur1T3OEhFQIa', role: 'HEAD', team_name: 'Talents' },
+    { username: 'Shweta Shinde', hash: '$2a$10$E0OLJW77lkr/da.CHL/B1.ysfkG.JxVSe9CTZt4yuVC0Z3aUyCCEa', role: 'ACCOUNTS', team_name: null },
+    { username: 'Shreya Nakarja', hash: '$2a$10$aPB8KgscZDbkTXRYP2LnGeTZZ1bvkLo9AQwkvsRT1jYnNk3dkyX9.', role: 'TEAM', team_name: 'Talents' },
+    { username: 'Kreena Kothari', hash: '$2a$10$ibl3V8XZFbfZ0Rd1u87zlu2MC5O1whAfR7M8a.ri15i1sQ5Pb30aO', role: 'TEAM', team_name: 'Talents' },
+    { username: 'Vrushti Jain', hash: '$2a$10$ditxuir9PJd0JKRb57N5Ie20SXLmjH.lB8V.NUQ6D8BYlrtAnEZ26', role: 'TEAM', team_name: 'Talents' },
+    { username: 'Krishna Talati', hash: '$2a$10$ZXuZMt0xSfDS/UHoEcyJX.bTWb8L/oIFFGq0X8X9Bbs/WHylADs62', role: 'TEAM', team_name: 'Talents' }
+  ];
 
-  const superHash = await bcrypt.hash("Admin@123", 10);
-  const accountsHash = await bcrypt.hash("Accounts@123", 10);
-  const teamHash = await bcrypt.hash("Team@123", 10);
-
-  await run("INSERT INTO users (username, password_hash, role, team_name) VALUES (?, ?, ?, ?)", [
-    "superadmin",
-    superHash,
-    "SUPER_ADMIN",
-    null
-  ]);
-  await run("INSERT INTO users (username, password_hash, role, team_name) VALUES (?, ?, ?, ?)", [
-    "accounts",
-    accountsHash,
-    "ACCOUNTS",
-    null
-  ]);
-  await run("INSERT INTO users (username, password_hash, role, team_name) VALUES (?, ?, ?, ?)", [
-    "team1",
-    teamHash,
-    "TEAM",
-    "TEAM_1"
-  ]);
-  await run("INSERT INTO users (username, password_hash, role, team_name) VALUES (?, ?, ?, ?)", [
-    "head1",
-    teamHash,
-    "HEAD",
-    "TEAM_1"
-  ]);
+  for (const u of defaultUsers) {
+    const existing = await get("SELECT id FROM users WHERE LOWER(TRIM(username)) = LOWER(TRIM(?))", [u.username]);
+    if (!existing) {
+      await run("INSERT INTO users (username, password_hash, role, team_name) VALUES (?, ?, ?, ?)", [
+        u.username,
+        u.hash,
+        u.role,
+        u.team_name
+      ]);
+    }
+  }
 }
 
 async function init() {

@@ -3,10 +3,20 @@
  */
 
 (function () {
-  // Initialize Socket.IO Client if available
+  // Initialize Socket.IO Client safely with fail-fast options for Vercel/Stateless environments
   let socket = null;
   if (typeof io !== 'undefined') {
-    socket = io();
+    socket = io({
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 2,
+      timeout: 2500,
+      autoConnect: true
+    });
+
+    socket.on('connect_error', (err) => {
+      // Gracefully disconnect to prevent polling 404 spam on serverless platforms (Vercel)
+      if (socket) socket.disconnect();
+    });
   }
 
   // Request Native Browser Desktop Notification Permissions
