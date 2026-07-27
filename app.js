@@ -1485,24 +1485,39 @@ app.post("/admin/campaigns", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, r
 });
 
 app.get("/admin/campaigns/:id/creators", requireRole(["ACCOUNTS", "HEAD", "SUPER_ADMIN", "TEAM"]), async (req, res) => {
-  const campaign = await db.get("SELECT * FROM campaigns WHERE id = ?", [req.params.id]);
-  if (!campaign) {
-    return res.redirect("/admin/campaigns");
-  }
+  try {
+    const user = req.session.user;
+    const campaignId = Number(req.params.id);
+    const campaign = await db.get("SELECT * FROM campaigns WHERE id = ?", [campaignId]);
 
-  if ((req.session.user.role === "TEAM" || req.session.user.role === "HEAD") && campaign.team_name !== req.session.user.teamName) {
-    return res.redirect("/admin/campaigns");
-  }
+    if (!campaign) {
+      const folders = await loadCampaignFolderCards(user);
+      return res.status(404).render("admin_folders", { folders, error: "Campaign not found." });
+    }
 
-  const creators = await loadCampaignCreatorsWithInvoices(campaign.id);
-  res.render("campaign_creators", {
-    campaign,
-    creators,
-    error: null,
-    success: null,
-    canEdit: req.session.user.role === "HEAD" || req.session.user.role === "SUPER_ADMIN",
-    backUrl: "/admin/folders"
-  });
+    const userRole = String(user ? user.role : "").toUpperCase();
+    if (userRole === "TEAM" || userRole === "HEAD") {
+      const cTeam = String(campaign.team_name || "").trim().toLowerCase();
+      const uTeam = String(user ? user.teamName : "").trim().toLowerCase();
+      if (uTeam && cTeam && cTeam !== uTeam) {
+        const folders = await loadCampaignFolderCards(user);
+        return res.status(403).render("admin_folders", { folders, error: "Access Denied: You can only view campaigns for your team." });
+      }
+    }
+
+    const creators = await loadCampaignCreatorsWithInvoices(campaign.id);
+    res.render("campaign_creators", {
+      campaign,
+      creators,
+      error: null,
+      success: null,
+      canEdit: userRole === "HEAD" || userRole === "SUPER_ADMIN",
+      backUrl: req.query.from === "campaigns" ? "/admin/campaigns" : "/admin/folders"
+    });
+  } catch (err) {
+    console.error("Campaign Creators Route Error:", err);
+    return res.status(500).send("Error loading campaign creators: " + err.message);
+  }
 });
 
 app.post("/admin/campaigns/:id/creators", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, res) => {
