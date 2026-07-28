@@ -11,13 +11,22 @@ const isPostgres = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
 let pool;
 let raw;
 
+function ipv4Lookup(hostname, options, callback) {
+  if (typeof options === "function") {
+    callback = options;
+    options = {};
+  }
+  dns.lookup(hostname, { ...options, family: 4 }, callback);
+}
+
 if (isPostgres) {
   const { Pool } = require("pg");
   pool = new Pool({
     connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
     ssl: {
       rejectUnauthorized: false
-    }
+    },
+    lookup: ipv4Lookup
   });
 } else {
   const sqlite3 = require("sqlite3").verbose();
