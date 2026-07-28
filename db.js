@@ -6,7 +6,13 @@ if (dns.setDefaultResultOrder) {
 const path = require("path");
 const bcrypt = require("bcryptjs");
 
-const isPostgres = !!(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+function cleanDatabaseUrl(rawUrl) {
+  if (!rawUrl) return rawUrl;
+  return String(rawUrl).trim().replace(/:\[([^\]]+)\]@/, (m, p1) => ":" + p1 + "@");
+}
+
+const rawDbUrl = cleanDatabaseUrl(process.env.DATABASE_URL || process.env.POSTGRES_URL);
+const isPostgres = !!rawDbUrl;
 
 let pool;
 let raw;
@@ -22,7 +28,7 @@ function ipv4Lookup(hostname, options, callback) {
 if (isPostgres) {
   const { Pool } = require("pg");
   pool = new Pool({
-    connectionString: process.env.DATABASE_URL || process.env.POSTGRES_URL,
+    connectionString: rawDbUrl,
     ssl: {
       rejectUnauthorized: false
     },
