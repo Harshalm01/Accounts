@@ -12,10 +12,17 @@ function cleanDatabaseUrl(rawUrl) {
 }
 
 const rawDbUrl = cleanDatabaseUrl(process.env.DATABASE_URL || process.env.POSTGRES_URL);
-const isPostgres = !!rawDbUrl;
+let isPostgres = !!rawDbUrl;
+let pool = null;
+let raw = null;
 
-let pool;
-let raw;
+function initSqlite() {
+  if (raw) return;
+  const sqlite3 = require("sqlite3").verbose();
+  const runtimeDir = process.env.VERCEL ? "/tmp" : __dirname;
+  const dbPath = process.env.DATABASE_PATH || path.join(runtimeDir, "portal.db");
+  raw = new sqlite3.Database(dbPath);
+}
 
 function ipv4Lookup(hostname, options, callback) {
   if (typeof options === "function") {
@@ -26,19 +33,23 @@ function ipv4Lookup(hostname, options, callback) {
 }
 
 if (isPostgres) {
-  const { Pool } = require("pg");
-  pool = new Pool({
-    connectionString: rawDbUrl,
-    ssl: {
-      rejectUnauthorized: false
-    },
-    lookup: ipv4Lookup
-  });
+  try {
+    const { Pool } = require("pg");
+    pool = new Pool({
+      connectionString: rawDbUrl,
+      ssl: {
+        rejectUnauthorized: false
+      },
+      lookup: ipv4Lookup,
+      connectionTimeoutMillis: 5000
+    });
+  } catch (err) {
+    console.warn("⚠️ Failed to initialize PostgreSQL pool:", err.message);
+    isPostgres = false;
+    initSqlite();
+  }
 } else {
-  const sqlite3 = require("sqlite3").verbose();
-  const runtimeDir = process.env.VERCEL ? "/tmp" : __dirname;
-  const dbPath = process.env.DATABASE_PATH || path.join(runtimeDir, "portal.db");
-  raw = new sqlite3.Database(dbPath);
+  initSqlite();
 }
 
 function convertQuery(sql) {
@@ -183,12 +194,22 @@ async function init() {
             ssl: {
               rejectUnauthorized: false,
               servername: origHost
-            }
+            },
+            connectionTimeoutMillis: 5000
           });
         }
       }
     } catch (err) {
       // Ignore resolution fallback
+    }
+
+    try {
+      await pool.query("SELECT 1");
+      console.log("✅ Successfully connected to PostgreSQL database!");
+    } catch (err) {
+      console.warn("⚠️ PostgreSQL connection failed (" + err.message + "). Falling back to SQLite database.");
+      isPostgres = false;
+      initSqlite();
     }
   }
 
