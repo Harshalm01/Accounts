@@ -169,6 +169,29 @@ async function seedDefaultUsers() {
 }
 
 async function init() {
+  if (isPostgres && rawDbUrl) {
+    try {
+      const parsedUrl = new URL(rawDbUrl);
+      const origHost = parsedUrl.hostname;
+      if (origHost && !origHost.match(/^[0-9.]+$/)) {
+        const ips = await dns.promises.resolve4(origHost);
+        if (ips && ips.length) {
+          const { Pool } = require("pg");
+          parsedUrl.hostname = ips[0];
+          pool = new Pool({
+            connectionString: parsedUrl.toString(),
+            ssl: {
+              rejectUnauthorized: false,
+              servername: origHost
+            }
+          });
+        }
+      }
+    } catch (err) {
+      // Ignore resolution fallback
+    }
+  }
+
   await run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
