@@ -1,3 +1,8 @@
+const dns = require("dns");
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder("ipv4first");
+}
+
 const path = require("path");
 const bcrypt = require("bcryptjs");
 
