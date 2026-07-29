@@ -34,15 +34,14 @@ npm start
 
 ## Default Users
 
-- Super Admin:
-  - Username: `superadmin`
-  - Password: `Admin@123`
-- Accounts:
-  - Username: `accounts`
-  - Password: `Accounts@123`
-- Team:
-  - Username: `team1`
-  - Password: `Team@123`
+Formula for default passwords: `[FirstName][LastInitial]@3fm` (or `[Name]@3fm` for single-word usernames).
+
+- `superadmin` -> `Superadmin@3fm`
+- `accounts` -> `Accounts@3fm`
+- `Harshal Mehta` -> `HarshalM@3fm`
+- `Moiz Shaikh` -> `MoizS@3fm`
+- `Jhalak Tated` -> `JhalakT@3fm`
+- `Priya Vasani` -> `PriyaV@3fm`
 
 ## Notes
 

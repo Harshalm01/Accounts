@@ -122,59 +122,74 @@ async function all(sql, params = []) {
     });
   }
 }
+function getDefaultPassword(username) {
+  const parts = username.trim().split(/\s+/);
+  if (parts.length === 1) {
+    const name = parts[0];
+    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase() + "@3fm";
+  }
+  const firstName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
+  const lastInitial = parts[1].charAt(0).toUpperCase();
+  return `${firstName}${lastInitial}@3fm`;
+}
 
 async function seedDefaultUsers() {
-  const superHash = await bcrypt.hash("Admin@123", 10);
-  const accountsHash = await bcrypt.hash("Accounts@123", 10);
-  const teamHash = await bcrypt.hash("Team@123", 10);
-
-  const defaultUsers = [
-    { username: 'superadmin', hash: superHash, role: 'SUPER_ADMIN', team_name: null },
-    { username: 'accounts', hash: accountsHash, role: 'ACCOUNTS', team_name: null },
-    { username: 'Moiz Shaikh', hash: teamHash, role: 'HEAD', team_name: 'Jhalak Moiz' },
-    { username: 'Jhalak Tated', hash: teamHash, role: 'HEAD', team_name: 'Jhalak Moiz' },
-    { username: 'Harshal Mehta', hash: teamHash, role: 'TEAM', team_name: 'Jhalak Moiz' },
-    { username: 'Khushee Bagtharia', hash: teamHash, role: 'TEAM', team_name: 'Jhalak Moiz' },
-    { username: 'Disha Jain', hash: teamHash, role: 'TEAM', team_name: 'Jhalak Moiz' },
-    { username: 'Atharva Shinde', hash: teamHash, role: 'TEAM', team_name: 'Jhalak Moiz' },
-    { username: 'Om Sawant', hash: teamHash, role: 'TEAM', team_name: 'Jhalak Moiz' },
-    { username: 'Nidhi Parsekar', hash: teamHash, role: 'TEAM', team_name: 'Jhalak Moiz' },
-    { username: 'Riti Tated', hash: teamHash, role: 'HEAD', team_name: 'Team Riti' },
-    { username: 'Nirav Pipalia', hash: teamHash, role: 'TEAM', team_name: 'Team Riti' },
-    { username: 'Navneet Dehad', hash: teamHash, role: 'TEAM', team_name: 'Team Riti' },
-    { username: 'Bhumisha Rajgar', hash: teamHash, role: 'HEAD', team_name: 'Team Bhumisha' },
-    { username: 'Navya Jain', hash: teamHash, role: 'TEAM', team_name: 'Team Bhumisha' },
-    { username: 'Tauqir Khan', hash: teamHash, role: 'TEAM', team_name: 'Team Bhumisha' },
-    { username: 'Krisha Modi', hash: teamHash, role: 'TEAM', team_name: 'Team Bhumisha' },
-    { username: 'Deepak Lokhande', hash: accountsHash, role: 'ACCOUNTS', team_name: null },
-    { username: 'Priya Vasani', hash: teamHash, role: 'HEAD', team_name: 'Team Priya' },
-    { username: 'Dhruven Gosia', hash: teamHash, role: 'TEAM', team_name: 'Team Priya' },
-    { username: 'Siddhi Gala', hash: teamHash, role: 'TEAM', team_name: 'Team Priya' },
-    { username: 'Priyal Gada', hash: teamHash, role: 'TEAM', team_name: 'Team Priya' },
-    { username: 'Rishita Soni', hash: teamHash, role: 'TEAM', team_name: 'Team Priya' },
-    { username: 'Deep Shah', hash: superHash, role: 'SUPER_ADMIN', team_name: null },
-    { username: 'Rahil Shah', hash: superHash, role: 'SUPER_ADMIN', team_name: null },
-    { username: 'Shubh Shah', hash: superHash, role: 'SUPER_ADMIN', team_name: null },
-    { username: 'Sanjana Mehta', hash: teamHash, role: 'HEAD', team_name: 'Talents' },
-    { username: 'Sakshi Pumniya', hash: teamHash, role: 'HEAD', team_name: 'Talents' },
-    { username: 'Shweta Shinde', hash: accountsHash, role: 'ACCOUNTS', team_name: null },
-    { username: 'Shreya Nakarja', hash: teamHash, role: 'TEAM', team_name: 'Talents' },
-    { username: 'Kreena Kothari', hash: teamHash, role: 'TEAM', team_name: 'Talents' },
-    { username: 'Vrushti Jain', hash: teamHash, role: 'TEAM', team_name: 'Talents' },
-    { username: 'Krishna Talati', hash: teamHash, role: 'TEAM', team_name: 'Talents' }
+  const rawUsers = [
+    { username: 'superadmin', role: 'SUPER_ADMIN', team_name: null },
+    { username: 'accounts', role: 'ACCOUNTS', team_name: null },
+    { username: 'Moiz Shaikh', role: 'HEAD', team_name: 'Jhalak Moiz' },
+    { username: 'Jhalak Tated', role: 'HEAD', team_name: 'Jhalak Moiz' },
+    { username: 'Harshal Mehta', role: 'TEAM', team_name: 'Jhalak Moiz' },
+    { username: 'Khushee Bagtharia', role: 'TEAM', team_name: 'Jhalak Moiz' },
+    { username: 'Disha Jain', role: 'TEAM', team_name: 'Jhalak Moiz' },
+    { username: 'Atharva Shinde', role: 'TEAM', team_name: 'Jhalak Moiz' },
+    { username: 'Om Sawant', role: 'TEAM', team_name: 'Jhalak Moiz' },
+    { username: 'Nidhi Parsekar', role: 'TEAM', team_name: 'Jhalak Moiz' },
+    { username: 'Riti Tated', role: 'HEAD', team_name: 'Team Riti' },
+    { username: 'Nirav Pipalia', role: 'TEAM', team_name: 'Team Riti' },
+    { username: 'Navneet Dehad', role: 'TEAM', team_name: 'Team Riti' },
+    { username: 'Bhumisha Rajgar', role: 'HEAD', team_name: 'Team Bhumisha' },
+    { username: 'Navya Jain', role: 'TEAM', team_name: 'Team Bhumisha' },
+    { username: 'Tauqir Khan', role: 'TEAM', team_name: 'Team Bhumisha' },
+    { username: 'Krisha Modi', role: 'TEAM', team_name: 'Team Bhumisha' },
+    { username: 'Deepak Lokhande', role: 'ACCOUNTS', team_name: null },
+    { username: 'Priya Vasani', role: 'HEAD', team_name: 'Team Priya' },
+    { username: 'Dhruven Gosia', role: 'TEAM', team_name: 'Team Priya' },
+    { username: 'Siddhi Gala', role: 'TEAM', team_name: 'Team Priya' },
+    { username: 'Priyal Gada', role: 'TEAM', team_name: 'Team Priya' },
+    { username: 'Rishita Soni', role: 'TEAM', team_name: 'Team Priya' },
+    { username: 'Deep Shah', role: 'SUPER_ADMIN', team_name: null },
+    { username: 'Rahil Shah', role: 'SUPER_ADMIN', team_name: null },
+    { username: 'Shubh Shah', role: 'SUPER_ADMIN', team_name: null },
+    { username: 'Sanjana Mehta', role: 'HEAD', team_name: 'Talents' },
+    { username: 'Sakshi Pumniya', role: 'HEAD', team_name: 'Talents' },
+    { username: 'Shweta Shinde', role: 'ACCOUNTS', team_name: null },
+    { username: 'Shreya Nakarja', role: 'TEAM', team_name: 'Talents' },
+    { username: 'Kreena Kothari', role: 'TEAM', team_name: 'Talents' },
+    { username: 'Vrushti Jain', role: 'TEAM', team_name: 'Talents' },
+    { username: 'Krishna Talati', role: 'TEAM', team_name: 'Talents' }
   ];
 
-  for (const u of defaultUsers) {
-    const existing = await get("SELECT id FROM users WHERE LOWER(TRIM(username)) = LOWER(TRIM(?))", [u.username]);
+  for (const u of rawUsers) {
+    const plainPassword = getDefaultPassword(u.username);
+    const hash = await bcrypt.hash(plainPassword, 10);
+    const existing = await get("SELECT id, password_hash FROM users WHERE LOWER(TRIM(username)) = LOWER(TRIM(?))", [u.username]);
     if (!existing) {
       await run("INSERT INTO users (username, password_hash, role, team_name) VALUES (?, ?, ?, ?)", [
         u.username,
-        u.hash,
+        hash,
         u.role,
         u.team_name
       ]);
     } else {
-      await run("UPDATE users SET password_hash = ? WHERE id = ?", [u.hash, existing.id]);
+      const isOldDefault = (
+        await bcrypt.compare("Admin@123", existing.password_hash) ||
+        await bcrypt.compare("Accounts@123", existing.password_hash) ||
+        await bcrypt.compare("Team@123", existing.password_hash)
+      );
+      if (isOldDefault) {
+        await run("UPDATE users SET password_hash = ? WHERE id = ?", [hash, existing.id]);
+      }
     }
   }
 }
