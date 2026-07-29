@@ -1,24 +1,31 @@
 /**
- * 3Folks Media - Real-Time Live Sync & Native Desktop Notifications
+ * 3Folks Media - Real-Time Live Sync Engine & Native Desktop Notifications
  */
 
 (function () {
-  // Initialize Socket.IO Client safely with fail-fast options for Vercel/Stateless environments
   let socket = null;
+  let lastDataHash = '';
+
+  // 1. Initialize Socket.IO Client safely
   if (typeof io !== 'undefined') {
     socket = io({
-      transports: ['polling', 'websocket'],
-      reconnectionAttempts: 5,
-      timeout: 5000,
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      timeout: 10000,
       autoConnect: true
     });
 
-    socket.on('connect_error', (err) => {
-      // Soft fallback for quiet connection retries
+    socket.on('connect', () => {
+      console.log('⚡ Socket.IO Live-Sync connected successfully.');
+    });
+
+    socket.on('connect_error', () => {
+      // Soft fallback to HTTP polling engine if socket fails
     });
   }
 
-  // Request Native Browser Desktop Notification Permissions
+  // 2. Request Native Browser Desktop Notification Permissions
   function requestNotificationPermission() {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission().then((permission) => {
@@ -29,7 +36,7 @@
     }
   }
 
-  // Send Native Desktop Notification
+  // 3. Send Native Desktop Notification
   window.sendDesktopNotification = function (title, body, iconUrl, targetUrl) {
     if (!('Notification' in window)) return;
 
@@ -58,7 +65,7 @@
     }
   };
 
-  // Play Notification Audio Ping
+  // 4. Play Notification Audio Ping
   function playNotificationAudio() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -78,7 +85,7 @@
     }
   }
 
-  // In-App Toast Banner Notification
+  // 5. In-App Toast Banner Notification
   window.showInAppToast = function (title, message, targetUrl) {
     playNotificationAudio();
 
@@ -144,13 +151,17 @@
     }, 4500);
   };
 
-  // Connect Socket.IO Listeners
-  if (socket) {
-    socket.on('connect', () => {
-      console.log('⚡ Socket.IO Live-Sync connected.');
-    });
+  // 6. Universal Live Update Trigger
+  function triggerLiveUpdate(data) {
+    if (typeof window.pollData === 'function') {
+      window.pollData();
+    } else if (typeof window.refreshPageData === 'function') {
+      window.refreshPageData();
+    }
+  }
 
-    // Event 1: New Invoice Submitted
+  // 7. Connect Socket.IO Listeners
+  if (socket) {
     socket.on('new-invoice', (data) => {
       const title = '📄 New Invoice Submitted';
       const body = `Invoice #${data.invoice_no || data.id} from ${data.creator_name || 'Creator'} (${data.campaign_name || 'Campaign'})`;
@@ -158,10 +169,9 @@
       
       window.sendDesktopNotification(title, body, '/public/logo.png', url);
       window.showInAppToast(title, body, url);
-      if (typeof window.pollData === 'function') window.pollData();
+      triggerLiveUpdate(data);
     });
 
-    // Event 2: Invoice Status Change (Accepted / Rejected)
     socket.on('invoice-status-updated', (data) => {
       const title = `🔔 Invoice #${data.invoice_no || data.id} Updated`;
       const body = `Status changed to: ${data.status || 'Updated'}`;
@@ -169,10 +179,9 @@
 
       window.sendDesktopNotification(title, body, '/public/logo.png', url);
       window.showInAppToast(title, body, url);
-      if (typeof window.pollData === 'function') window.pollData();
+      triggerLiveUpdate(data);
     });
 
-    // Event 3: General System Notification
     socket.on('notification', (data) => {
       const title = '📢 3Folks Media Alert';
       const body = data.message || 'New activity logged on accounts portal.';
@@ -180,9 +189,34 @@
 
       window.sendDesktopNotification(title, body, '/public/logo.png', url);
       window.showInAppToast(title, body, url);
-      if (typeof window.pollData === 'function') window.pollData();
+      triggerLiveUpdate(data);
     });
   }
+
+  // 8. Hybrid Auto-Polling Engine (Guarantees live sync even if WebSockets are blocked/sleeping)
+  function computeHash(data) {
+    if (!data || !data.invoices) return '';
+    const invHash = data.invoices.map(i => `${i.id}-${i.status}-${i.invoice_type}-${i.total_amount}`).join('|');
+    const noteHash = (data.notifications || []).map(n => `${n.id}-${n.is_read}`).join('|');
+    return `${invHash}#${noteHash}`;
+  }
+
+  function checkSyncState() {
+    fetch('/admin/api/invoices')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (!data) return;
+        const currentHash = computeHash(data);
+        if (lastDataHash && currentHash !== lastDataHash) {
+          triggerLiveUpdate(data);
+        }
+        lastDataHash = currentHash;
+      })
+      .catch(() => {});
+  }
+
+  // Start background sync check every 3.5 seconds
+  setInterval(checkSyncState, 3500);
 
   // Auto-request notification permission on user interaction
   document.addEventListener('click', function initNotifyPermission() {
@@ -190,3 +224,4 @@
     document.removeEventListener('click', initNotifyPermission);
   });
 })();
+
