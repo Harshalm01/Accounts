@@ -495,7 +495,7 @@
     createFullPageModalElement();
 
     document.addEventListener('click', (e) => {
-      const creatorEl = e.target.closest('[data-creator-hover], .user-avatar, .user-avatar-modern, .search-creator-name');
+      const creatorEl = e.target.closest('[data-creator-hover], .creator-avatar, .search-creator-name');
       if (!creatorEl) return;
 
       let creatorName = creatorEl.getAttribute('data-creator-hover');
@@ -527,7 +527,7 @@
 
     let hoverIntentTimer = null;
     document.addEventListener('mouseover', (e) => {
-      const creatorEl = e.target.closest('[data-creator-hover], .user-avatar, .user-avatar-modern, .search-creator-name');
+      const creatorEl = e.target.closest('[data-creator-hover], .creator-avatar, .search-creator-name');
       if (!creatorEl) return;
 
       let creatorName = creatorEl.getAttribute('data-creator-hover');
@@ -561,7 +561,7 @@
     });
 
     document.addEventListener('mouseout', (e) => {
-      const creatorEl = e.target.closest('[data-creator-hover], .user-avatar, .user-avatar-modern, .search-creator-name');
+      const creatorEl = e.target.closest('[data-creator-hover], .creator-avatar, .search-creator-name');
       if (creatorEl) {
         clearTimeout(hoverIntentTimer);
       }
