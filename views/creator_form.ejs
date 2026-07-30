@@ -72,7 +72,7 @@
                 <div class="portal-kicker">Campaign validation</div>
                 <h2 class="section-title">Confirm the campaign mapping</h2>
               </div>
-              <p class="section-subtitle">Enter the campaign code and registered serial number to unlock the invoice workflow.</p>
+              <p class="section-subtitle">Enter the campaign code and registered phone number to unlock the invoice workflow.</p>
             </div>
 
             <form method="post" action="/creator/validate" class="portal-form">
@@ -83,7 +83,7 @@
                 </label>
                 <label class="field field-floating">
                   <input type="text" name="mobile" value="<%= form.mobile || '' %>" placeholder=" " required />
-                  <span>Serial Number *</span>
+                  <span>Phone Number *</span>
                 </label>
               </div>
               <div class="form-actions form-actions-left">
@@ -129,6 +129,16 @@
                   <span>Amount</span>
                   <strong>₹<%= form.amount %></strong>
                 </div>
+                <% if (form.liveLink) { %>
+                  <div class="summary-item" style="grid-column: span 2;">
+                    <span>Live Link</span>
+                    <strong>
+                      <a href="<%= form.liveLink.startsWith('http') ? form.liveLink : 'https://' + form.liveLink %>" target="_blank" style="color: #7c3aed; text-decoration: underline; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                        🔗 <%= form.liveLink %> ↗
+                      </a>
+                    </strong>
+                  </div>
+                <% } %>
               </div>
             </div>
           </section>

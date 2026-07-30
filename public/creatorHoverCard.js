@@ -60,7 +60,8 @@
                 Creator Name
               </h2>
               <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px; flex-wrap: wrap;">
-                <span style="font-size: 13px; color: #64748b; font-weight: 600;">SR / Mobile: <span id="fullMobile" style="color: #0f172a; font-weight: 700;">—</span></span>
+                <span style="font-size: 13px; color: #64748b; font-weight: 600;">Phone Number: <span id="fullMobile" style="color: #0f172a; font-weight: 700;">—</span></span>
+                <span style="font-size: 13px; color: #64748b; font-weight: 600;">Total Invoices Submitted: <span id="fullInvoiceCount" style="color: #16a34a; font-weight: 800;">0</span></span>
                 <span style="font-size: 13px; color: #64748b; font-weight: 600;">Tenure: <span id="fullTenure" style="color: #7c3aed; font-weight: 800;">1 Month</span></span>
                 <span id="fullGstBadge" style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 8px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">
                   Non-GST Exempt
@@ -393,6 +394,10 @@
     document.getElementById('fullCreatorName').textContent = data.creatorName;
     document.getElementById('fullAvatar').textContent = (data.creatorName || 'C').charAt(0).toUpperCase();
     document.getElementById('fullMobile').textContent = data.creatorMobile || '—';
+    const invCountEl = document.getElementById('fullInvoiceCount');
+    if (invCountEl) {
+      invCountEl.textContent = data.totalInvoicesCount !== undefined ? data.totalInvoicesCount : (data.campaignsList ? data.campaignsList.filter(c=>c.invoiceNo).length : 0);
+    }
     document.getElementById('fullTenure').textContent = data.tenureText || '1 Month';
     document.getElementById('breakdownTenureSummary').textContent = `${data.creatorName} has been associated for ${data.tenureText || '1 Month'} across ${data.totalCampaigns}`;
 

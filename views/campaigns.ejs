@@ -83,10 +83,14 @@
           <div class="section-head" style="margin-bottom: 20px;">
             <div>
               <h3>Add Campaign</h3>
-              <p class="subtitle">Fill in campaign name, code and optionally assign a team.</p>
+              <p class="subtitle">Fill in campaign details, brand name, external budget and assigned team.</p>
             </div>
           </div>
-          <form method="post" action="/admin/campaigns" class="grid-3">
+          <form method="post" action="/admin/campaigns" class="grid-3" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;">
+            <label class="input-label">
+              <span>Brand Name *</span>
+              <input type="text" name="brandName" required placeholder="e.g. Nike, Samsung..." />
+            </label>
             <label class="input-label">
               <span>Campaign Name *</span>
               <input type="text" name="campaignName" required placeholder="e.g. Kaamil Phase 3" />
@@ -94,6 +98,10 @@
             <label class="input-label">
               <span>Campaign Code *</span>
               <input type="text" name="campaignCode" required placeholder="e.g. 3FM-CC-40" />
+            </label>
+            <label class="input-label">
+              <span>External Budget (₹)</span>
+              <input type="number" step="0.01" name="externalBudget" placeholder="e.g. 100000" />
             </label>
             <% if (user.role === 'SUPER_ADMIN') { %>
               <label class="input-label">
@@ -112,7 +120,7 @@
       <div class="card glass-panel" style="margin-bottom: 16px;">
         <form method="get" action="/admin/campaigns" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
           <label class="input-label" style="flex:1;min-width:220px;">
-            <span>Search by name / code / team</span>
+            <span>Search by name / brand / code / team</span>
             <input type="text" name="search" value="<%= search || '' %>" placeholder="Kaamil, 3FM-CC-40…" />
           </label>
           <div style="display:flex;gap:8px;padding-bottom:2px;">
@@ -130,7 +138,7 @@
         <div class="section-head" style="margin-bottom: 20px;">
           <div>
             <h3>Campaign Folders</h3>
-            <p class="subtitle">Click a campaign to view creators, amounts and invoices.</p>
+            <p class="subtitle">Click a campaign to view creators, budgets and pending payouts.</p>
           </div>
           <div class="pill"><%= campaigns.length %> campaigns</div>
         </div>
@@ -141,18 +149,24 @@
 
         <div class="folder-grid folder-grid-books" id="campaignFolderGrid" style="margin-top: 16px;">
           <% campaigns.forEach((c) => { %>
+            <% 
+              const totalCr = c.creators ? c.creators.length : 0;
+              const paidCr = c.paidCreatorsCount || 0;
+              const pendingCr = c.pendingCreatorsCount || (totalCr - paidCr);
+              const paidPct = totalCr > 0 ? Math.round((paidCr / totalCr) * 100) : 0;
+            %>
             <div class="folder-card-wrap" data-name="<%= (c.campaign_name || '').toLowerCase() %>">
               <a class="book" href="/admin/campaigns/<%= c.id %>/creators">
 
                 <!-- Inside of Book (creators list) -->
                 <div class="inside-page">
-                  <div class="inside-header">Creators · <%= c.creators.length %></div>
+                  <div class="inside-header">Creators · <%= totalCr %></div>
                   <div class="inside-creators-list">
                     <% if (c.creators && c.creators.length) { %>
                       <% c.creators.forEach((cr) => { %>
                         <div class="inside-creator-row">
                           <span class="inside-creator-name"><%= cr.creator_name %></span>
-                          <span class="inside-creator-amount">₹<%= Number(cr.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></span>
+                          <span class="inside-creator-amount">₹<%= Number(cr.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) %></span>
                         </div>
                       <% }) %>
                     <% } else { %>
@@ -164,23 +178,42 @@
                 <!-- Cover of Book (campaign summary) -->
                 <div class="cover">
                   <div>
-                    <span class="cover-tag">Campaign</span>
-                    <h3 class="cover-title"><%= c.campaign_name %></h3>
-                    <p style="font-size:12px;color:#6B7280;margin:0 0 12px 0;"><%= c.campaign_code %> · <%= c.team_name %></p>
-                  </div>
-                  <div class="cover-meta">
-                    <div class="meta-item">
-                      <span class="meta-icon">💰</span>
-                      <span>₹<%= Number(c.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) %></span>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <span class="cover-tag"><%= c.brand_name || 'Campaign' %></span>
+                      <span style="font-size:11px; font-weight:800; color:#7c3aed;"><%= c.team_name %></span>
                     </div>
-                    <div class="meta-item">
-                      <span class="meta-icon">👥</span>
-                      <span><%= c.creator_count || 0 %> creators</span>
+                    <h3 class="cover-title" style="margin-top:4px;"><%= c.campaign_name %></h3>
+                    <p style="font-size:11px;color:#6B7280;margin:0 0 10px 0;">Code: <strong><%= c.campaign_code %></strong></p>
+                  </div>
+
+                  <!-- Internal & External Budget -->
+                  <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:8px 10px; margin-bottom:10px; font-size:11px;">
+                    <div>
+                      <span style="color:#64748b; font-weight:600; display:block;">External Budget</span>
+                      <strong style="color:#0f172a; font-size:12px;">₹<%= Number(c.external_budget || 0).toLocaleString('en-IN') %></strong>
+                    </div>
+                    <div>
+                      <span style="color:#64748b; font-weight:600; display:block;">Internal (Calculated)</span>
+                      <strong style="color:#7c3aed; font-size:12px;">₹<%= Number(c.internalBudget || c.amount || 0).toLocaleString('en-IN') %></strong>
+                    </div>
+                  </div>
+
+                  <!-- Pending Payout Bar Chart -->
+                  <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:10px; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; font-weight:700; margin-bottom:6px;">
+                      <span style="color:#059669;">Paid: <%= paidCr %> (₹<%= Number(c.paidPayout || 0).toLocaleString('en-IN') %>)</span>
+                      <span style="color:#d97706;">Pending: <%= pendingCr %> (₹<%= Number(c.pendingPayout || 0).toLocaleString('en-IN') %>)</span>
+                    </div>
+                    <div style="width:100%; height:8px; background:#fef3c7; border-radius:4px; overflow:hidden; display:flex;">
+                      <div style="width:<%= paidPct %>%; height:100%; background:linear-gradient(90deg, #10b981, #059669); transition:width 0.3s ease;"></div>
+                    </div>
+                    <div style="font-size:10px; color:#64748b; margin-top:4px; text-align:right; font-weight:600;">
+                      <%= paidPct %>% Payout Settled
                     </div>
                   </div>
 
                   <% if (user.role === 'HEAD' || user.role === 'SUPER_ADMIN' || user.role === 'ACCOUNTS') { %>
-                    <div style="margin-top: 10px; text-align: right;">
+                    <div style="margin-top: 6px; text-align: right;">
                       <form method="post" action="/admin/campaigns/<%= c.id %>/delete" onsubmit="return confirm('⚠️ Are you sure you want to delete campaign &quot;<%= c.campaign_name %>&quot;? All mapped creators and invoices will be permanently deleted.');" style="display:inline;" onclick="event.stopPropagation();">
                         <button type="submit" class="btn btn-3d-sm" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:800; font-size:10px; padding:4px 10px; border-radius:6px; cursor:pointer;">
                           🗑️ Delete Campaign

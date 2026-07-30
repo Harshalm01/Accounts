@@ -263,6 +263,8 @@ async function init() {
     amount REAL NOT NULL,
     team_name TEXT NOT NULL,
     created_by INTEGER,
+    external_budget REAL DEFAULT 0,
+    brand_name TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(created_by) REFERENCES users(id)
   )`);
@@ -273,6 +275,7 @@ async function init() {
     creator_name TEXT NOT NULL,
     mobile TEXT NOT NULL,
     amount REAL NOT NULL DEFAULT 0,
+    live_link TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(campaign_id) REFERENCES campaigns(id)
   )`);
@@ -334,6 +337,9 @@ async function init() {
   )`);
 
   let hasCreatorAmount = false;
+  let hasLiveLink = false;
+  let hasExternalBudget = false;
+  let hasBrandName = false;
   let hasInvoiceType = false;
   let hasPoNumber = false;
   let hasCreatorGstin = false;
@@ -361,6 +367,9 @@ async function init() {
       return !!res;
     };
     hasCreatorAmount = await checkColumn("campaign_creators", "amount");
+    hasLiveLink = await checkColumn("campaign_creators", "live_link");
+    hasExternalBudget = await checkColumn("campaigns", "external_budget");
+    hasBrandName = await checkColumn("campaigns", "brand_name");
     hasInvoiceType = await checkColumn("invoices", "invoice_type");
     hasPoNumber = await checkColumn("invoices", "po_number");
     hasCreatorGstin = await checkColumn("invoices", "creator_gstin");
@@ -381,6 +390,11 @@ async function init() {
   } else {
     const creatorColumns = await all("PRAGMA table_info(campaign_creators)");
     hasCreatorAmount = creatorColumns.some((c) => c.name === "amount");
+    hasLiveLink = creatorColumns.some((c) => c.name === "live_link");
+
+    const campaignColumns = await all("PRAGMA table_info(campaigns)");
+    hasExternalBudget = campaignColumns.some((c) => c.name === "external_budget");
+    hasBrandName = campaignColumns.some((c) => c.name === "brand_name");
 
     const invoiceColumns = await all("PRAGMA table_info(invoices)");
     hasInvoiceType = invoiceColumns.some((c) => c.name === "invoice_type");
@@ -404,6 +418,15 @@ async function init() {
 
   if (!hasCreatorAmount) {
     await run("ALTER TABLE campaign_creators ADD COLUMN amount REAL NOT NULL DEFAULT 0");
+  }
+  if (!hasLiveLink) {
+    await run("ALTER TABLE campaign_creators ADD COLUMN live_link TEXT");
+  }
+  if (!hasExternalBudget) {
+    await run("ALTER TABLE campaigns ADD COLUMN external_budget REAL DEFAULT 0");
+  }
+  if (!hasBrandName) {
+    await run("ALTER TABLE campaigns ADD COLUMN brand_name TEXT");
   }
   if (!hasInvoiceType) {
     await run("ALTER TABLE invoices ADD COLUMN invoice_type TEXT NOT NULL DEFAULT 'non_gst'");

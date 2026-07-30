@@ -100,17 +100,17 @@
               </div>
             </div>
             <div class="header-stat-card">
-              <span class="stat-icon">💰</span>
+              <span class="stat-icon">💵</span>
               <div class="stat-info">
-                <span class="stat-value">₹<%= creators.reduce((s,c)=>s+Number(c.amount||0),0).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0}) %></span>
-                <span class="stat-label">Total Payout</span>
+                <span class="stat-value">₹<%= Number(campaign.external_budget||0).toLocaleString('en-IN') %></span>
+                <span class="stat-label">External Budget</span>
               </div>
             </div>
             <div class="header-stat-card">
-              <span class="stat-icon">📄</span>
+              <span class="stat-icon">💰</span>
               <div class="stat-info">
-                <span class="stat-value"><%= creators.filter(c=>c.latest_invoice_id).length %></span>
-                <span class="stat-label">Submitted</span>
+                <span class="stat-value">₹<%= creators.reduce((s,c)=>s+Number(c.amount||0),0).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0}) %></span>
+                <span class="stat-label">Internal Budget</span>
               </div>
             </div>
           </div>
@@ -147,18 +147,22 @@
               </div>
               <div class="pill">Manual</div>
             </div>
-            <form method="post" action="/admin/campaigns/<%= campaign.id %>/creators" class="grid-3">
+            <form method="post" action="/admin/campaigns/<%= campaign.id %>/creators" class="grid-3" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;">
               <label class="input-label">
                 <span>Creator Name *</span>
                 <input type="text" name="creatorName" required placeholder="e.g. Rahul Sharma" />
               </label>
               <label class="input-label">
-                <span>Serial Number *</span>
-                <input type="text" name="mobile" required placeholder="e.g. SR-101" />
+                <span>Phone Number *</span>
+                <input type="text" name="mobile" required placeholder="e.g. 9876543210" />
               </label>
               <label class="input-label">
                 <span>Predefined Amount *</span>
                 <input type="number" step="0.01" name="amount" required placeholder="e.g. 25000" />
+              </label>
+              <label class="input-label">
+                <span>Live Link</span>
+                <input type="url" name="live_link" placeholder="https://instagram.com/p/..." />
               </label>
               <div style="align-self:end;">
                 <button class="btn btn-3d-nav" type="submit" style="width:100%;">+ Add Creator</button>
@@ -171,7 +175,7 @@
             <div class="section-head" style="margin-bottom:20px;">
               <div>
                 <h3>Bulk Upload</h3>
-                <p class="subtitle">Upload CSV or Excel with columns: Sr No, Creator Name, Amount.</p>
+                <p class="subtitle">Upload CSV or Excel with columns: Phone Number / Sr No, Creator Name, Amount, Live Link.</p>
               </div>
               <div class="pill pill-accent">Bulk</div>
             </div>
@@ -196,7 +200,7 @@
         <div class="section-head" style="margin-bottom:20px;">
           <div>
             <h3>Creators for <%= campaign.campaign_name %></h3>
-            <p class="subtitle">All creators mapped to this campaign and their invoice status.</p>
+            <p class="subtitle">All creators mapped to this campaign and their live links & invoice status.</p>
           </div>
           <div class="pill"><%= creators.length %> creators</div>
         </div>
@@ -208,9 +212,10 @@
             <table class="users-table">
               <thead>
                 <tr>
-                  <th style="width: 60px;">ID</th>
+                  <th style="width: 50px;">ID</th>
                   <th>Creator</th>
-                  <th>Serial Number</th>
+                  <th>Phone Number</th>
+                  <th>Live Link</th>
                   <th>Predefined Amt</th>
                   <th>Invoice</th>
                   <th>Invoice Amt</th>
@@ -224,10 +229,19 @@
                     <td data-label="Creator">
                       <div class="user-name-cell">
                         <div class="user-avatar" data-name="<%= cr.creator_name %>"><%= cr.creator_name.charAt(0).toUpperCase() %></div>
-                        <span style="font-weight:600;color:#111827;cursor:pointer;" data-creator-hover="<%= cr.creator_name %>"><%= cr.creator_name %></span>
+                        <span style="font-weight:600;color:#111827;cursor:pointer;" data-creator-hover="<%= cr.creator_name %>" data-creator-mobile="<%= cr.mobile %>"><%= cr.creator_name %></span>
                       </div>
                     </td>
-                    <td style="color:#6B7280;font-size:12px;font-weight:500;" data-label="Serial Number"><%= cr.mobile %></td>
+                    <td style="color:#6B7280;font-size:12px;font-weight:600;" data-label="Phone Number"><%= cr.mobile %></td>
+                    <td data-label="Live Link">
+                      <% if (cr.live_link) { %>
+                        <a href="<%= cr.live_link.startsWith('http') ? cr.live_link : 'https://' + cr.live_link %>" target="_blank" style="color:#7c3aed;font-weight:700;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;background:#f3e8ff;padding:3px 8px;border-radius:6px;border:1px solid #ddd6fe;" title="<%= cr.live_link %>">
+                          🔗 Link ↗
+                        </a>
+                      <% } else { %>
+                        <span style="color:#d1d5db;font-size:12px;">—</span>
+                      <% } %>
+                    </td>
                     <td data-label="Predefined Amt">
                       <span style="font-weight:700;color:#7c3aed;">₹<%= Number(cr.amount||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}) %></span>
                     </td>

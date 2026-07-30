@@ -213,14 +213,13 @@ function ensureCampaignFolders(campaign) {
   return folder;
 }
 
-async function loadCampaignFolderCards(user = null) {
+async function loadCampaignFolderCards(user) {
   let campaigns;
   if (user && (user.role === "TEAM" || user.role === "HEAD") && user.teamName) {
     campaigns = await db.all(
-      `SELECT c.*, COUNT(DISTINCT cc.id) AS creator_count, COUNT(DISTINCT i.id) AS invoice_count, COALESCE(SUM(cc.amount), 0) AS total_amount
+      `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
        FROM campaigns c
        LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-       LEFT JOIN invoices i ON i.campaign_id = c.id
        WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?))
        GROUP BY c.id
        ORDER BY c.id DESC`,
@@ -228,10 +227,9 @@ async function loadCampaignFolderCards(user = null) {
     );
   } else {
     campaigns = await db.all(
-      `SELECT c.*, COUNT(DISTINCT cc.id) AS creator_count, COUNT(DISTINCT i.id) AS invoice_count, COALESCE(SUM(cc.amount), 0) AS total_amount
+      `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
        FROM campaigns c
        LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-       LEFT JOIN invoices i ON i.campaign_id = c.id
        GROUP BY c.id
        ORDER BY c.id DESC`
     );
@@ -239,38 +237,41 @@ async function loadCampaignFolderCards(user = null) {
 
   const folders = [];
   for (const campaign of campaigns) {
-    const creators = await db.all(
-      `SELECT cc.id, cc.creator_name, cc.mobile, cc.amount, COUNT(i.id) AS invoice_count
-       , (
-         SELECT i2.id
-         FROM invoices i2
-         WHERE i2.campaign_id = cc.campaign_id AND i2.creator_mobile = cc.mobile
-         ORDER BY i2.id DESC
-         LIMIT 1
-       ) AS latest_invoice_id
-       , (
-         SELECT i2.pdf_path
-         FROM invoices i2
-         WHERE i2.campaign_id = cc.campaign_id AND i2.creator_mobile = cc.mobile
-         ORDER BY i2.id DESC
-         LIMIT 1
-       ) AS latest_pdf_path
-       FROM campaign_creators cc
-       LEFT JOIN invoices i ON i.campaign_id = cc.campaign_id AND i.creator_mobile = cc.mobile
-       WHERE cc.campaign_id = ?
-       GROUP BY cc.id
-       ORDER BY cc.id DESC`,
-      [campaign.id]
-    );
+    const creators = await loadCampaignCreatorsWithInvoices(campaign.id);
+
+    let paidCreatorsCount = 0;
+    let paidPayout = 0;
+    let pendingCreatorsCount = 0;
+    let pendingPayout = 0;
+
+    creators.forEach(cr => {
+      const isPaid = cr.latest_invoice_status === "PAYMENT COMPLETED" ||
+                     cr.latest_invoice_status === "PAID" ||
+                     (cr.latest_invoice_status === "ACCEPTED" && cr.latest_invoice_utr);
+      if (isPaid) {
+        paidCreatorsCount++;
+        paidPayout += Number(cr.amount || 0);
+      } else {
+        pendingCreatorsCount++;
+        pendingPayout += Number(cr.amount || 0);
+      }
+    });
 
     folders.push({
       id: campaign.id,
       campaignName: campaign.campaign_name,
       campaignCode: campaign.campaign_code,
       teamName: campaign.team_name,
+      brandName: campaign.brand_name || 'Campaign',
+      externalBudget: Number(campaign.external_budget || 0),
+      internalBudget: Number(campaign.amount || 0),
       creatorCount: Number(campaign.creator_count || 0),
-      invoiceCount: Number(campaign.invoice_count || 0),
-      totalAmount: Number(campaign.total_amount || 0),
+      invoiceCount: creators.filter(c => c.latest_invoice_id).length,
+      totalAmount: Number(campaign.amount || 0),
+      paidCreatorsCount,
+      paidPayout,
+      pendingCreatorsCount,
+      pendingPayout,
       latestInvoiceId: creators
         .map((creator) => Number(creator.latest_invoice_id || 0))
         .filter((invoiceId) => invoiceId > 0)
@@ -290,65 +291,87 @@ async function loadCampaignCards(user, search = "") {
   const like = `%${normalizedSearch}%`;
   let campaigns;
 
-  if (user && (user.role === "TEAM" || user.role === "HEAD") && user.teamName) {
+  // Requirement 7:
+  // - SUPER_ADMIN & ACCOUNTS: see all campaigns
+  // - HEAD: can see campaigns created by ANY HEAD role user across all teams
+  // - TEAM: can see ONLY campaigns created by their team HEAD
+  if (user && user.role === "HEAD") {
+    let baseSql = `
+      SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
+      FROM campaigns c
+      LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
+      LEFT JOIN users u ON u.id = c.created_by
+      WHERE (u.role = 'HEAD' OR c.created_by IS NULL)
+    `;
+    let params = [];
     if (normalizedSearch) {
-      campaigns = await db.all(
-        `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
-         FROM campaigns c
-         LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-         WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?)) AND (c.campaign_name LIKE ? OR c.campaign_code LIKE ?)
-         GROUP BY c.id
-         ORDER BY c.id DESC`,
-        [user.teamName, like, like]
-      );
-    } else {
-      campaigns = await db.all(
-        `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
-         FROM campaigns c
-         LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-         WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?))
-         GROUP BY c.id
-         ORDER BY c.id DESC`,
-        [user.teamName]
-      );
+      baseSql += ` AND (c.campaign_name LIKE ? OR c.campaign_code LIKE ? OR c.team_name LIKE ? OR c.brand_name LIKE ?)`;
+      params.push(like, like, like, like);
     }
+    baseSql += ` GROUP BY c.id ORDER BY c.id DESC`;
+    campaigns = await db.all(baseSql, params);
+
+  } else if (user && user.role === "TEAM" && user.teamName) {
+    let baseSql = `
+      SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
+      FROM campaigns c
+      LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
+      LEFT JOIN users u ON u.id = c.created_by
+      WHERE u.role = 'HEAD' AND LOWER(TRIM(c.team_name)) = LOWER(TRIM(?))
+    `;
+    let params = [user.teamName];
+    if (normalizedSearch) {
+      baseSql += ` AND (c.campaign_name LIKE ? OR c.campaign_code LIKE ?)`;
+      params.push(like, like);
+    }
+    baseSql += ` GROUP BY c.id ORDER BY c.id DESC`;
+    campaigns = await db.all(baseSql, params);
+
   } else {
+    let baseSql = `
+      SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
+      FROM campaigns c
+      LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
+    `;
+    let params = [];
     if (normalizedSearch) {
-      campaigns = await db.all(
-        `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
-         FROM campaigns c
-         LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-         WHERE c.campaign_name LIKE ? OR c.campaign_code LIKE ? OR c.team_name LIKE ?
-         GROUP BY c.id
-         ORDER BY c.id DESC`,
-        [like, like, like]
-      );
-    } else {
-      campaigns = await db.all(
-        `SELECT c.*, COUNT(cc.id) AS creator_count, COALESCE(SUM(cc.amount),0) AS amount
-         FROM campaigns c
-         LEFT JOIN campaign_creators cc ON cc.campaign_id = c.id
-         GROUP BY c.id
-         ORDER BY c.id DESC`
-      );
+      baseSql += ` WHERE c.campaign_name LIKE ? OR c.campaign_code LIKE ? OR c.team_name LIKE ? OR c.brand_name LIKE ?`;
+      params.push(like, like, like, like);
     }
+    baseSql += ` GROUP BY c.id ORDER BY c.id DESC`;
+    campaigns = await db.all(baseSql, params);
   }
 
   const campaignCards = [];
   for (const campaign of campaigns) {
-    const creators = await db.all(
-      `SELECT cc.id, cc.creator_name, cc.mobile, cc.amount, COUNT(i.id) AS invoice_count
-       FROM campaign_creators cc
-       LEFT JOIN invoices i ON i.campaign_id = cc.campaign_id AND i.creator_mobile = cc.mobile
-       WHERE cc.campaign_id = ?
-       GROUP BY cc.id
-       ORDER BY cc.id DESC`,
-      [campaign.id]
-    );
+    const creators = await loadCampaignCreatorsWithInvoices(campaign.id);
+
+    let paidCreatorsCount = 0;
+    let paidPayout = 0;
+    let pendingCreatorsCount = 0;
+    let pendingPayout = 0;
+
+    creators.forEach(cr => {
+      const isPaid = cr.latest_invoice_status === "PAYMENT COMPLETED" ||
+                     cr.latest_invoice_status === "PAID" ||
+                     (cr.latest_invoice_status === "ACCEPTED" && cr.latest_invoice_utr);
+      if (isPaid) {
+        paidCreatorsCount++;
+        paidPayout += Number(cr.amount || 0);
+      } else {
+        pendingCreatorsCount++;
+        pendingPayout += Number(cr.amount || 0);
+      }
+    });
 
     campaignCards.push({
       ...campaign,
-      creators
+      creators,
+      paidCreatorsCount,
+      paidPayout,
+      pendingCreatorsCount,
+      pendingPayout,
+      internalBudget: Number(campaign.amount || 0)
     });
   }
 
@@ -567,10 +590,20 @@ function extractCreatorsFromSheet(filePath) {
       mob = `99${String(sr).padStart(8, '0')}`;
     }
 
+    const liveLink = String(
+      normalized.livelink ||
+      normalized.link ||
+      normalized.livelinks ||
+      normalized.url ||
+      normalized.live ||
+      ""
+    ).trim();
+
     return {
       creatorName: name,
       mobile: mob,
-      amount: Number(normalized.amount || 0)
+      amount: Number(normalized.amount || 0),
+      live_link: liveLink || null
     };
   });
 }
@@ -765,10 +798,10 @@ app.post("/creator/validate", async (req, res) => {
   }
 
   const campaign = await db.get(
-    `SELECT c.id, c.campaign_name, c.campaign_code, cc.amount AS creator_amount, cc.creator_name
+    `SELECT c.id, c.campaign_name, c.campaign_code, cc.amount AS creator_amount, cc.creator_name, cc.live_link
      FROM campaigns c
      JOIN campaign_creators cc ON cc.campaign_id = c.id
-     WHERE c.campaign_code = ? AND cc.mobile = ?`,
+     WHERE c.campaign_code = ? AND (REPLACE(REPLACE(REPLACE(TRIM(cc.mobile), ' ', ''), '-', ''), '+91', '') = REPLACE(REPLACE(REPLACE(TRIM(?), ' ', ''), '-', ''), '+91', ''))`,
     [campaignCode.trim(), mobile.trim()]
   );
 
@@ -802,6 +835,7 @@ app.post("/creator/validate", async (req, res) => {
       campaignName: campaign.campaign_name,
       amount: campaign.creator_amount,
       creatorName: campaign.creator_name,
+      liveLink: campaign.live_link || null,
       existingInvoice,
       existingItems
     }
@@ -1437,7 +1471,7 @@ app.post("/admin/campaigns", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, r
   try {
     const user = req.session.user;
     const canEdit = user.role === "HEAD" || user.role === "SUPER_ADMIN";
-    const { campaignName, campaignCode, teamName } = req.body;
+    const { campaignName, campaignCode, teamName, brandName, externalBudget } = req.body;
     const campaigns = await loadCampaignCards(user, req.body.search || "");
 
     if (!campaignName || !campaignCode) {
@@ -1466,8 +1500,16 @@ app.post("/admin/campaigns", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, r
       : (teamName || user.teamName || "Jhalak Moiz");
 
     const result = await db.run(
-      "INSERT INTO campaigns (campaign_name, campaign_code, amount, team_name, created_by) VALUES (?, ?, ?, ?, ?)",
-      [campaignName.trim(), campaignCode.trim(), 0, appliedTeam, user.id]
+      "INSERT INTO campaigns (campaign_name, campaign_code, amount, team_name, created_by, external_budget, brand_name) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [
+        campaignName.trim(),
+        campaignCode.trim(),
+        0,
+        appliedTeam,
+        user.id,
+        Number(externalBudget || 0),
+        (brandName || "").trim()
+      ]
     );
     ensureCampaignFolders({ id: result.lastID, campaign_name: campaignName.trim() });
 
@@ -1528,7 +1570,7 @@ app.post("/admin/campaigns/:id/creators", requireRole(["HEAD", "SUPER_ADMIN"]), 
     return res.redirect("/admin/campaigns");
   }
 
-  const { creatorName, mobile, amount } = req.body;
+  const { creatorName, mobile, amount, live_link } = req.body;
   if (!creatorName || !mobile || !amount) {
     const creators = await loadCampaignCreatorsWithInvoices(campaign.id);
     return res.render("campaign_creators", {
@@ -1542,8 +1584,8 @@ app.post("/admin/campaigns/:id/creators", requireRole(["HEAD", "SUPER_ADMIN"]), 
   }
 
   await db.run(
-    "INSERT INTO campaign_creators (campaign_id, creator_name, mobile, amount) VALUES (?, ?, ?, ?)",
-    [campaign.id, creatorName.trim(), mobile.trim(), Number(amount)]
+    "INSERT INTO campaign_creators (campaign_id, creator_name, mobile, amount, live_link) VALUES (?, ?, ?, ?, ?)",
+    [campaign.id, creatorName.trim(), mobile.trim(), Number(amount), (live_link || "").trim()]
   );
 
   res.redirect(`/admin/campaigns/${campaign.id}/creators`);
@@ -1579,20 +1621,20 @@ app.post("/admin/campaigns/:id/creators/bulk", requireRole(["HEAD", "SUPER_ADMIN
       }
 
       const existing = await db.get(
-        "SELECT id FROM campaign_creators WHERE campaign_id = ? AND mobile = ?",
+        "SELECT id FROM campaign_creators WHERE campaign_id = ? AND (REPLACE(REPLACE(REPLACE(TRIM(mobile), ' ', ''), '-', ''), '+91', '') = REPLACE(REPLACE(REPLACE(TRIM(?), ' ', ''), '-', ''), '+91', ''))",
         [campaign.id, row.mobile]
       );
 
       if (existing) {
         await db.run(
-          "UPDATE campaign_creators SET creator_name = ?, amount = ? WHERE id = ?",
-          [row.creatorName, Number(row.amount), existing.id]
+          "UPDATE campaign_creators SET creator_name = ?, amount = ?, live_link = COALESCE(?, live_link) WHERE id = ?",
+          [row.creatorName, Number(row.amount), row.live_link || null, existing.id]
         );
         inserted.push({ ...row, updated: true });
       } else {
         await db.run(
-          "INSERT INTO campaign_creators (campaign_id, creator_name, mobile, amount) VALUES (?, ?, ?, ?)",
-          [campaign.id, row.creatorName, row.mobile, Number(row.amount)]
+          "INSERT INTO campaign_creators (campaign_id, creator_name, mobile, amount, live_link) VALUES (?, ?, ?, ?, ?)",
+          [campaign.id, row.creatorName, row.mobile, Number(row.amount), row.live_link || null]
         );
         inserted.push(row);
       }
@@ -1773,9 +1815,14 @@ app.post("/admin/upload-utr", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), upload.s
 
 app.get("/admin/invoices/:id", async (req, res) => {
   const invoice = await db.get(
-    `SELECT i.*, c.campaign_name, c.campaign_code
+    `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username, cc.live_link
      FROM invoices i
      JOIN campaigns c ON c.id = i.campaign_id
+     LEFT JOIN users u ON u.id = c.created_by
+     LEFT JOIN campaign_creators cc ON cc.campaign_id = i.campaign_id AND (
+       REPLACE(REPLACE(REPLACE(TRIM(cc.mobile), ' ', ''), '-', ''), '+91', '') = REPLACE(REPLACE(REPLACE(TRIM(i.creator_mobile), ' ', ''), '-', ''), '+91', '')
+       OR LOWER(TRIM(cc.creator_name)) = LOWER(TRIM(i.creator_name))
+     )
      WHERE i.id = ?`,
     [req.params.id]
   );
@@ -1796,7 +1843,11 @@ app.post("/admin/invoices/:id/status", requireRole(["ACCOUNTS", "SUPER_ADMIN"]),
     return res.redirect("/admin/dashboard");
   }
 
-  const nextStatus = action === "accept" ? "ACCEPTED" : "REJECTED";
+  let nextStatus = "ACCEPTED";
+  if (action === "accept") nextStatus = "ACCEPTED";
+  else if (action === "reject") nextStatus = "REJECTED";
+  else if (action === "payment_completed" || action === "paid") nextStatus = "PAYMENT COMPLETED";
+  
   const rejectionReason = nextStatus === "REJECTED" ? String(reason || "").trim() : null;
 
   if (nextStatus === "REJECTED" && !rejectionReason) {
@@ -2197,6 +2248,7 @@ app.get("/admin/api/creator-summary", requireAuth, async (req, res) => {
       upiId: latestInvoice && latestInvoice.upi_id ? latestInvoice.upi_id : '—',
       campaignsList,
       tenureText,
+      totalInvoicesCount: creatorInvoices.length,
       monthlyBreakdown,
       yearlyBreakdown,
       teamLeadsDirectory
@@ -2273,7 +2325,11 @@ async function startServer(port) {
 }
 
 if (require.main === module) {
-  dbReady.then(() => startServer(START_PORT));
+  dbReady
+    .then(() => startServer(START_PORT))
+    .catch((err) => {
+      console.error("❌ Server startup error:", err);
+    });
 }
 
 module.exports = app;
