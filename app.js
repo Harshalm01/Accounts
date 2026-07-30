@@ -1276,11 +1276,11 @@ app.use("/admin", requireAuth);
 app.get("/admin/utr-template/download", (req, res) => {
   try {
     const wb = xlsx.utils.book_new();
-    const headers = [["Sr No", "Campaign Name", "Creator Name", "Amount", "UTR"]];
+    const headers = [["Phone Number", "Campaign Name", "Creator Name", "Amount", "UTR"]];
     const ws = xlsx.utils.aoa_to_sheet(headers);
 
     ws["!cols"] = [
-      { wch: 10 },
+      { wch: 16 },
       { wch: 25 },
       { wch: 25 },
       { wch: 15 },
