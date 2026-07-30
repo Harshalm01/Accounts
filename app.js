@@ -1684,10 +1684,11 @@ app.post("/admin/campaigns/:id/delete", requireRole(["HEAD", "SUPER_ADMIN", "ACC
 
     const invs = await db.all("SELECT id FROM invoices WHERE campaign_id = ?", [campaignId]);
     for (const inv of invs) {
+      await db.run("DELETE FROM notifications WHERE invoice_id = ?", [inv.id]);
       await db.run("DELETE FROM invoice_items WHERE invoice_id = ?", [inv.id]);
     }
-    await db.run("DELETE FROM invoices WHERE campaign_id = ?", [campaignId]);
     await db.run("DELETE FROM notifications WHERE campaign_id = ?", [campaignId]);
+    await db.run("DELETE FROM invoices WHERE campaign_id = ?", [campaignId]);
     await db.run("DELETE FROM campaign_creators WHERE campaign_id = ?", [campaignId]);
     await db.run("DELETE FROM campaigns WHERE id = ?", [campaignId]);
 
