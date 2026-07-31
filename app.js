@@ -2156,10 +2156,11 @@ app.post("/hr/invoices/upload", requireRole(["HR", "SUPER_ADMIN"]), upload.singl
       return res.redirect("/hr/invoices?error=" + encodeURIComponent("Invoice No, Creator Name, Amount, and File upload are required."));
     }
 
+    const { uploadToStorage } = require("./services/s3");
     const numAmount = Number(amount) || 0;
     const isGst = invoiceType === "upload_gst";
     const hrLabel = isGst ? "Uploaded GST Invoice" : "Uploaded NON-GST Invoice";
-    const filePath = "/uploads/" + req.file.filename;
+    const filePath = await uploadToStorage(req.file.path, req.file.originalname, req.file.mimetype);
 
     let campaign = await db.get("SELECT id FROM campaigns WHERE campaign_code = 'HR-DEPT' LIMIT 1");
     if (!campaign) {

@@ -274,8 +274,11 @@ async function ensurePdfForInvoice(invoiceId) {
     stream.on("error", reject);
   });
 
-  await db.run("UPDATE invoices SET pdf_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [rel, invoiceId]);
-  return rel;
+  const { uploadToStorage } = require("./s3");
+  const publicPdfUrl = await uploadToStorage(filePath, path.basename(filePath), "application/pdf");
+
+  await db.run("UPDATE invoices SET pdf_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [publicPdfUrl, invoiceId]);
+  return publicPdfUrl;
 }
 
 async function generateCreatorDossierPdf(creatorName, creatorMobile) {
