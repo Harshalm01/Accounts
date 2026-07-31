@@ -203,7 +203,22 @@
                         <span>GST Based</span>
                       </button>
                     </div>
-                    <p class="section-subtitle" id="choiceHint" style="margin-top: 10px;">Select to configure invoice settings.</p>
+
+                    <!-- SUB-CHOICE FOR GST BASED FLOW -->
+                    <div id="gstSubChoiceSection" style="display: none; margin-top: 18px; border-top: 1.5px dashed rgba(124, 58, 237, 0.2); padding-top: 16px;">
+                      <div class="portal-kicker" style="color: #7c3aed; font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 6px;">GST Mode Selection</div>
+                      <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">How would you like to submit your GST Invoice?</div>
+                      <div class="grid-2 choice-grid">
+                        <button type="button" class="btn btn-light flow-choice flow-choice-active" id="gstFillModeBtn" style="border-radius: 14px; padding: 14px;">
+                          <span>📝 Fill & Auto-Generate Invoice</span>
+                        </button>
+                        <button type="button" class="btn btn-light flow-choice" id="gstUploadModeBtn" style="border-radius: 14px; padding: 14px;">
+                          <span>📤 Upload Existing GST Invoice PDF</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <p class="section-subtitle" id="choiceHint" style="margin-top: 12px;">Select to configure invoice settings.</p>
                   </div>
 
                   <div class="content-card">
@@ -296,15 +311,15 @@
                       </label>
                     </div>
 
-                    <div style="background: rgba(124, 58, 237, 0.04); border: 1.5px dashed rgba(124, 58, 237, 0.3); border-radius: 14px; padding: 18px; margin-top: 10px;">
+                    <div id="gstUploadContainer" style="background: rgba(124, 58, 237, 0.04); border: 1.5px dashed rgba(124, 58, 237, 0.3); border-radius: 14px; padding: 18px; margin-top: 10px;">
                       <label class="input-label" style="display: flex; flex-direction: column; gap: 6px;">
                         <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #7c3aed; letter-spacing: 0.5px;">
-                          📤 Upload Signed GST Invoice File (PDF / Image) (Optional)
+                          📤 Upload Signed GST Invoice File (PDF / Image)
                         </span>
                         <p style="font-size: 12px; color: #64748b; margin: 0 0 8px 0;">
-                          If you already have an official signed GST Invoice document or PDF, attach it here to store in AWS Cloud bucket.
+                          If you already have your official signed GST Invoice document, attach it here. It will be uploaded directly to AWS Cloud Storage.
                         </p>
-                        <input type="file" name="gstDocument" accept=".pdf,.png,.jpg,.jpeg" style="padding: 10px; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13px; font-family: inherit; color: #0f172a;" />
+                        <input type="file" name="gstDocument" id="gstDocumentInput" accept=".pdf,.png,.jpg,.jpeg" style="padding: 10px; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13px; font-family: inherit; color: #0f172a;" />
                       </label>
                     </div>
                   </div>
@@ -735,7 +750,32 @@
 
         updateStepUI();
 
-        // GST choice handling
+        // GST choice & sub-mode handling
+        const gstSubChoiceSection = document.getElementById("gstSubChoiceSection");
+        const gstFillModeBtn = document.getElementById("gstFillModeBtn");
+        const gstUploadModeBtn = document.getElementById("gstUploadModeBtn");
+        const gstUploadContainer = document.getElementById("gstUploadContainer");
+
+        let currentGstSubMode = "fill";
+
+        function setGstSubMode(mode) {
+          currentGstSubMode = mode;
+          if (mode === "upload") {
+            if (gstFillModeBtn) gstFillModeBtn.classList.remove("flow-choice-active");
+            if (gstUploadModeBtn) gstUploadModeBtn.classList.add("flow-choice-active");
+            if (gstUploadContainer) gstUploadContainer.style.display = "block";
+            if (choiceHint) choiceHint.textContent = "📤 Upload GST Invoice mode selected. Attach your signed GST Invoice PDF/Image file below.";
+          } else {
+            if (gstUploadModeBtn) gstUploadModeBtn.classList.remove("flow-choice-active");
+            if (gstFillModeBtn) gstFillModeBtn.classList.add("flow-choice-active");
+            if (gstUploadContainer) gstUploadContainer.style.display = "block";
+            if (choiceHint) choiceHint.textContent = "📝 Fill GST Invoice mode selected. Enter PO Number, GSTIN, and details below.";
+          }
+        }
+
+        if (gstFillModeBtn) gstFillModeBtn.addEventListener("click", () => setGstSubMode("fill"));
+        if (gstUploadModeBtn) gstUploadModeBtn.addEventListener("click", () => setGstSubMode("upload"));
+
         function setChoiceState(activeChoice) {
           if (nonGstChoice) {
             nonGstChoice.classList.toggle("flow-choice-active", activeChoice === "non_gst");
@@ -749,6 +789,7 @@
           if (invoiceType) invoiceType.value = "non_gst";
           if (choiceHint) choiceHint.textContent = "Non-GST based Bill of Supply flow selected. Fill details below.";
           setChoiceState("non_gst");
+          if (gstSubChoiceSection) gstSubChoiceSection.style.display = "none";
           if (gstDetailsSection) gstDetailsSection.hidden = true;
           if (poNumber) poNumber.required = false;
           if (gstin) gstin.required = false;
@@ -757,11 +798,12 @@
 
         function showGstFlow() {
           if (invoiceType) invoiceType.value = "gst";
-          if (choiceHint) choiceHint.textContent = "GST based Tax Invoice flow selected. PO Number and GSTIN are required.";
           setChoiceState("gst");
+          if (gstSubChoiceSection) gstSubChoiceSection.style.display = "block";
           if (gstDetailsSection) gstDetailsSection.hidden = false;
           if (poNumber) poNumber.required = true;
           if (gstin) gstin.required = true;
+          setGstSubMode(currentGstSubMode);
           syncAllPreviewFields();
         }
 
