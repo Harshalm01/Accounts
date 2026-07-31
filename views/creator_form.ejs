@@ -779,17 +779,27 @@
 
         function setGstSubMode(mode) {
           currentGstSubMode = mode;
+          const stepperHeader = document.querySelector(".stepper-header");
+          const billingCard = document.getElementById("billingIdentityCard");
+          const formActions = document.querySelectorAll(".form-actions");
+
           if (mode === "upload") {
             if (gstFillModeBtn) gstFillModeBtn.classList.remove("flow-choice-active");
             if (gstUploadModeBtn) gstUploadModeBtn.classList.add("flow-choice-active");
             if (gstUploadStep1Box) gstUploadStep1Box.style.display = "block";
-            if (gstUploadContainer) gstUploadContainer.style.display = "block";
-            if (choiceHint) choiceHint.textContent = "📤 Upload GST Invoice mode selected. Attach your signed GST Invoice PDF file directly above.";
+            if (billingCard) billingCard.style.display = "none";
+            if (stepperHeader) stepperHeader.style.display = "none";
+            formActions.forEach(fa => fa.style.display = "none");
+            if (choiceHint) choiceHint.textContent = "📤 Upload GST Invoice mode selected. Simply select your GST Invoice PDF above and click Submit!";
+            currentStep = 1;
+            updateStepUI();
           } else {
             if (gstUploadModeBtn) gstUploadModeBtn.classList.remove("flow-choice-active");
             if (gstFillModeBtn) gstFillModeBtn.classList.add("flow-choice-active");
             if (gstUploadStep1Box) gstUploadStep1Box.style.display = "none";
-            if (gstUploadContainer) gstUploadContainer.style.display = "block";
+            if (billingCard) billingCard.style.display = "block";
+            if (stepperHeader) stepperHeader.style.display = "flex";
+            formActions.forEach(fa => fa.style.display = "flex");
             if (choiceHint) choiceHint.textContent = "📝 Fill GST Invoice mode selected. Enter PO Number, GSTIN, and details below.";
           }
         }
@@ -808,10 +818,18 @@
 
         function showNonGstFlow() {
           if (invoiceType) invoiceType.value = "non_gst";
+          const stepperHeader = document.querySelector(".stepper-header");
+          const billingCard = document.getElementById("billingIdentityCard");
+          const formActions = document.querySelectorAll(".form-actions");
+
           if (choiceHint) choiceHint.textContent = "Non-GST based Bill of Supply flow selected. Fill details below.";
           setChoiceState("non_gst");
           if (gstSubChoiceSection) gstSubChoiceSection.style.display = "none";
           if (gstDetailsSection) gstDetailsSection.hidden = true;
+          if (billingCard) billingCard.style.display = "block";
+          if (stepperHeader) stepperHeader.style.display = "flex";
+          formActions.forEach(fa => fa.style.display = "flex");
+
           if (poNumber) poNumber.required = false;
           if (gstin) gstin.required = false;
           syncAllPreviewFields();
