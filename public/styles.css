@@ -4892,6 +4892,237 @@ body.creator-page .field.is-invalid .validation-msg {
   }
 }
 
+/* ==========================================
+   MOBILE & PHONE SCREEN LAYOUT ENGINE
+   ========================================== */
+
+/* 1. Tablet & Mobile Containers (< 900px) */
+@media (max-width: 900px) {
+  .shell {
+    padding: 12px 14px !important;
+    max-width: 100% !important;
+  }
+  .portal-split-layout {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  .mobile-preview-toggle {
+    display: flex !important;
+    gap: 8px !important;
+    margin-bottom: 16px !important;
+  }
+  .mobile-preview-toggle button {
+    flex: 1 !important;
+    padding: 12px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+  }
+}
+
+/* 2. Phone Screens (< 768px) */
+@media (max-width: 768px) {
+  /* Hero topbar & Headers */
+  .topbar.hero-banner,
+  .portal-hero.card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 20px 16px !important;
+    gap: 16px !important;
+  }
+  .header-left, .header-right {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .header-actions-row {
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+  }
+  .header-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .header-stat-card {
+    padding: 10px !important;
+  }
+
+  /* Navigation Bar */
+  .nav.nav-3d {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+  .nav.nav-3d a {
+    flex: 1 1 calc(50% - 6px) !important;
+    min-width: 120px !important;
+  }
+  .nav.nav-3d button {
+    width: 100% !important;
+    text-align: center !important;
+    padding: 10px 8px !important;
+    font-size: 13px !important;
+  }
+
+  /* Form Input Grids (Collapses into 1 column) */
+  .grid-2, .grid-3, .grid-4, .field-grid,
+  div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+  
+  .input-label input,
+  .input-label select,
+  .input-label textarea,
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* HR Action Cards */
+  .hr-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+  .hr-card {
+    padding: 20px 16px !important;
+  }
+
+  /* Stepper Header on Phones */
+  .stepper-header {
+    padding: 12px 8px !important;
+    margin-bottom: 20px !important;
+  }
+  .step-bubble {
+    padding: 4px !important;
+  }
+  .step-number {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 13px !important;
+  }
+  .step-label {
+    font-size: 11px !important;
+  }
+
+  /* Signature Drawing Canvas */
+  .signature-box, .sig-canvas-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  canvas#sigCanvas, canvas.sig-canvas {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 180px !important;
+    touch-action: none !important;
+  }
+
+  /* Live Invoice Paper Preview */
+  .live-invoice-paper, .paper-invoice {
+    padding: 16px 12px !important;
+    font-size: 13px !important;
+    overflow-x: auto !important;
+  }
+  .paper-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  /* Table Card Stack Transformation for Mobile */
+  .users-table-wrap {
+    overflow-x: visible !important;
+  }
+  .users-table,
+  .users-table tbody,
+  .users-table tr,
+  .users-table td {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .users-table thead {
+    display: none !important;
+  }
+  .users-table tr {
+    background: #ffffff !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    margin-bottom: 14px !important;
+    padding: 16px !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04) !important;
+  }
+  body.admin-page .users-table tr {
+    background: #14161a !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+  .users-table td {
+    padding: 8px 0 !important;
+    border-bottom: 1px dashed rgba(148, 163, 184, 0.2) !important;
+    text-align: left !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2px !important;
+  }
+  .users-table td:last-child {
+    border-bottom: none !important;
+  }
+  .users-table td[data-label]::before {
+    content: attr(data-label) !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    color: #7c3aed !important;
+    letter-spacing: 0.05em !important;
+  }
+
+  /* Action Buttons in Table Rows */
+  .users-table td .btn,
+  .users-table td form {
+    width: 100% !important;
+  }
+  .users-table td form button {
+    width: 100% !important;
+    text-align: center !important;
+  }
+}
+
+/* 3. Extra Small Phone Screens (< 480px) */
+@media (max-width: 480px) {
+  h1 { font-size: 24px !important; }
+  h2 { font-size: 20px !important; }
+  h3 { font-size: 17px !important; }
+  .section-title { font-size: 18px !important; }
+
+  .nav.nav-3d a {
+    flex: 1 1 100% !important;
+  }
+
+  .modal-backdrop .modal-box {
+    width: 95% !important;
+    max-width: 95% !important;
+    padding: 20px 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .form-actions,
+  div[style*="justify-content: flex-end"] {
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+  .form-actions button,
+  div[style*="justify-content: flex-end"] button {
+    width: 100% !important;
+    text-align: center !important;
+  }
+}
+
 
 
 
