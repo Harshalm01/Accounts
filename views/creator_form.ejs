@@ -216,6 +216,19 @@
                           <span>📤 Upload Existing GST Invoice PDF</span>
                         </button>
                       </div>
+
+                      <!-- DEDICATED FILE UPLOAD PICKER BOX RIGHT IN STEP 1 -->
+                      <div id="gstUploadStep1Box" style="display: none; margin-top: 16px; background: rgba(124, 58, 237, 0.05); border: 2px dashed #7c3aed; border-radius: 16px; padding: 20px; text-align: left;">
+                        <label class="input-label" style="display: flex; flex-direction: column; gap: 8px;">
+                          <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; color: #7c3aed; letter-spacing: 0.5px;">
+                            📁 Select & Upload GST Invoice Document (PDF / PNG / JPG) *
+                          </span>
+                          <p style="font-size: 13px; color: #475569; margin: 0;">
+                            Upload your official pre-signed GST Tax Invoice document. It will be stored securely in AWS Cloud Storage.
+                          </p>
+                          <input type="file" name="gstDocument" id="gstDocumentStep1Input" accept=".pdf,.png,.jpg,.jpeg" style="padding: 12px; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; font-size: 14px; color: #0f172a; font-weight: 600; cursor: pointer; margin-top: 4px;" />
+                        </label>
+                      </div>
                     </div>
 
                     <p class="section-subtitle" id="choiceHint" style="margin-top: 12px;">Select to configure invoice settings.</p>
@@ -755,6 +768,7 @@
         const gstFillModeBtn = document.getElementById("gstFillModeBtn");
         const gstUploadModeBtn = document.getElementById("gstUploadModeBtn");
         const gstUploadContainer = document.getElementById("gstUploadContainer");
+        const gstUploadStep1Box = document.getElementById("gstUploadStep1Box");
 
         let currentGstSubMode = "fill";
 
@@ -763,11 +777,13 @@
           if (mode === "upload") {
             if (gstFillModeBtn) gstFillModeBtn.classList.remove("flow-choice-active");
             if (gstUploadModeBtn) gstUploadModeBtn.classList.add("flow-choice-active");
+            if (gstUploadStep1Box) gstUploadStep1Box.style.display = "block";
             if (gstUploadContainer) gstUploadContainer.style.display = "block";
-            if (choiceHint) choiceHint.textContent = "📤 Upload GST Invoice mode selected. Attach your signed GST Invoice PDF/Image file below.";
+            if (choiceHint) choiceHint.textContent = "📤 Upload GST Invoice mode selected. Attach your signed GST Invoice PDF file directly above.";
           } else {
             if (gstUploadModeBtn) gstUploadModeBtn.classList.remove("flow-choice-active");
             if (gstFillModeBtn) gstFillModeBtn.classList.add("flow-choice-active");
+            if (gstUploadStep1Box) gstUploadStep1Box.style.display = "none";
             if (gstUploadContainer) gstUploadContainer.style.display = "block";
             if (choiceHint) choiceHint.textContent = "📝 Fill GST Invoice mode selected. Enter PO Number, GSTIN, and details below.";
           }
