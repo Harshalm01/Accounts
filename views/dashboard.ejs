@@ -609,6 +609,7 @@
             <th>Invoice #</th>
             <th>Type</th>
             <th>Vendor / Creator Name</th>
+            <th>Description / Remarks</th>
             <th>Amount (₹)</th>
             <th>Date</th>
             <th>Document / Action</th>
@@ -630,6 +631,9 @@
                   <strong style="color: #0f172a; font-size: 14px;"><%= inv.creator_name %></strong><br/>
                   <span style="font-size: 11px; color: #64748b;"><%= inv.creator_mobile || '' %></span>
                 </td>
+                <td data-label="Description / Remarks" style="font-size: 13px; color: #334155; max-width: 240px;">
+                  <%= inv.other_references || '—' %>
+                </td>
                 <td data-label="Amount">
                   <strong style="color: #059669; font-size: 14px; font-family: monospace;">₹<%= Number(inv.final_amount || inv.total_amount || 0).toLocaleString('en-IN') %></strong>
                 </td>
@@ -647,7 +651,7 @@
             <% }) %>
           <% } else { %>
             <tr>
-              <td colspan="6" style="text-align: center; color: #64748b; padding: 32px; font-weight: 500;">
+              <td colspan="7" style="text-align: center; color: #64748b; padding: 32px; font-weight: 500;">
                 No HR invoices uploaded yet.
               </td>
             </tr>

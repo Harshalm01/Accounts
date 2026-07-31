@@ -2151,7 +2151,7 @@ app.post("/hr/invoices/create", requireRole(["HR", "SUPER_ADMIN"]), async (req, 
 
 app.post("/hr/invoices/upload", requireRole(["HR", "SUPER_ADMIN"]), upload.single("invoiceFile"), async (req, res) => {
   try {
-    const { invoiceNo, creatorName, amount, invoiceDate, invoiceType } = req.body;
+    const { invoiceNo, creatorName, amount, invoiceDate, invoiceType, description } = req.body;
     if (!invoiceNo || !creatorName || !amount || !req.file) {
       return res.redirect("/hr/invoices?error=" + encodeURIComponent("Invoice No, Creator Name, Amount, and File upload are required."));
     }
@@ -2173,8 +2173,8 @@ app.post("/hr/invoices/upload", requireRole(["HR", "SUPER_ADMIN"]), upload.singl
     await db.run(
       `INSERT INTO invoices (
         campaign_id, creator_mobile, creator_name, full_name, invoice_type, invoice_no, invoice_date,
-        total_amount, final_amount, status, is_hr_upload, hr_invoice_type, file_path, pdf_path
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+        other_references, total_amount, final_amount, status, is_hr_upload, hr_invoice_type, file_path, pdf_path
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
       [
         campaign.id,
         "HR-UPLOAD",
@@ -2183,6 +2183,7 @@ app.post("/hr/invoices/upload", requireRole(["HR", "SUPER_ADMIN"]), upload.singl
         isGst ? "gst" : "non_gst",
         invoiceNo.trim(),
         invoiceDate || new Date().toISOString().split("T")[0],
+        description ? description.trim() : null,
         numAmount,
         numAmount,
         "ACCEPTED",
