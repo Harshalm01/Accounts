@@ -224,17 +224,22 @@
                             📁 Select & Upload GST Invoice Document (PDF / PNG / JPG) *
                           </span>
                           <p style="font-size: 13px; color: #475569; margin: 0;">
-                            Upload your official pre-signed GST Tax Invoice document. It will be stored securely in AWS Cloud Storage.
+                            Upload your official pre-signed GST Tax Invoice document. No details required to be filled below!
                           </p>
                           <input type="file" name="gstDocument" id="gstDocumentStep1Input" accept=".pdf,.png,.jpg,.jpeg" style="padding: 12px; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; font-size: 14px; color: #0f172a; font-weight: 600; cursor: pointer; margin-top: 4px;" />
                         </label>
+                        <div style="margin-top: 16px; text-align: right;">
+                          <button type="submit" id="directUploadSubmitBtn" class="btn btn-3d-nav" style="padding: 12px 28px; font-size: 14px; border-radius: 12px; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);">
+                            🚀 Submit Uploaded GST Invoice
+                          </button>
+                        </div>
                       </div>
                     </div>
 
                     <p class="section-subtitle" id="choiceHint" style="margin-top: 12px;">Select to configure invoice settings.</p>
                   </div>
 
-                  <div class="content-card">
+                  <div class="content-card" id="billingIdentityCard">
                     <div class="section-head">
                       <div>
                         <div class="portal-kicker">Billing identity</div>
