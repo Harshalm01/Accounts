@@ -861,7 +861,10 @@ app.post("/creator/validated_form", async (req, res) => {
     ? await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [existingInvoice.id])
     : [];
 
-  const countRow = await db.get("SELECT COUNT(*) AS cnt FROM invoices WHERE campaign_id = ?", [campaign.id]);
+  const countRow = await db.get(
+    "SELECT COUNT(*) AS cnt FROM invoices WHERE campaign_id = ? AND (creator_mobile = ? OR LOWER(TRIM(creator_name)) = LOWER(TRIM(?)))",
+    [campaign.id, mobile.trim(), campaign.creator_name]
+  );
   const seqNumber = String((countRow ? countRow.cnt : 0) + (existingInvoice ? 0 : 1)).padStart(2, '0');
 
   const autoInvoiceNo = existingInvoice && existingInvoice.invoice_no
@@ -917,9 +920,9 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
     const invoiceKind = String(invoiceType || "non_gst").toLowerCase() === "gst" ? "gst" : "non_gst";
     const invoiceDate = todayForInvoice();
 
-    if (!campaignId || !campaignCode || !mobile || !fullName || !pan || !String(pan).trim() || !invoiceNo) {
+    if (!campaignId || !campaignCode || !mobile || !fullName || !pan || !String(pan).trim() || !email || !String(email).trim() || !invoiceNo) {
       return res.render("creator_form", {
-        error: "Full Name, Address, PAN Number, and all required fields are mandatory.",
+        error: "Full Name, Address, PAN Number, Email, and all required fields are mandatory.",
         success: null,
         form: {
           validated: true,

@@ -230,9 +230,9 @@
                         <small class="validation-msg">PAN Number is required (format: ABCDE1234F).</small>
                       </label>
                       <label class="field field-floating">
-                        <input type="email" name="email" value="<%= existingInvoice ? existingInvoice.email || '' : (form.email || '') %>" placeholder=" " />
-                        <span>Email</span>
-                        <small class="validation-msg">Invalid email format.</small>
+                        <input type="email" name="email" value="<%= existingInvoice ? existingInvoice.email || '' : (form.email || '') %>" required placeholder=" " />
+                        <span>Email *</span>
+                        <small class="validation-msg">Valid Email address is required.</small>
                       </label>
                     </div>
                   </div>
@@ -262,7 +262,7 @@
                         <span>Dated Today *</span>
                       </label>
                       <label class="field field-floating">
-                        <input type="text" name="paymentMode" value="<%= existingInvoice ? existingInvoice.payment_mode || '' : (form.paymentMode || form.liveLink || '') %>" placeholder=" " />
+                        <input type="text" name="paymentMode" value="<%= existingInvoice ? existingInvoice.payment_mode || '' : (form.paymentMode || '') %>" placeholder=" " />
                         <span>Mode/Terms of Payment</span>
                       </label>
                       <label class="field field-floating">
