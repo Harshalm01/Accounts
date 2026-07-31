@@ -217,12 +217,18 @@
                 <th>Description / Remarks</th>
                 <th>Amount</th>
                 <th>Date</th>
+                <th>Payment Status</th>
                 <th>File / View</th>
               </tr>
             </thead>
             <tbody>
               <% if (typeof hrInvoices !== 'undefined' && hrInvoices && hrInvoices.length) { %>
                 <% hrInvoices.forEach(inv => { %>
+                  <%
+                    const st = String(inv.status || '').toUpperCase();
+                    const isPaid = st === 'PAID' || st === 'PAYMENT COMPLETED' || !!inv.utr;
+                    const isRejected = st === 'REJECTED';
+                  %>
                   <tr>
                     <td data-label="Invoice #">
                       <strong style="color: #a78bfa;">#<%= inv.invoice_no %></strong>
@@ -236,7 +242,7 @@
                       <strong><%= inv.creator_name %></strong><br/>
                       <span style="font-size: 11px; color: #9ca3af;"><%= inv.creator_mobile || '' %></span>
                     </td>
-                    <td data-label="Description / Remarks" style="font-size: 13px; color: #d1d5db; max-width: 240px;">
+                    <td data-label="Description / Remarks" style="font-size: 13px; color: #d1d5db; max-width: 200px;">
                       <%= inv.other_references || '—' %>
                     </td>
                     <td data-label="Amount">
@@ -244,6 +250,26 @@
                     </td>
                     <td data-label="Date">
                       <%= inv.invoice_date || 'N/A' %>
+                    </td>
+                    <td data-label="Payment Status">
+                      <% if (isPaid) { %>
+                        <span class="pill" style="font-size: 11px; font-weight: 800; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); display: inline-block;">
+                          ✅ PAYMENT COMPLETED
+                        </span>
+                        <% if (inv.utr) { %>
+                          <div style="font-size: 11px; font-family: monospace; color: #34d399; margin-top: 4px; font-weight: 700;">
+                            UTR: <%= inv.utr %>
+                          </div>
+                        <% } %>
+                      <% } else if (isRejected) { %>
+                        <span class="pill" style="font-size: 11px; font-weight: 800; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); display: inline-block;">
+                          ❌ REJECTED
+                        </span>
+                      <% } else { %>
+                        <span class="pill" style="font-size: 11px; font-weight: 800; background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); display: inline-block;">
+                          ⌛ PENDING PAYMENT
+                        </span>
+                      <% } %>
                     </td>
                     <td data-label="File / View">
                       <% if (inv.file_path) { %>
@@ -256,7 +282,7 @@
                 <% }) %>
               <% } else { %>
                 <tr>
-                  <td colspan="7" style="text-align: center; color: #9ca3af; padding: 32px;">
+                  <td colspan="8" style="text-align: center; color: #9ca3af; padding: 32px;">
                     No HR invoice documents uploaded yet. Use the upload cards above to attach an invoice.
                   </td>
                 </tr>
