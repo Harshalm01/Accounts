@@ -191,6 +191,7 @@ function setAuthCookie(res, req, user) {
 function clearAuthCookie(res, req) {
   const { maxAge, ...options } = authCookieOptions(req);
   res.clearCookie(AUTH_COOKIE_NAME, options);
+  res.clearCookie(AUTH_COOKIE_NAME, { path: "/" });
 }
 
 function safeFolderName(value, fallback = "campaign") {
@@ -615,7 +616,7 @@ app.set("trust proxy", 1);
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; base-uri 'self'; connect-src 'self' https://vercel.live https://cdn.socket.io wss: ws: blob:; form-action 'self'; img-src 'self' data:; object-src 'none'; script-src 'self' 'unsafe-inline' https://vercel.live https://cdn.socket.io; script-src-elem 'self' 'unsafe-inline' https://vercel.live https://cdn.socket.io; worker-src 'self' blob:; frame-src 'self' https://vercel.live; child-src 'self' https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'"
+    "default-src 'self'; base-uri 'self'; connect-src 'self' http://localhost:* ws://localhost:* wss://localhost:* https://vercel.live https://cdn.socket.io wss: ws: blob:; form-action 'self'; img-src 'self' data:; object-src 'none'; script-src 'self' 'unsafe-inline' https://vercel.live https://cdn.socket.io; script-src-elem 'self' 'unsafe-inline' https://vercel.live https://cdn.socket.io; worker-src 'self' blob:; frame-src 'self' https://vercel.live; child-src 'self' https://vercel.live; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'"
   );
   next();
 });
@@ -813,6 +814,41 @@ app.post("/creator/validate", async (req, res) => {
     });
   }
 
+  // Render campaign validation success animation screen first
+  res.render("creator_validate_success", {
+    campaignCode: campaignCode.trim(),
+    mobile: mobile.trim(),
+    creatorName: campaign.creator_name,
+    campaignName: campaign.campaign_name
+  });
+});
+
+app.post("/creator/validated_form", async (req, res) => {
+  const { campaignCode, mobile } = req.body;
+  if (!campaignCode || !mobile) {
+    return res.render("creator_form", {
+      error: "Campaign Code and Mobile are required.",
+      success: null,
+      form: req.body
+    });
+  }
+
+  const campaign = await db.get(
+    `SELECT c.id, c.campaign_name, c.campaign_code, cc.amount AS creator_amount, cc.creator_name, cc.live_link
+     FROM campaigns c
+     JOIN campaign_creators cc ON cc.campaign_id = c.id
+     WHERE c.campaign_code = ? AND (REPLACE(REPLACE(REPLACE(TRIM(cc.mobile), ' ', ''), '-', ''), '+91', '') = REPLACE(REPLACE(REPLACE(TRIM(?), ' ', ''), '-', ''), '+91', ''))`,
+    [campaignCode.trim(), mobile.trim()]
+  );
+
+  if (!campaign) {
+    return res.render("creator_form", {
+      error: "Invalid campaign code or mobile number mapping.",
+      success: null,
+      form: req.body
+    });
+  }
+
   const existingInvoice = await db.get(
     `SELECT *
      FROM invoices
@@ -825,6 +861,10 @@ app.post("/creator/validate", async (req, res) => {
     ? await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [existingInvoice.id])
     : [];
 
+  const autoInvoiceNo = existingInvoice && existingInvoice.invoice_no
+    ? existingInvoice.invoice_no
+    : `3FM-INV-${campaign.campaign_code}-${String(campaign.id).padStart(4, '0')}`;
+
   res.render("creator_form", {
     error: null,
     success: null,
@@ -836,6 +876,7 @@ app.post("/creator/validate", async (req, res) => {
       amount: campaign.creator_amount,
       creatorName: campaign.creator_name,
       liveLink: campaign.live_link || null,
+      invoiceNo: autoInvoiceNo,
       existingInvoice,
       existingItems
     }
@@ -1221,6 +1262,7 @@ app.get("/creator/submitted", async (req, res) => {
 app.get("/admin", (req, res) => {
   const user = getAuthenticatedUser(req) || (req.session && req.session.user);
   if (user) {
+    if (user.role === "HR") return res.redirect("/hr/invoices");
     const isTeamRole = user.role === "TEAM" || user.role === "HEAD";
     return res.redirect(isTeamRole ? "/admin/folders" : "/admin/dashboard");
   }
@@ -1229,8 +1271,11 @@ app.get("/admin", (req, res) => {
 
 app.get("/admin/login/success", requireAuth, (req, res) => {
   const user = req.session ? req.session.user : null;
-  const isTeamRole = user && (user.role === "TEAM" || user.role === "HEAD");
-  const nextUrl = isTeamRole ? "/admin/folders" : "/admin/dashboard";
+  let nextUrl = "/admin/dashboard";
+  if (user) {
+    if (user.role === "HR") nextUrl = "/hr/invoices";
+    else if (user.role === "TEAM" || user.role === "HEAD") nextUrl = "/admin/folders";
+  }
   res.render("admin_login_success", { nextUrl });
 });
 
@@ -1259,10 +1304,24 @@ app.post("/admin/login", async (req, res) => {
   });
 });
 
-app.post("/admin/logout", requireAuth, (req, res) => {
+const handleLogout = (req, res) => {
   clearAuthCookie(res, req);
-  req.session.destroy(() => res.redirect("/admin"));
-});
+  if (req.session) {
+    req.session.user = null;
+    delete req.session.user;
+    req.session.destroy(() => {
+      res.clearCookie("connect.sid", { path: "/" });
+      res.redirect("/admin");
+    });
+  } else {
+    res.redirect("/admin");
+  }
+};
+
+app.get("/logout", handleLogout);
+app.post("/logout", handleLogout);
+app.get("/admin/logout", handleLogout);
+app.post("/admin/logout", handleLogout);
 
 app.use("/admin", (req, res, next) => {
   const user = getAuthenticatedUser(req);
@@ -1302,6 +1361,10 @@ app.get("/admin/utr-template/download", (req, res) => {
 
 app.get("/admin/dashboard", async (req, res) => {
   const user = req.session.user;
+  if (user && user.role === "HR") {
+    return res.redirect("/hr/invoices");
+  }
+  const activeTab = req.query.tab || "invoices";
   let invoicesPromise;
   let notificationsPromise;
 
@@ -1381,12 +1444,14 @@ app.get("/admin/dashboard", async (req, res) => {
      ORDER BY invoice_id DESC`
   );
 
-  const [invoices, notifications, creatorLedger] = await Promise.all([invoicesPromise, notificationsPromise, creatorLedgerPromise]);
+  const hrInvoicesPromise = db.all("SELECT * FROM invoices WHERE is_hr_upload = 1 ORDER BY id DESC");
+
+  const [invoices, notifications, creatorLedger, hrInvoices] = await Promise.all([invoicesPromise, notificationsPromise, creatorLedgerPromise, hrInvoicesPromise]);
   const utrSuccess = req.session.utrSuccess || null;
   const utrError = req.session.utrError || null;
   delete req.session.utrSuccess;
   delete req.session.utrError;
-  res.render("dashboard", { invoices, notifications, creatorLedger, utrSuccess, utrError });
+  res.render("dashboard", { invoices, notifications, creatorLedger, hrInvoices, activeTab, utrSuccess, utrError });
 });
 
 // JSON API endpoint for live sync polling
@@ -1937,7 +2002,7 @@ app.post("/admin/users/:id/impersonate", async (req, res) => {
   });
 });
 
-app.get("/admin/users", requireRole(["SUPER_ADMIN"]), async (req, res) => {
+app.get("/admin/users", requireRole(["SUPER_ADMIN", "HR"]), async (req, res) => {
   const usersPromise = db.all("SELECT id, username, role, team_name, created_at FROM users ORDER BY id DESC");
   const creatorLedgerPromise = db.all(
     `SELECT 
@@ -1957,10 +2022,10 @@ app.get("/admin/users", requireRole(["SUPER_ADMIN"]), async (req, res) => {
      ORDER BY i.id DESC`
   );
   const [users, creatorLedger] = await Promise.all([usersPromise, creatorLedgerPromise]);
-  res.render("users", { users, creatorLedger, error: null });
+  res.render("users", { users, creatorLedger, user: req.session.user, error: null });
 });
 
-app.post("/admin/users", requireRole(["SUPER_ADMIN"]), async (req, res) => {
+app.post("/admin/users", requireRole(["SUPER_ADMIN", "HR"]), async (req, res) => {
   const { username, password, role, teamName } = req.body;
   if (!username || !password || !role || ((role === "TEAM" || role === "HEAD") && (!teamName || !teamName.trim()))) {
     const usersPromise = db.all("SELECT id, username, role, team_name, created_at FROM users ORDER BY id DESC");
@@ -1982,7 +2047,7 @@ app.post("/admin/users", requireRole(["SUPER_ADMIN"]), async (req, res) => {
        ORDER BY i.id DESC`
     );
     const [users, creatorLedger] = await Promise.all([usersPromise, creatorLedgerPromise]);
-    return res.render("users", { users, creatorLedger, error: "Username, Password, Role, and Team Name (for HEAD & TEAM roles) are required." });
+    return res.render("users", { users, creatorLedger, user: req.session.user, error: "Username, Password, Role, and Team Name (for HEAD & TEAM roles) are required." });
   }
 
   const hash = await bcrypt.hash(password, 10);
@@ -1996,7 +2061,7 @@ app.post("/admin/users", requireRole(["SUPER_ADMIN"]), async (req, res) => {
   res.redirect("/admin/users");
 });
 
-app.post("/admin/users/:id/reset", requireRole(["SUPER_ADMIN"]), async (req, res) => {
+app.post("/admin/users/:id/reset", requireRole(["SUPER_ADMIN", "HR"]), async (req, res) => {
   const { newPassword } = req.body;
   if (!newPassword) {
     return res.redirect("/admin/users");
@@ -2006,9 +2071,123 @@ app.post("/admin/users/:id/reset", requireRole(["SUPER_ADMIN"]), async (req, res
   res.redirect("/admin/users");
 });
 
-app.post("/admin/users/:id/delete", requireRole(["SUPER_ADMIN"]), async (req, res) => {
+app.post("/admin/users/:id/delete", requireRole(["SUPER_ADMIN", "HR"]), async (req, res) => {
   await db.run("DELETE FROM users WHERE id = ?", [req.params.id]);
   res.redirect("/admin/users");
+});
+
+// ── HR INVOICES PORTAL ROUTES (HR & SUPER_ADMIN) ──
+app.get("/hr/invoices", requireRole(["HR", "SUPER_ADMIN"]), async (req, res) => {
+  try {
+    const hrInvoices = await db.all("SELECT * FROM invoices WHERE is_hr_upload = 1 ORDER BY id DESC");
+    const hrAssignments = await db.all(
+      `SELECT cc.*, c.campaign_name, c.campaign_code, c.team_name
+       FROM campaign_creators cc
+       JOIN campaigns c ON c.id = cc.campaign_id
+       WHERE c.campaign_code LIKE 'HR-%'
+         AND NOT EXISTS (
+           SELECT 1 FROM invoices inv WHERE inv.campaign_id = cc.campaign_id AND (inv.creator_mobile = cc.mobile OR LOWER(inv.creator_name) = LOWER(cc.creator_name))
+         )
+       ORDER BY cc.id DESC`
+    );
+
+    res.render("hr_invoices", {
+      user: req.session.user,
+      hrInvoices,
+      hrAssignments,
+      success: req.query.success || null,
+      error: req.query.error || null
+    });
+  } catch (err) {
+    console.error("HR Invoices Error:", err);
+    res.render("hr_invoices", {
+      user: req.session.user,
+      hrInvoices: [],
+      hrAssignments: [],
+      error: "Failed to load HR invoices: " + err.message
+    });
+  }
+});
+
+app.post("/hr/invoices/create", requireRole(["HR", "SUPER_ADMIN"]), async (req, res) => {
+  try {
+    const { employeeName, creatorName, mobile, amount, paymentMode, teamName, invoiceType } = req.body;
+    const name = String(employeeName || creatorName || "").trim();
+    const phone = String(mobile || "").trim();
+    const mode = String(paymentMode || "Bank Transfer").trim();
+    const numAmount = Number(amount) || 0;
+
+    if (!name || !phone || !numAmount) {
+      return res.redirect("/hr/invoices?error=" + encodeURIComponent("Employee Name, Phone Number, and Amount are required."));
+    }
+
+    const hrCampaignCode = `HR-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const campaignResult = await db.run(
+      "INSERT INTO campaigns (campaign_name, campaign_code, amount, team_name, created_by) VALUES (?, ?, ?, ?, ?)",
+      [`HR Invoice - ${name}`, hrCampaignCode, numAmount, (teamName || "HR Team").trim(), req.session.user.id]
+    );
+
+    await db.run(
+      "INSERT INTO campaign_creators (campaign_id, creator_name, mobile, amount, live_link) VALUES (?, ?, ?, ?, ?)",
+      [campaignResult.lastID, name, phone, numAmount, mode]
+    );
+
+    return res.redirect("/hr/invoices?success=" + encodeURIComponent(`Employee ${name} assigned successfully! Campaign Code: ${hrCampaignCode}`));
+  } catch (err) {
+    console.error("HR Create Invoice Error:", err);
+    return res.redirect("/hr/invoices?error=" + encodeURIComponent("Failed to create HR employee assignment: " + err.message));
+  }
+});
+
+app.post("/hr/invoices/upload", requireRole(["HR", "SUPER_ADMIN"]), upload.single("invoiceFile"), async (req, res) => {
+  try {
+    const { invoiceNo, creatorName, amount, invoiceDate, invoiceType } = req.body;
+    if (!invoiceNo || !creatorName || !amount || !req.file) {
+      return res.redirect("/hr/invoices?error=" + encodeURIComponent("Invoice No, Creator Name, Amount, and File upload are required."));
+    }
+
+    const numAmount = Number(amount) || 0;
+    const isGst = invoiceType === "upload_gst";
+    const hrLabel = isGst ? "Uploaded GST Invoice" : "Uploaded NON-GST Invoice";
+    const filePath = "/uploads/" + req.file.filename;
+
+    let campaign = await db.get("SELECT id FROM campaigns WHERE campaign_code = 'HR-DEPT' LIMIT 1");
+    if (!campaign) {
+      const result = await db.run(
+        "INSERT INTO campaigns (campaign_name, campaign_code, amount, team_name, created_by) VALUES (?, ?, ?, ?, ?)",
+        ["HR Department Uploads", "HR-DEPT", 0, "HR", req.session.user.id]
+      );
+      campaign = { id: result.lastID };
+    }
+
+    await db.run(
+      `INSERT INTO invoices (
+        campaign_id, creator_mobile, creator_name, full_name, invoice_type, invoice_no, invoice_date,
+        total_amount, final_amount, status, is_hr_upload, hr_invoice_type, file_path, pdf_path
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+      [
+        campaign.id,
+        "HR-UPLOAD",
+        creatorName.trim(),
+        creatorName.trim(),
+        isGst ? "gst" : "non_gst",
+        invoiceNo.trim(),
+        invoiceDate || new Date().toISOString().split("T")[0],
+        numAmount,
+        numAmount,
+        "ACCEPTED",
+        hrLabel,
+        filePath,
+        filePath
+      ]
+    );
+
+    return res.redirect("/hr/invoices?success=" + encodeURIComponent(`Document for Invoice #${invoiceNo.trim()} uploaded successfully!`));
+  } catch (err) {
+    console.error("HR Upload Invoice Error:", err);
+    return res.redirect("/hr/invoices?error=" + encodeURIComponent("Failed to upload HR document: " + err.message));
+  }
 });
 
 app.get("/admin/api/creator-summary", requireAuth, async (req, res) => {

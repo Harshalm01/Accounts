@@ -198,7 +198,10 @@
                     <% } %>
                     <div class="nav nav-3d" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                       <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                        <a href="/admin/dashboard"><button class="btn btn-3d-nav" type="button">Invoices</button></a>
+                        <a href="/admin/dashboard"><button class="btn btn-3d-nav <%= typeof activeTab === 'undefined' || activeTab !== 'hr_uploads' ? 'active' : '' %>" type="button">Invoices</button></a>
+                        <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' ) { %>
+                          <a href="/admin/dashboard?tab=hr_uploads"><button class="btn btn-3d-nav <%= typeof activeTab !== 'undefined' && activeTab === 'hr_uploads' ? 'active' : '' %>" type="button">💼 HR Uploads</button></a>
+                        <% } %>
                         <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' || user.role==='TEAM' || user.role==='HEAD' ) { %>
                           <a href="/admin/folders"><button class="btn btn-3d-nav" type="button">Folders</button></a>
                         <% } %>
@@ -208,7 +211,7 @@
                         <% if (user.role==='HEAD' || user.role==='SUPER_ADMIN' ) { %>
                           <a href="/admin/campaigns"><button class="btn btn-3d-nav" type="button">Campaigns</button></a>
                         <% } %>
-                        <% if (user.role==='SUPER_ADMIN' ) { %>
+                        <% if (user.role==='SUPER_ADMIN' || user.role==='HR' ) { %>
                           <a href="/admin/users"><button class="btn btn-3d-nav" type="button">Users</button></a>
                         <% } %>
                       </div>
@@ -585,6 +588,76 @@
                       </script>
                       <% } %>
 
+<% if (typeof activeTab !== 'undefined' && activeTab === 'hr_uploads') { %>
+  <!-- Dedicated HR Uploads Card for Accounts & SuperAdmin -->
+  <div class="card glass-panel" style="margin-bottom: 24px;">
+    <div class="section-head" style="margin-bottom: 20px;">
+      <div>
+        <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #ec4899; letter-spacing: 0.08em;">Accounts Station • HR Integration</div>
+        <h3 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 4px 0 0 0;">HR Uploads & Created Invoices</h3>
+        <p class="subtitle">Invoices and document vouchers generated or uploaded by HR - People & Culture team.</p>
+      </div>
+      <div class="pill" style="background: rgba(236, 72, 153, 0.15); color: #ec4899; font-weight: 800;">
+        <%= typeof hrInvoices !== 'undefined' && hrInvoices ? hrInvoices.length : 0 %> HR Invoices
+      </div>
+    </div>
+
+    <div class="users-table-wrap">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>Invoice #</th>
+            <th>Type</th>
+            <th>Vendor / Creator Name</th>
+            <th>Amount (₹)</th>
+            <th>Date</th>
+            <th>Document / Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (typeof hrInvoices !== 'undefined' && hrInvoices && hrInvoices.length) { %>
+            <% hrInvoices.forEach(inv => { %>
+              <tr>
+                <td data-label="Invoice #">
+                  <strong style="color: #7c3aed; font-size: 14px;">#<%= inv.invoice_no %></strong>
+                </td>
+                <td data-label="Type">
+                  <span class="pill" style="font-size: 11px; font-weight: 700; background: <%= inv.hr_invoice_type && inv.hr_invoice_type.includes('GST') ? 'rgba(124, 58, 237, 0.12)' : 'rgba(245, 158, 11, 0.12)' %>; color: <%= inv.hr_invoice_type && inv.hr_invoice_type.includes('GST') ? '#7c3aed' : '#d97706' %>;">
+                    <%= inv.hr_invoice_type || 'HR Invoice' %>
+                  </span>
+                </td>
+                <td data-label="Vendor / Creator">
+                  <strong style="color: #0f172a; font-size: 14px;"><%= inv.creator_name %></strong><br/>
+                  <span style="font-size: 11px; color: #64748b;"><%= inv.creator_mobile || '' %></span>
+                </td>
+                <td data-label="Amount">
+                  <strong style="color: #059669; font-size: 14px; font-family: monospace;">₹<%= Number(inv.final_amount || inv.total_amount || 0).toLocaleString('en-IN') %></strong>
+                </td>
+                <td data-label="Date" style="font-size: 13px; color: #475569;">
+                  <%= inv.invoice_date || 'N/A' %>
+                </td>
+                <td data-label="Document / Action">
+                  <% if (inv.file_path) { %>
+                    <a href="<%= inv.file_path %>" target="_blank" class="btn btn-3d-sm btn-3d-open" style="padding: 5px 12px; font-size: 12px;">📁 Open Document</a>
+                  <% } else { %>
+                    <a href="/admin/invoices/<%= inv.id %>" class="btn btn-3d-sm btn-3d-open" style="padding: 5px 12px; font-size: 12px;">👁️ View Invoice</a>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="6" style="text-align: center; color: #64748b; padding: 32px; font-weight: 500;">
+                No HR invoices uploaded yet.
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } else { %>
+
                         <div class="card glass-panel">
                           <div class="section-head" style="margin-bottom: 20px;">
                             <div>
@@ -709,6 +782,7 @@
                           </table>
                         </div>
   </div>
+<% } %>
 
   <!-- Sliding Notification Drawer -->
   <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' ) { %>

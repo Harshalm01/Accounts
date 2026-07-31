@@ -1,0 +1,515 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HR Station — 3Folks Media</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/styles.css?v=46" />
+    <style>
+      .hr-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 20px;
+        margin-bottom: 28px;
+      }
+      .hr-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+        border: 1.5px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        padding: 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+      }
+      .hr-card:hover {
+        transform: translateY(-4px);
+        border-color: #a78bfa;
+        box-shadow: 0 14px 35px rgba(124, 58, 237, 0.22);
+      }
+      .hr-card-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 16px;
+      }
+      .hr-card-gst { background: rgba(124, 58, 237, 0.15); color: #a78bfa; border: 1px solid rgba(124, 58, 237, 0.3); }
+      .hr-card-upload-gst { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+      .hr-card-nongst { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+      .hr-card-upload-nongst { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+      
+      .hr-card h3 {
+        font-size: 17px;
+        font-weight: 800;
+        color: #ffffff;
+        margin-bottom: 6px;
+      }
+      .hr-card p {
+        font-size: 13px;
+        color: #9ca3af;
+        line-height: 1.4;
+      }
+
+      .code-badge-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(124, 58, 237, 0.12);
+        border: 1px solid rgba(167, 139, 250, 0.3);
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-family: monospace;
+        font-weight: 800;
+        font-size: 13px;
+        color: #a78bfa;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .code-badge-wrap:hover {
+        background: rgba(124, 58, 237, 0.25);
+        color: #ffffff;
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s ease;
+      }
+      .modal-backdrop.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .modal-box {
+        background: #ffffff;
+        border: 1.5px solid rgba(124, 58, 237, 0.15);
+        border-radius: 24px;
+        width: 90%;
+        max-width: 580px;
+        padding: 32px;
+        box-shadow: 0 25px 60px rgba(124, 58, 237, 0.18), 0 10px 25px rgba(15, 23, 42, 0.1);
+        transform: scale(0.95);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .modal-backdrop.active .modal-box {
+        transform: scale(1);
+      }
+
+      .modal-box h2 {
+        color: #0f172a !important;
+        font-size: 20px !important;
+        font-weight: 800 !important;
+      }
+
+      .modal-box .input-label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .modal-box .input-label span {
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #7c3aed;
+        letter-spacing: 0.6px;
+      }
+      .modal-box .input-label input {
+        background: #f8fafc !important;
+        border: 1.5px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        padding: 12px 16px !important;
+        color: #0f172a !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        font-family: inherit !important;
+        transition: all 0.2s ease-in-out !important;
+      }
+      .modal-box .input-label input::placeholder {
+        color: #94a3b8 !important;
+      }
+      .modal-box .input-label input:focus {
+        border-color: #7c3aed !important;
+        background: #ffffff !important;
+        box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15) !important;
+        outline: none !important;
+      }
+    </style>
+  </head>
+  <body class="admin-page">
+    <div class="shell">
+
+      <!-- TOPBAR HERO BANNER (MATCHING SYSTEM UI) -->
+      <div class="topbar hero-banner folder-header-banner">
+        <div class="header-left" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+          <%- include('partials/brand') %>
+          <div class="eyebrow" style="color: #ec4899; margin-top: 10px; font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: 0.08em;">HR - People & Culture</div>
+          <h2 style="margin: 4px 0 6px 0;">HR Invoices & Employee Portal Station</h2>
+          <p class="subtitle" style="color: #4B5563 !important; margin: 0;">Assign employee payouts, generate creator mapping codes, and upload file vouchers.</p>
+        </div>
+
+        <div class="header-right">
+          <div class="header-actions-row">
+            <span style="font-size: 13px; color: #9ca3af; margin-right: 8px;">Logged in: <strong style="color: #ffffff;"><%= user.username %></strong></span>
+            <a href="/logout"><button class="btn btn-3d-danger" type="button">Logout</button></a>
+          </div>
+          <div class="header-stats-grid">
+            <div class="header-stat-card">
+              <span class="stat-icon">📄</span>
+              <div class="stat-info">
+                <span class="stat-value"><%= (typeof hrInvoices !== 'undefined' && hrInvoices) ? hrInvoices.length : 0 %></span>
+                <span class="stat-label">Total Invoices</span>
+              </div>
+            </div>
+            <div class="header-stat-card">
+              <span class="stat-icon">👥</span>
+              <div class="stat-info">
+                <span class="stat-value"><%= (typeof hrAssignments !== 'undefined' && hrAssignments) ? hrAssignments.length : 0 %></span>
+                <span class="stat-label">Employee Assignments</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NAVIGATION TABS -->
+      <div class="nav nav-3d" style="margin-bottom: 24px; display: flex; gap: 10px; align-items: center;">
+        <a href="/hr/invoices"><button class="btn btn-3d-nav active" type="button">⚡ HR Station</button></a>
+        <a href="/admin/users"><button class="btn btn-3d-nav" type="button">👥 Users Management</button></a>
+      </div>
+
+      <% if (typeof success !== 'undefined' && success) { %>
+        <div class="alert alert-success" style="margin-bottom: 20px; background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 14px 18px; border-radius: 12px; font-weight: 600;">
+          ✅ <%= success %>
+        </div>
+      <% } %>
+      <% if (typeof error !== 'undefined' && error) { %>
+        <div class="alert alert-error" style="margin-bottom: 20px; background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 14px 18px; border-radius: 12px; font-weight: 600;">
+          ⚠️ <%= error %>
+        </div>
+      <% } %>
+
+      <!-- HR ACTION OPTIONS (4 CARDS) -->
+      <div class="hr-grid">
+        <!-- 1. Create GST Invoice -->
+        <div class="hr-card" onclick="openHrModal('createGst')">
+          <div class="hr-card-icon hr-card-gst">📝</div>
+          <h3>1. Create GST Invoice</h3>
+          <p>Assign employee payout details & generate GST portal link.</p>
+        </div>
+
+        <!-- 2. Upload GST Invoice -->
+        <div class="hr-card" onclick="openHrModal('uploadGst')">
+          <div class="hr-card-icon hr-card-upload-gst">📤</div>
+          <h3>2. Upload GST Invoice</h3>
+          <p>Directly upload an existing GST invoice PDF or document.</p>
+        </div>
+
+        <!-- 3. Create NON-GST Invoice -->
+        <div class="hr-card" onclick="openHrModal('createNonGst')">
+          <div class="hr-card-icon hr-card-nongst">📄</div>
+          <h3>3. Create NON-GST Invoice</h3>
+          <p>Assign employee payout details & generate NON-GST portal link.</p>
+        </div>
+
+        <!-- 4. Upload NON-GST Invoice -->
+        <div class="hr-card" onclick="openHrModal('uploadNonGst')">
+          <div class="hr-card-icon hr-card-upload-nongst">📁</div>
+          <h3>4. Upload NON-GST Invoice</h3>
+          <p>Directly upload an existing NON-GST document or voucher.</p>
+        </div>
+      </div>
+
+      <!-- PENDING EMPLOYEE ASSIGNMENTS (GENERATED CODE LINKS FOR EMPLOYEE PORTAL) -->
+      <div class="card glass-panel" style="margin-bottom: 24px;">
+        <div class="section-head" style="margin-bottom: 16px;">
+          <div>
+            <h3>Pending Employee Portal Assignments</h3>
+            <p class="subtitle">Share the Campaign Code or Direct Link with the employee to fill in their invoice details.</p>
+          </div>
+          <div class="pill" style="background: rgba(124, 58, 237, 0.15); color: #a78bfa; font-weight: 800;">
+            <%= (typeof hrAssignments !== 'undefined' && hrAssignments) ? hrAssignments.length : 0 %> Pending
+          </div>
+        </div>
+
+        <div class="users-table-wrap">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Employee Name</th>
+                <th>Phone Number</th>
+                <th>Team Name</th>
+                <th>Amount (₹)</th>
+                <th>Payment Mode</th>
+                <th>Type</th>
+                <th>Campaign Code & Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (typeof hrAssignments !== 'undefined' && hrAssignments && hrAssignments.length) { %>
+                <% hrAssignments.forEach(asgn => { %>
+                  <tr>
+                    <td data-label="Employee Name">
+                      <strong style="color: #ffffff; font-size: 14px;"><%= asgn.creator_name %></strong>
+                    </td>
+                    <td data-label="Phone Number" style="color: #d1d5db;">
+                      <%= asgn.mobile %>
+                    </td>
+                    <td data-label="Team Name">
+                      <span class="pill" style="font-size: 11px; background: rgba(255,255,255,0.06); color: #e5e7eb;">
+                        <%= asgn.team_name || 'HR Team' %>
+                      </span>
+                    </td>
+                    <td data-label="Amount">
+                      <strong style="color: #10b981; font-family: monospace;">₹<%= Number(asgn.amount || 0).toLocaleString('en-IN') %></strong>
+                    </td>
+                    <td data-label="Payment Mode" style="font-size: 12px; color: #9ca3af;">
+                      <%= asgn.live_link || 'Standard Payout' %>
+                    </td>
+                    <td data-label="Type">
+                      <span class="pill" style="font-size: 10px; font-weight: 800; background: <%= asgn.is_gst ? 'rgba(124, 58, 237, 0.2)' : 'rgba(245, 158, 11, 0.2)' %>; color: <%= asgn.is_gst ? '#c4b5fd' : '#fcd34d' %>;">
+                        <%= asgn.is_gst ? 'GST' : 'NON-GST' %>
+                      </span>
+                    </td>
+                    <td data-label="Campaign Code & Link">
+                      <div class="code-badge-wrap" onclick="copyPortalLink('<%= asgn.campaign_code %>', '<%= asgn.mobile %>', this)" title="Click to copy employee portal link">
+                        <span>🔑 <%= asgn.campaign_code %></span>
+                        <span style="font-size: 11px; opacity: 0.8;">📋 Copy Link</span>
+                      </div>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } else { %>
+                <tr>
+                  <td colspan="7" style="text-align: center; color: #9ca3af; padding: 28px;">
+                    No pending employee assignments. Click "Create GST Invoice" or "Create NON-GST Invoice" above to assign an employee.
+                  </td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- COMPLETED & UPLOADED HR INVOICES TABLE -->
+      <div class="card glass-panel">
+        <div class="section-head" style="margin-bottom: 16px;">
+          <div>
+            <h3>Completed & Uploaded HR Invoices</h3>
+            <p class="subtitle">History of all completed HR invoices and uploaded vouchers dispatched to Accounts station.</p>
+          </div>
+          <div class="pill">
+            <%= (typeof hrInvoices !== 'undefined' && hrInvoices) ? hrInvoices.length : 0 %> Documents
+          </div>
+        </div>
+
+        <div class="users-table-wrap">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Type</th>
+                <th>Employee / Vendor Name</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>File / View</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (hrInvoices && hrInvoices.length) { %>
+                <% hrInvoices.forEach(inv => { %>
+                  <tr>
+                    <td data-label="Invoice #">
+                      <strong style="color: #a78bfa;">#<%= inv.invoice_no %></strong>
+                    </td>
+                    <td data-label="Type">
+                      <span class="pill" style="font-size: 11px; font-weight: 700; background: <%= inv.hr_invoice_type && inv.hr_invoice_type.includes('GST') ? 'rgba(124, 58, 237, 0.2)' : 'rgba(245, 158, 11, 0.2)' %>; color: <%= inv.hr_invoice_type && inv.hr_invoice_type.includes('GST') ? '#c4b5fd' : '#fcd34d' %>;">
+                        <%= inv.hr_invoice_type || 'HR Invoice' %>
+                      </span>
+                    </td>
+                    <td data-label="Employee / Vendor">
+                      <strong><%= inv.creator_name %></strong><br/>
+                      <span style="font-size: 11px; color: #9ca3af;"><%= inv.creator_mobile || '' %></span>
+                    </td>
+                    <td data-label="Amount">
+                      <strong style="color: #10b981;">₹<%= Number(inv.final_amount || inv.total_amount || 0).toLocaleString('en-IN') %></strong>
+                    </td>
+                    <td data-label="Date">
+                      <%= inv.invoice_date || 'N/A' %>
+                    </td>
+                    <td data-label="File / View">
+                      <% if (inv.file_path) { %>
+                        <a href="<%= inv.file_path %>" target="_blank" class="btn btn-3d-sm" style="padding: 4px 10px; font-size: 12px;">📁 Open Document</a>
+                      <% } else { %>
+                        <a href="/admin/invoices/<%= inv.id %>/view" target="_blank" class="btn btn-3d-sm" style="padding: 4px 10px; font-size: 12px;">📄 View Paper</a>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } else { %>
+                <tr>
+                  <td colspan="6" style="text-align: center; color: #9ca3af; padding: 32px;">
+                    No HR invoices created or uploaded yet.
+                  </td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL POPUPS FOR HR ACTIONS -->
+
+    <!-- 1 & 3: CREATE INVOICE (EMPLOYEE ASSIGNMENT) MODAL -->
+    <div class="modal-backdrop" id="createInvoiceModal">
+      <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 id="modalCreateTitle" style="font-size: 20px; font-weight: 800; color: #0f172a;">Create HR Employee Invoice</h2>
+          <button type="button" onclick="closeHrModal()" style="background: none; border: none; color: #64748b; font-size: 22px; cursor: pointer;">✕</button>
+        </div>
+
+        <form method="POST" action="/hr/invoices/create" class="portal-form">
+          <input type="hidden" id="hrInvoiceKind" name="invoiceType" value="create_gst" />
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <label class="input-label">
+              <span>Employee Name *</span>
+              <input type="text" name="employeeName" required placeholder="Full Employee Name" />
+            </label>
+            <label class="input-label">
+              <span>Phone Number *</span>
+              <input type="text" name="mobile" required placeholder="Mobile / Contact Number" />
+            </label>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <label class="input-label">
+              <span>Amount (₹) *</span>
+              <input type="number" step="0.01" name="amount" required placeholder="0.00" />
+            </label>
+            <label class="input-label">
+              <span>Modes of Payment (Custom) *</span>
+              <input type="text" name="paymentMode" required placeholder="e.g. Bank Transfer / UPI / NEFT" />
+            </label>
+          </div>
+
+          <div style="margin-bottom: 14px;">
+            <label class="input-label">
+              <span>Team Name *</span>
+              <input type="text" name="teamName" required placeholder="e.g. HR Team / Marketing / Operations" value="HR Team" />
+            </label>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+            <button type="button" class="btn btn-3d-danger" onclick="closeHrModal()">Cancel</button>
+            <button type="submit" class="btn btn-3d-nav">Assign & Generate Link</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 2 & 4: UPLOAD INVOICE MODAL -->
+    <div class="modal-backdrop" id="uploadInvoiceModal">
+      <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 id="modalUploadTitle" style="font-size: 20px; font-weight: 800; color: #0f172a;">Upload HR Invoice Document</h2>
+          <button type="button" onclick="closeHrModal()" style="background: none; border: none; color: #64748b; font-size: 22px; cursor: pointer;">✕</button>
+        </div>
+
+        <form method="POST" action="/hr/invoices/upload" enctype="multipart/form-data" class="portal-form">
+          <input type="hidden" id="hrUploadKind" name="invoiceType" value="upload_gst" />
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <label class="input-label">
+              <span>Invoice # *</span>
+              <input type="text" name="invoiceNo" required placeholder="e.g. HR-INV-UP01" />
+            </label>
+            <label class="input-label">
+              <span>Employee / Vendor Name *</span>
+              <input type="text" name="creatorName" required placeholder="Full Name" />
+            </label>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+            <label class="input-label">
+              <span>Total Amount (₹) *</span>
+              <input type="number" step="0.01" name="amount" required placeholder="0.00" />
+            </label>
+            <label class="input-label">
+              <span>Date *</span>
+              <input type="date" name="invoiceDate" required value="<%= new Date().toISOString().split('T')[0] %>" />
+            </label>
+          </div>
+
+          <div style="margin-bottom: 18px;">
+            <label class="input-label">
+              <span>Select Document File (PDF / Image) *</span>
+              <input type="file" name="invoiceFile" required accept=".pdf,.png,.jpg,.jpeg" style="padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;" />
+            </label>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+            <button type="button" class="btn btn-3d-danger" onclick="closeHrModal()">Cancel</button>
+            <button type="submit" class="btn btn-3d-nav">Upload Voucher</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      function openHrModal(type) {
+        if (type === 'createGst') {
+          document.getElementById('modalCreateTitle').innerText = '1. Create GST Invoice (Assign Employee)';
+          document.getElementById('hrInvoiceKind').value = 'create_gst';
+          document.getElementById('createInvoiceModal').classList.add('active');
+        } else if (type === 'createNonGst') {
+          document.getElementById('modalCreateTitle').innerText = '3. Create NON-GST Invoice (Assign Employee)';
+          document.getElementById('hrInvoiceKind').value = 'create_nongst';
+          document.getElementById('createInvoiceModal').classList.add('active');
+        } else if (type === 'uploadGst') {
+          document.getElementById('modalUploadTitle').innerText = '2. Upload GST Invoice Document';
+          document.getElementById('hrUploadKind').value = 'upload_gst';
+          document.getElementById('uploadInvoiceModal').classList.add('active');
+        } else if (type === 'uploadNonGst') {
+          document.getElementById('modalUploadTitle').innerText = '4. Upload NON-GST Invoice Document';
+          document.getElementById('hrUploadKind').value = 'upload_nongst';
+          document.getElementById('uploadInvoiceModal').classList.add('active');
+        }
+      }
+
+      function closeHrModal() {
+        document.getElementById('createInvoiceModal').classList.remove('active');
+        document.getElementById('uploadInvoiceModal').classList.remove('active');
+      }
+
+      function copyPortalLink(code, mobile, element) {
+        const link = `${window.location.origin}/?code=${encodeURIComponent(code)}&mobile=${encodeURIComponent(mobile)}`;
+        navigator.clipboard.writeText(link).then(() => {
+          const orig = element.innerHTML;
+          element.innerHTML = '✨ Link Copied!';
+          element.style.background = 'rgba(16, 185, 129, 0.25)';
+          element.style.color = '#34d399';
+          setTimeout(() => {
+            element.innerHTML = orig;
+            element.style.background = '';
+            element.style.color = '';
+          }, 2000);
+        });
+      }
+    </script>
+  </body>
+</html>

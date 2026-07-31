@@ -357,6 +357,9 @@ async function init() {
   let hasRevisionCount = false;
   let hasRejectionReason = false;
   let hasUtr = false;
+  let hasIsHrUpload = false;
+  let hasHrInvoiceType = false;
+  let hasFilePath = false;
 
   if (isPostgres) {
     const checkColumn = async (table, column) => {
@@ -387,6 +390,9 @@ async function init() {
     hasRevisionCount = await checkColumn("invoices", "revision_count");
     hasRejectionReason = await checkColumn("invoices", "rejection_reason");
     hasUtr = await checkColumn("invoices", "utr");
+    hasIsHrUpload = await checkColumn("invoices", "is_hr_upload");
+    hasHrInvoiceType = await checkColumn("invoices", "hr_invoice_type");
+    hasFilePath = await checkColumn("invoices", "file_path");
   } else {
     const creatorColumns = await all("PRAGMA table_info(campaign_creators)");
     hasCreatorAmount = creatorColumns.some((c) => c.name === "amount");
@@ -414,6 +420,9 @@ async function init() {
     hasRevisionCount = invoiceColumns.some((c) => c.name === "revision_count");
     hasRejectionReason = invoiceColumns.some((c) => c.name === "rejection_reason");
     hasUtr = invoiceColumns.some((c) => c.name === "utr");
+    hasIsHrUpload = invoiceColumns.some((c) => c.name === "is_hr_upload");
+    hasHrInvoiceType = invoiceColumns.some((c) => c.name === "hr_invoice_type");
+    hasFilePath = invoiceColumns.some((c) => c.name === "file_path");
   }
 
   if (!hasCreatorAmount) {
@@ -479,6 +488,15 @@ async function init() {
   }
   if (!hasUtr) {
     await run("ALTER TABLE invoices ADD COLUMN utr TEXT");
+  }
+  if (!hasIsHrUpload) {
+    await run("ALTER TABLE invoices ADD COLUMN is_hr_upload INTEGER DEFAULT 0");
+  }
+  if (!hasHrInvoiceType) {
+    await run("ALTER TABLE invoices ADD COLUMN hr_invoice_type TEXT");
+  }
+  if (!hasFilePath) {
+    await run("ALTER TABLE invoices ADD COLUMN file_path TEXT");
   }
 
   await run(`CREATE TABLE IF NOT EXISTS invoice_items (

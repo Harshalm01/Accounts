@@ -153,6 +153,11 @@
       color: #d97706;
       border: 1px solid rgba(245, 158, 11, 0.25);
     }
+    .admin-page .role-hr {
+      background: rgba(236, 72, 153, 0.12);
+      color: #ec4899;
+      border: 1px solid rgba(236, 72, 153, 0.25);
+    }
   </style>
 </head>
 
@@ -161,16 +166,16 @@
 
     <!-- Hero Banner Header -->
     <div class="topbar hero-banner folder-header-banner">
-      <div class="header-left">
+      <div class="header-left" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
         <%- include('partials/brand') %>
-          <div class="eyebrow">Super Admin</div>
-          <h2 style="margin: 8px 0 6px 0;">User Management</h2>
-          <p class="subtitle" style="color: #4B5563 !important;">Create users, assign roles and reset passwords.</p>
+          <div class="eyebrow" style="margin-top: 10px;"><%= (typeof user !== 'undefined' && user && user.role === 'HR') ? 'HR - People & Culture' : 'Super Admin' %></div>
+          <h2 style="margin: 4px 0 6px 0;">User Management</h2>
+          <p class="subtitle" style="color: #4B5563 !important; margin: 0;">Create users, assign roles and reset passwords.</p>
       </div>
 
       <div class="header-right">
         <div class="header-actions-row">
-          <a href="/admin/dashboard"><button class="btn btn-3d-nav" type="button">← Back</button></a>
+          <a href="<%= (typeof user !== 'undefined' && user && user.role === 'HR') ? '/hr/invoices' : '/admin/dashboard' %>"><button class="btn btn-3d-nav" type="button">← Back</button></a>
         </div>
         <div class="header-stats-grid">
           <div class="header-stat-card">
@@ -235,6 +240,7 @@
                   <option value="HEAD">HEAD (Team Head)</option>
                   <option value="TEAM">TEAM</option>
                   <option value="ACCOUNTS">ACCOUNTS</option>
+                  <option value="HR">HR - People and Culture</option>
                   <option value="SUPER_ADMIN">SUPER_ADMIN</option>
                 </select>
               </label>
@@ -280,6 +286,9 @@
             <button type="button" class="user-filter-btn" onclick="filterUsers('ACCOUNTS', this)">
               Accounts Users <span class="filter-count-badge"><%= users.filter(u => u.role === 'ACCOUNTS').length %></span>
             </button>
+            <button type="button" class="user-filter-btn" onclick="filterUsers('HR', this)">
+              HR Users <span class="filter-count-badge"><%= users.filter(u => u.role === 'HR').length %></span>
+            </button>
           </div>
 
           <div class="users-table-wrap">
@@ -290,7 +299,9 @@
                   <th>Username</th>
                   <th>Role</th>
                   <th>Team Name</th>
-                  <th>Impersonate</th>
+                  <% if (typeof user !== 'undefined' && user && user.role === 'SUPER_ADMIN') { %>
+                    <th>Impersonate</th>
+                  <% } %>
                   <th>Reset Password</th>
                   <th>Delete</th>
                 </tr>
@@ -319,15 +330,17 @@
                     <td class="team-cell" data-label="Team">
                       <%= u.team_name || '—' %>
                     </td>
-                    <td data-label="Impersonate">
-                      <% if (u.id !==user.id) { %>
-                        <form method="post" action="/admin/users/<%= u.id %>/impersonate">
-                          <button class="btn btn-3d-sm btn-3d-view" type="submit">Impersonate</button>
-                        </form>
+                    <% if (typeof user !== 'undefined' && user && user.role === 'SUPER_ADMIN') { %>
+                      <td data-label="Impersonate">
+                        <% if (u.id !== (user ? user.id : 0)) { %>
+                          <form method="post" action="/admin/users/<%= u.id %>/impersonate">
+                            <button class="btn btn-3d-sm btn-3d-view" type="submit">Impersonate</button>
+                          </form>
                         <% } else { %>
                           <span style="color: #9ca3af; font-size: 13px; font-weight: 500;">Current User</span>
-                          <% } %>
-                    </td>
+                        <% } %>
+                      </td>
+                    <% } %>
                     <td data-label="Reset Password">
                       <form method="post" action="/admin/users/<%= u.id %>/reset"
                         style="display:flex;gap:8px;align-items:center;">
