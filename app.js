@@ -889,8 +889,11 @@ app.post("/creator/validated_form", async (req, res) => {
   });
 });
 
-app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => {
+app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 }, { name: "gstDocument", maxCount: 1 }]), async (req, res) => {
   try {
+    const sigFile = req.files && req.files.signatureFile && req.files.signatureFile[0] ? req.files.signatureFile[0] : (req.file || null);
+    const gstDocFile = req.files && req.files.gstDocument && req.files.gstDocument[0] ? req.files.gstDocument[0] : null;
+
     const {
       campaignId,
       campaignCode,
@@ -1071,9 +1074,9 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
 
     let signatureType = null;
     let signatureValue = null;
-    if (req.file) {
+    if (sigFile) {
       signatureType = "upload";
-      signatureValue = moveUploadToCampaignFolder(req.file, campaign);
+      signatureValue = moveUploadToCampaignFolder(sigFile, campaign);
     } else if (signatureDraw && signatureDraw.startsWith("data:image")) {
       signatureType = "draw";
       signatureValue = signatureDraw;
@@ -1214,7 +1217,15 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
       );
     }
 
-    const pdfPath = await ensurePdfForInvoice(invoiceId);
+    let pdfPath = null;
+    if (gstDocFile && invoiceKind === "gst") {
+      const { uploadToStorage } = require("./services/s3");
+      pdfPath = await uploadToStorage(gstDocFile.path, gstDocFile.originalname, gstDocFile.mimetype);
+      await db.run("UPDATE invoices SET file_path = ?, pdf_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [pdfPath, pdfPath, invoiceId]);
+    } else {
+      pdfPath = await ensurePdfForInvoice(invoiceId);
+    }
+
     await notifyInvoiceSubmission(invoiceId, campaign.id, mapping.creator_name, campaign.campaign_name, isRegenerated);
 
     return res.render("creator_success", {
