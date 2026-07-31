@@ -2209,6 +2209,14 @@ app.post("/hr/invoices/:id/delete", requireRole(["HR", "SUPER_ADMIN"]), async (r
       return res.redirect("/hr/invoices?error=" + encodeURIComponent("Invoice not found."));
     }
 
+    const { deleteFromStorage } = require("./services/s3");
+    if (invoice.file_path) {
+      await deleteFromStorage(invoice.file_path);
+    }
+    if (invoice.pdf_path && invoice.pdf_path !== invoice.file_path) {
+      await deleteFromStorage(invoice.pdf_path);
+    }
+
     await db.run("DELETE FROM invoice_items WHERE invoice_id = ?", [invoiceId]);
     await db.run("DELETE FROM notifications WHERE invoice_id = ?", [invoiceId]);
     await db.run("DELETE FROM invoices WHERE id = ?", [invoiceId]);
