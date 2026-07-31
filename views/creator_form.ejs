@@ -225,9 +225,9 @@
                         <small class="validation-msg">Address is required.</small>
                       </label>
                       <label class="field field-floating">
-                        <input type="text" name="pan" value="<%= existingInvoice ? existingInvoice.pan || '' : (form.pan || '') %>" pattern="[A-Z]{5}[0-9]{4}[A-Z]" title="PAN format: ABCDE1234F" autocapitalize="characters" placeholder=" " />
-                        <span>PAN/IT No</span>
-                        <small class="validation-msg">Invalid PAN format (e.g. ABCDE1234F).</small>
+                        <input type="text" name="pan" value="<%= existingInvoice ? existingInvoice.pan || '' : (form.pan || '') %>" required pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]" title="PAN format: ABCDE1234F" autocapitalize="characters" placeholder=" " />
+                        <span>PAN/IT No *</span>
+                        <small class="validation-msg">PAN Number is required (format: ABCDE1234F).</small>
                       </label>
                       <label class="field field-floating">
                         <input type="email" name="email" value="<%= existingInvoice ? existingInvoice.email || '' : (form.email || '') %>" placeholder=" " />

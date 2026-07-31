@@ -861,9 +861,12 @@ app.post("/creator/validated_form", async (req, res) => {
     ? await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [existingInvoice.id])
     : [];
 
+  const countRow = await db.get("SELECT COUNT(*) AS cnt FROM invoices WHERE campaign_id = ?", [campaign.id]);
+  const seqNumber = String((countRow ? countRow.cnt : 0) + (existingInvoice ? 0 : 1)).padStart(2, '0');
+
   const autoInvoiceNo = existingInvoice && existingInvoice.invoice_no
     ? existingInvoice.invoice_no
-    : `3FM-INV-${campaign.campaign_code}-${String(campaign.id).padStart(4, '0')}`;
+    : `3FM-INV-${seqNumber}`;
 
   res.render("creator_form", {
     error: null,
@@ -914,11 +917,14 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
     const invoiceKind = String(invoiceType || "non_gst").toLowerCase() === "gst" ? "gst" : "non_gst";
     const invoiceDate = todayForInvoice();
 
-    if (!campaignId || !campaignCode || !mobile || !fullName || !invoiceNo) {
+    if (!campaignId || !campaignCode || !mobile || !fullName || !pan || !String(pan).trim() || !invoiceNo) {
       return res.render("creator_form", {
-        error: "Please fill all required fields.",
+        error: "Full Name, Address, PAN Number, and all required fields are mandatory.",
         success: null,
-        form: req.body
+        form: {
+          validated: true,
+          ...req.body
+        }
       });
     }
 
@@ -937,9 +943,9 @@ app.post("/creator/submit", upload.single("signatureFile"), async (req, res) => 
     const normalizedGstin = String(gstin || "").trim().toUpperCase();
     const normalizedIfscCode = String(ifscCode || "").trim().toUpperCase();
 
-    if (normalizedPan && !regex.pan.test(normalizedPan)) {
+    if (!normalizedPan || !regex.pan.test(normalizedPan)) {
       return res.render("creator_form", {
-        error: "PAN must match the format ABCDE1234F.",
+        error: "PAN Number is mandatory and must match the format ABCDE1234F.",
         success: null,
         form: {
           validated: true,
