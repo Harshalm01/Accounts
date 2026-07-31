@@ -2201,6 +2201,25 @@ app.post("/hr/invoices/upload", requireRole(["HR", "SUPER_ADMIN"]), upload.singl
   }
 });
 
+app.post("/hr/invoices/:id/delete", requireRole(["HR", "SUPER_ADMIN"]), async (req, res) => {
+  try {
+    const invoiceId = req.params.id;
+    const invoice = await db.get("SELECT * FROM invoices WHERE id = ?", [invoiceId]);
+    if (!invoice) {
+      return res.redirect("/hr/invoices?error=" + encodeURIComponent("Invoice not found."));
+    }
+
+    await db.run("DELETE FROM invoice_items WHERE invoice_id = ?", [invoiceId]);
+    await db.run("DELETE FROM notifications WHERE invoice_id = ?", [invoiceId]);
+    await db.run("DELETE FROM invoices WHERE id = ?", [invoiceId]);
+
+    return res.redirect("/hr/invoices?success=" + encodeURIComponent(`Invoice #${invoice.invoice_no} deleted successfully.`));
+  } catch (err) {
+    console.error("HR Delete Invoice Error:", err);
+    return res.redirect("/hr/invoices?error=" + encodeURIComponent("Failed to delete invoice: " + err.message));
+  }
+});
+
 app.get("/admin/api/creator-summary", requireAuth, async (req, res) => {
   try {
     const creatorName = String(req.query.name || "").trim();

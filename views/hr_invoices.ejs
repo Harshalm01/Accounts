@@ -271,12 +271,17 @@
                         </span>
                       <% } %>
                     </td>
-                    <td data-label="File / View">
-                      <% if (inv.file_path) { %>
-                        <a href="<%= inv.file_path %>" target="_blank" class="btn btn-3d-sm" style="padding: 4px 10px; font-size: 12px;">📁 Open Document</a>
-                      <% } else { %>
-                        <a href="/admin/invoices/<%= inv.id %>/view" target="_blank" class="btn btn-3d-sm" style="padding: 4px 10px; font-size: 12px;">📄 View Paper</a>
-                      <% } %>
+                    <td data-label="Actions / View">
+                      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <% if (inv.file_path) { %>
+                          <a href="<%= inv.file_path %>" target="_blank" class="btn btn-3d-sm" style="padding: 4px 10px; font-size: 12px;">📁 Open Document</a>
+                        <% } else { %>
+                          <a href="/admin/invoices/<%= inv.id %>/view" target="_blank" class="btn btn-3d-sm" style="padding: 4px 10px; font-size: 12px;">📄 View Paper</a>
+                        <% } %>
+                        <form method="POST" action="/hr/invoices/<%= inv.id %>/delete" onsubmit="return confirm('Are you sure you want to delete invoice #<%= inv.invoice_no %>? This action cannot be undone.');" style="display: inline;">
+                          <button type="submit" class="btn btn-3d-danger" style="padding: 4px 10px; font-size: 12px; border-radius: 8px; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3);">🗑️ Delete</button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 <% }) %>
