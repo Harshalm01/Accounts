@@ -1032,26 +1032,7 @@
       </div>
     </div>
 
-    <!-- SAVED STRIPS MASONRY GALLERY SECTION -->
-    <div style="margin-top: 48px; display: none;" id="galleryContainerSection">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-        <div>
-          <span class="sublabel-title">Studio Archives</span>
-          <h3 style="margin: 4px 0 0 0; font-size: 22px; font-weight: 900; color: #0f172a;">📸 Saved Photo Strips Gallery</h3>
-        </div>
 
-        <div class="pill-wrap-row" style="margin: 0;">
-          <button class="light-pill active" onclick="filterGallery('all', this)">All Snaps</button>
-          <button class="light-pill" onclick="filterGallery('favorites', this)">❤️ Favorites Only</button>
-        </div>
-      </div>
-
-      <div class="gallery-grid-row" id="galleryGrid">
-        <div style="grid-column: 1 / -1; font-size: 13px; color: #94a3b8; padding: 20px 0; text-align: center; font-weight: 600;">
-          No saved photo strips yet. Download a photo strip to save it in your studio gallery archives!
-        </div>
-      </div>
-    </div>
 
   </div>
 
@@ -1654,14 +1635,6 @@
       const dataUrl = canvas.toDataURL(`image/${format}`, 1.0);
       const fileName = `3FolksMedia_PhotoStrip_${Date.now()}.${format}`;
 
-      savedGalleryStrips.unshift({
-        id: Date.now(),
-        url: dataUrl,
-        isFav: false,
-        timestamp: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
-      });
-      renderGallery();
-
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
 
       // Attempt Web Share API if supported on mobile
@@ -1742,39 +1715,7 @@
       win.document.close();
     }
 
-    function renderGallery(filter = 'all') {
-      const grid = document.getElementById('galleryGrid');
-      let items = savedGalleryStrips;
-      if (filter === 'favorites') items = items.filter(item => item.isFav);
 
-      if (items.length === 0) {
-        grid.innerHTML = `<div style="grid-column: 1 / -1; font-size: 13px; color: #94a3b8; padding: 20px 0; text-align: center; font-weight: 600;">
-          No saved photo strips yet. Download a photo strip to save it in your studio gallery archives!
-        </div>`;
-        return;
-      }
-
-      grid.innerHTML = items.map((item) => `
-        <div class="gallery-item-card">
-          <img src="${item.url}" class="gallery-item-img" />
-          <button class="fav-btn ${item.isFav ? 'active' : ''}" onclick="toggleFav(${item.id})" title="Favorite">
-            ${item.isFav ? '❤️' : '🤍'}
-          </button>
-        </div>
-      `).join('');
-    }
-
-    function toggleFav(id) {
-      const item = savedGalleryStrips.find(s => s.id === id);
-      if (item) { item.isFav = !item.isFav; renderGallery(); }
-    }
-
-    function filterGallery(type, btnElem) {
-      const parent = btnElem.parentElement;
-      parent.querySelectorAll('.light-pill').forEach(b => b.classList.remove('active'));
-      btnElem.classList.add('active');
-      renderGallery(type);
-    }
 
     // ================= 2. 🚀 3FM JETPACK SPACE RUNNER GAME ENGINE =================
     let runnerCanvas, runnerCtx;
