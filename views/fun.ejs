@@ -629,6 +629,41 @@
       align-items: center;
       justify-content: center;
     }
+
+    /* ONSCREEN MOBILE TOUCH CONTROLS */
+    .mobile-touch-controls-box {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .mobile-touch-btn {
+      background: #7c3aed;
+      color: #ffffff;
+      border: 2px solid #5b21b6;
+      border-radius: 24px;
+      padding: 16px 28px;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #5b21b6, 0 10px 20px rgba(124, 58, 237, 0.3);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      transition: all 0.15s ease;
+      flex: 1;
+      min-width: 140px;
+      max-width: 320px;
+      text-align: center;
+    }
+
+    .mobile-touch-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #5b21b6;
+      background: #6d28d9;
+    }
   </style>
 </head>
 
@@ -943,18 +978,23 @@
         </div>
 
         <p style="margin: -10px 0 16px 0; font-size: 14px; color: #64748b;">
-          Hold [SPACEBAR], [ARROW UP] or click/touch to fly your 3FM Jetpack! Collect golden 3FM coins and dodge space obstacles!
+          Tap screen / button or hold [SPACEBAR] / [ARROW UP] to fly your 3FM Jetpack!
         </p>
 
-        <div class="game-viewport-card" id="runnerViewportCard" style="height: 540px;">
+        <div class="game-viewport-card" id="runnerViewportCard" style="height: 540px; cursor: pointer;">
           <canvas id="runnerCanvas"></canvas>
           <div class="game-overlay-screen" id="runnerOverlay">
             <h2 style="font-size: 34px; font-weight: 900; margin-bottom: 8px;">🚀 3FM SPACE RUNNER</h2>
-            <p style="color: #94a3b8; font-size: 15px; margin-bottom: 24px;">Tap Space or Click to Fly!</p>
+            <p style="color: #94a3b8; font-size: 15px; margin-bottom: 24px;">Tap Screen or Click to Fly!</p>
             <button class="btn btn-3d-nav" onclick="startRunnerGame()" style="background: #7c3aed; color: white; border: none; font-size: 16px; padding: 14px 36px; font-weight: 900; border-radius: 30px; box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);">
               ⚡ START RUN
             </button>
           </div>
+        </div>
+
+        <!-- Onscreen Mobile Touch Controls -->
+        <div class="mobile-touch-controls-box">
+          <button type="button" class="mobile-touch-btn" id="spaceRunnerTouchBtn">🚀 TAP / HOLD TO FLY</button>
         </div>
       </div>
     </div>
@@ -970,18 +1010,24 @@
         </div>
 
         <p style="margin: -10px 0 16px 0; font-size: 14px; color: #64748b;">
-          Press [SPACEBAR] or [ARROW UP] to jump over cacti! Press [ARROW DOWN] to duck under birds!
+          Tap screen / button or press [SPACEBAR] to jump over cacti! Tap Duck to duck under birds!
         </p>
 
-        <div class="game-viewport-card" id="dinoViewportCard" style="height: 540px;">
+        <div class="game-viewport-card" id="dinoViewportCard" style="height: 540px; cursor: pointer;">
           <canvas id="dinoCanvas"></canvas>
           <div class="game-overlay-screen" id="dinoOverlay">
             <h2 style="font-size: 32px; font-weight: 900; margin-bottom: 8px;">🦖 3FM DINO RUNNER</h2>
-            <p style="color: #94a3b8; font-size: 15px; margin-bottom: 24px;">Press Space or Click to Jump!</p>
+            <p style="color: #94a3b8; font-size: 15px; margin-bottom: 24px;">Tap Screen or Click to Jump!</p>
             <button class="btn btn-3d-nav" onclick="startDinoGame()" style="background: #7c3aed; color: white; border: none; font-size: 16px; padding: 14px 32px; font-weight: 800;">
               ⚡ START RUN
             </button>
           </div>
+        </div>
+
+        <!-- Onscreen Mobile Touch Controls -->
+        <div class="mobile-touch-controls-box">
+          <button type="button" class="mobile-touch-btn" id="dinoJumpTouchBtn">🦘 TAP TO JUMP</button>
+          <button type="button" class="mobile-touch-btn" id="dinoDuckTouchBtn" style="background: #0f172a; border-color: #020617; box-shadow: 0 6px 0 #020617;">🦆 DUCK DOWN</button>
         </div>
       </div>
     </div>
@@ -1030,6 +1076,35 @@
       <div style="margin-top: 26px; text-align: center;">
         <button class="btn btn-3d-nav" id="gotItBtn" onclick="confirmLaunchGame()" style="background: #7c3aed; color: white; border: none; font-size: 16px; padding: 14px 36px; font-weight: 900; border-radius: 30px; box-shadow: 0 8px 25px rgba(124, 58, 237, 0.35); width: 100%;">
           Got It! Launch Now 🚀
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE PHOTO STRIP SAVE MODAL -->
+  <div class="modal-backdrop-screen" id="mobileSaveModal">
+    <div class="modal-card-box" style="max-width: 520px; text-align: center;">
+      <div class="modal-header-row">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 32px;">📲</span>
+          <div style="text-align: left;">
+            <h3 style="margin: 0; font-size: 20px; font-weight: 900; color: #0f172a;">Save Photo Strip</h3>
+            <span style="font-size: 12px; color: #64748b; font-weight: 600;">Long press image below to save to Photos!</span>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="document.getElementById('mobileSaveModal').classList.remove('active')" title="Close">✕</button>
+      </div>
+
+      <div style="max-height: 420px; overflow-y: auto; margin: 16px 0; border-radius: 18px; border: 2px solid #cbd5e1; padding: 10px; background: #0f172a;">
+        <img id="mobileSaveImg" style="max-width: 100%; height: auto; border-radius: 12px; display: block; margin: 0 auto;" alt="3FM Photo Strip" />
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <a id="mobileSaveDlBtn" download="3FM_PhotoStrip.png" href="#" target="_blank" class="btn btn-3d-nav" style="background: #7c3aed; color: white; border: none; font-size: 14px; padding: 14px; font-weight: 900; border-radius: 20px; flex: 1; text-align: center; text-decoration: none;">
+          ⬇️ Download / Save
+        </a>
+        <button type="button" class="btn btn-3d-nav" onclick="document.getElementById('mobileSaveModal').classList.remove('active')" style="background: #f1f5f9; color: #334155; border: 1.5px solid #cbd5e1; font-weight: 800; padding: 14px 20px; border-radius: 20px;">
+          Done
         </button>
       </div>
     </div>
@@ -1575,8 +1650,10 @@
       ctx.drawImage(img, sx, sy, sw, sh, x, y, width, height);
     }
 
-    function downloadStrip(format = 'png') {
+    async function downloadStrip(format = 'png') {
       const dataUrl = canvas.toDataURL(`image/${format}`, 1.0);
+      const fileName = `3FolksMedia_PhotoStrip_${Date.now()}.${format}`;
+
       savedGalleryStrips.unshift({
         id: Date.now(),
         url: dataUrl,
@@ -1585,10 +1662,59 @@
       });
       renderGallery();
 
-      const link = document.createElement('a');
-      link.download = `3FolksMedia_PhotoStrip_${Date.now()}.${format}`;
-      link.href = dataUrl;
-      link.click();
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0);
+
+      // Attempt Web Share API if supported on mobile
+      if (isMobile && navigator.canShare && canvas.toBlob) {
+        try {
+          canvas.toBlob(async (blob) => {
+            const file = new File([blob], fileName, { type: `image/${format}` });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: '3FM Branded Photo Strip',
+                text: 'Created with 3FolksMedia Photobooth Studio ✨'
+              });
+              return;
+            } else {
+              triggerMobileDownloadFallback(dataUrl, fileName);
+            }
+          }, `image/${format}`);
+          return;
+        } catch (err) {
+          console.warn("Web Share failed, fallback to modal:", err);
+        }
+      }
+
+      // Desktop or standard download
+      try {
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        triggerMobileDownloadFallback(dataUrl, fileName);
+      }
+
+      if (isMobile) {
+        triggerMobileDownloadFallback(dataUrl, fileName);
+      }
+    }
+
+    function triggerMobileDownloadFallback(dataUrl, fileName) {
+      const modal = document.getElementById('mobileSaveModal');
+      const imgElem = document.getElementById('mobileSaveImg');
+      const dlBtn = document.getElementById('mobileSaveDlBtn');
+      if (modal && imgElem) {
+        imgElem.src = dataUrl;
+        if (dlBtn) {
+          dlBtn.href = dataUrl;
+          dlBtn.download = fileName;
+        }
+        modal.classList.add('active');
+      }
     }
 
     async function copyCanvasToClipboard() {
@@ -2101,8 +2227,73 @@
       if (currentSelectedTarget === 'space-runner') resizeRunnerCanvas();
     });
 
+    function setupMobileTouchEvents() {
+      const runnerCard = document.getElementById('runnerViewportCard');
+      const runnerTouchBtn = document.getElementById('spaceRunnerTouchBtn');
+
+      function triggerRunnerFlight(e) {
+        if (e && e.cancelable && e.target.tagName !== 'BUTTON') e.preventDefault();
+        if (currentSelectedTarget !== 'space-runner') return;
+        if (!runnerGameRunning) {
+          startRunnerGame();
+        } else {
+          playerVelocity = lift;
+        }
+      }
+
+      if (runnerCard) {
+        runnerCard.addEventListener('touchstart', triggerRunnerFlight, { passive: false });
+        runnerCard.addEventListener('mousedown', triggerRunnerFlight);
+      }
+      if (runnerTouchBtn) {
+        runnerTouchBtn.addEventListener('touchstart', triggerRunnerFlight, { passive: false });
+        runnerTouchBtn.addEventListener('mousedown', triggerRunnerFlight);
+      }
+
+      const dinoCard = document.getElementById('dinoViewportCard');
+      const dinoJumpBtn = document.getElementById('dinoJumpTouchBtn');
+      const dinoDuckBtn = document.getElementById('dinoDuckTouchBtn');
+
+      function triggerDinoJump(e) {
+        if (e && e.cancelable && e.target.tagName !== 'BUTTON') e.preventDefault();
+        if (currentSelectedTarget !== 'dino-jump') return;
+        if (!dinoGameRunning) {
+          startDinoGame();
+        } else {
+          const groundLineY = (dinoCanvas ? dinoCanvas.height - 70 : 450);
+          if (dinoY >= groundLineY) dinoVelocity = dinoJump;
+        }
+      }
+
+      function triggerDinoDuckStart(e) {
+        if (e && e.cancelable) e.preventDefault();
+        if (dinoGameRunning) isDucking = true;
+      }
+
+      function triggerDinoDuckEnd(e) {
+        if (e && e.cancelable) e.preventDefault();
+        isDucking = false;
+      }
+
+      if (dinoCard) {
+        dinoCard.addEventListener('touchstart', triggerDinoJump, { passive: false });
+        dinoCard.addEventListener('mousedown', triggerDinoJump);
+      }
+      if (dinoJumpBtn) {
+        dinoJumpBtn.addEventListener('touchstart', triggerDinoJump, { passive: false });
+        dinoJumpBtn.addEventListener('mousedown', triggerDinoJump);
+      }
+      if (dinoDuckBtn) {
+        dinoDuckBtn.addEventListener('touchstart', triggerDinoDuckStart, { passive: false });
+        dinoDuckBtn.addEventListener('touchend', triggerDinoDuckEnd);
+        dinoDuckBtn.addEventListener('mousedown', triggerDinoDuckStart);
+        dinoDuckBtn.addEventListener('mouseup', triggerDinoDuckEnd);
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       showGamesHub();
+      setupMobileTouchEvents();
     });
   </script>
 </body>
