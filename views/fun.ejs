@@ -1108,7 +1108,6 @@
       document.getElementById('photoboothSection').style.display = 'none';
       document.getElementById('spaceRunnerSection').style.display = 'none';
       document.getElementById('dinoJumpSection').style.display = 'none';
-      document.getElementById('galleryContainerSection').style.display = 'none';
       document.getElementById('backToHubWrap').style.display = 'none';
     }
 
@@ -1224,7 +1223,6 @@
 
       if (currentSelectedTarget === 'photobooth') {
         document.getElementById('photoboothSection').style.display = 'block';
-        document.getElementById('galleryContainerSection').style.display = 'block';
         initCamera();
         renderStripCanvas();
       } else if (currentSelectedTarget === 'space-runner') {
@@ -1278,6 +1276,7 @@
           audio: false
         });
         videoElem.srcObject = stream;
+        await videoElem.play().catch(() => {});
       } catch (err) {
         console.error("Camera Error:", err);
       }
