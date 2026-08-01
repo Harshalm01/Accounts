@@ -1474,6 +1474,10 @@ app.get("/admin/api/invoices", async (req, res) => {
   res.json({ invoices, notifications });
 });
 
+app.get("/admin/fun", async (req, res) => {
+  res.render("fun", { activeTab: "fun" });
+});
+
 app.get("/admin/folders", requireRole(["ACCOUNTS", "SUPER_ADMIN", "HEAD", "TEAM"]), async (req, res) => {
   const folders = await loadCampaignFolderCards(req.session.user);
   res.render("admin_folders", { folders });

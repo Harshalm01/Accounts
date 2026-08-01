@@ -214,6 +214,7 @@
                         <% if (user.role==='SUPER_ADMIN' || user.role==='HR' ) { %>
                           <a href="/admin/users"><button class="btn btn-3d-nav" type="button">Users</button></a>
                         <% } %>
+                        <a href="/admin/fun"><button class="btn btn-3d-nav <%= typeof activeTab !== 'undefined' && activeTab === 'fun' ? 'active' : '' %>" type="button">🎉 Fun Tab</button></a>
                       </div>
                     </div>
 

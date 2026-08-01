@@ -204,35 +204,35 @@
                       </button>
                     </div>
 
-                    <!-- SUB-CHOICE FOR GST BASED FLOW -->
-                    <div id="gstSubChoiceSection" style="display: none; margin-top: 18px; border-top: 1.5px dashed rgba(124, 58, 237, 0.2); padding-top: 16px;">
-                      <div class="portal-kicker" style="color: #7c3aed; font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 6px;">GST Mode Selection</div>
-                      <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 12px;">How would you like to submit your GST Invoice?</div>
-                      <div class="grid-2 choice-grid">
-                        <button type="button" class="btn btn-light flow-choice flow-choice-active" id="gstFillModeBtn" style="border-radius: 14px; padding: 14px;">
-                          <span>📝 Fill & Auto-Generate Invoice</span>
-                        </button>
-                        <button type="button" class="btn btn-light flow-choice" id="gstUploadModeBtn" style="border-radius: 14px; padding: 14px;">
-                          <span>📤 Upload Existing GST Invoice PDF</span>
-                        </button>
-                      </div>
+                    <!-- GST DIRECT UPLOAD SECTION (ONLY FILE UPLOAD + EMAIL REQUIRED) -->
+                    <div id="gstDirectUploadCard" style="display: none; margin-top: 18px; border-top: 1.5px dashed rgba(124, 58, 237, 0.2); padding-top: 18px;">
+                      <div class="portal-kicker" style="color: #7c3aed; font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 6px;">GST Invoice Upload Station</div>
+                      <h3 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0 0 14px 0;">Upload your GST Tax Invoice Document</h3>
 
-                      <!-- DEDICATED FILE UPLOAD PICKER BOX RIGHT IN STEP 1 -->
-                      <div id="gstUploadStep1Box" style="display: none; margin-top: 16px; background: rgba(124, 58, 237, 0.05); border: 2px dashed #7c3aed; border-radius: 16px; padding: 20px; text-align: left;">
+                      <div style="background: rgba(124, 58, 237, 0.05); border: 2px dashed #7c3aed; border-radius: 16px; padding: 22px; margin-bottom: 18px;">
                         <label class="input-label" style="display: flex; flex-direction: column; gap: 8px;">
                           <span style="font-size: 12px; font-weight: 800; text-transform: uppercase; color: #7c3aed; letter-spacing: 0.5px;">
-                            📁 Select & Upload GST Invoice Document (PDF / PNG / JPG) *
+                            📁 Select & Upload GST Invoice File (PDF / PNG / JPG) *
                           </span>
                           <p style="font-size: 13px; color: #475569; margin: 0;">
-                            Upload your official pre-signed GST Tax Invoice document. No details required to be filled below!
+                            Upload your official pre-signed GST Tax Invoice document. It will be uploaded directly to AWS S3 Cloud Storage.
                           </p>
-                          <input type="file" name="gstDocument" id="gstDocumentStep1Input" accept=".pdf,.png,.jpg,.jpeg" style="padding: 12px; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; font-size: 14px; color: #0f172a; font-weight: 600; cursor: pointer; margin-top: 4px;" />
+                          <input type="file" name="gstDocument" id="gstDirectFileInput" accept=".pdf,.png,.jpg,.jpeg" style="padding: 12px; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; font-size: 14px; color: #0f172a; font-weight: 600; cursor: pointer; margin-top: 4px;" />
                         </label>
-                        <div style="margin-top: 16px; text-align: right;">
-                          <button type="submit" id="directUploadSubmitBtn" class="btn btn-3d-nav" style="padding: 12px 28px; font-size: 14px; border-radius: 12px; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);">
-                            🚀 Submit Uploaded GST Invoice
-                          </button>
-                        </div>
+                      </div>
+
+                      <div style="margin-bottom: 18px;">
+                        <label class="field field-floating">
+                          <input type="email" name="gstEmail" id="gstDirectEmailInput" value="<%= existingInvoice ? existingInvoice.email || '' : (form.email || '') %>" placeholder=" " />
+                          <span>Email Address *</span>
+                          <small class="validation-msg">Valid Email is required.</small>
+                        </label>
+                      </div>
+
+                      <div style="text-align: right;">
+                        <button type="submit" class="btn btn-3d-nav" style="padding: 14px 32px; font-size: 15px; border-radius: 14px; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); width: 100%;">
+                          🚀 Submit GST Invoice File
+                        </button>
                       </div>
                     </div>
 
@@ -768,44 +768,10 @@
 
         updateStepUI();
 
-        // GST choice & sub-mode handling
-        const gstSubChoiceSection = document.getElementById("gstSubChoiceSection");
-        const gstFillModeBtn = document.getElementById("gstFillModeBtn");
-        const gstUploadModeBtn = document.getElementById("gstUploadModeBtn");
-        const gstUploadContainer = document.getElementById("gstUploadContainer");
-        const gstUploadStep1Box = document.getElementById("gstUploadStep1Box");
-
-        let currentGstSubMode = "fill";
-
-        function setGstSubMode(mode) {
-          currentGstSubMode = mode;
-          const stepperHeader = document.querySelector(".stepper-header");
-          const billingCard = document.getElementById("billingIdentityCard");
-          const formActions = document.querySelectorAll(".form-actions");
-
-          if (mode === "upload") {
-            if (gstFillModeBtn) gstFillModeBtn.classList.remove("flow-choice-active");
-            if (gstUploadModeBtn) gstUploadModeBtn.classList.add("flow-choice-active");
-            if (gstUploadStep1Box) gstUploadStep1Box.style.display = "block";
-            if (billingCard) billingCard.style.display = "none";
-            if (stepperHeader) stepperHeader.style.display = "none";
-            formActions.forEach(fa => fa.style.display = "none");
-            if (choiceHint) choiceHint.textContent = "📤 Upload GST Invoice mode selected. Simply select your GST Invoice PDF above and click Submit!";
-            currentStep = 1;
-            updateStepUI();
-          } else {
-            if (gstUploadModeBtn) gstUploadModeBtn.classList.remove("flow-choice-active");
-            if (gstFillModeBtn) gstFillModeBtn.classList.add("flow-choice-active");
-            if (gstUploadStep1Box) gstUploadStep1Box.style.display = "none";
-            if (billingCard) billingCard.style.display = "block";
-            if (stepperHeader) stepperHeader.style.display = "flex";
-            formActions.forEach(fa => fa.style.display = "flex");
-            if (choiceHint) choiceHint.textContent = "📝 Fill GST Invoice mode selected. Enter PO Number, GSTIN, and details below.";
-          }
-        }
-
-        if (gstFillModeBtn) gstFillModeBtn.addEventListener("click", () => setGstSubMode("fill"));
-        if (gstUploadModeBtn) gstUploadModeBtn.addEventListener("click", () => setGstSubMode("upload"));
+        // GST choice handling
+        const gstDirectUploadCard = document.getElementById("gstDirectUploadCard");
+        const gstDirectFileInput = document.getElementById("gstDirectFileInput");
+        const gstDirectEmailInput = document.getElementById("gstDirectEmailInput");
 
         function setChoiceState(activeChoice) {
           if (nonGstChoice) {
@@ -824,7 +790,7 @@
 
           if (choiceHint) choiceHint.textContent = "Non-GST based Bill of Supply flow selected. Fill details below.";
           setChoiceState("non_gst");
-          if (gstSubChoiceSection) gstSubChoiceSection.style.display = "none";
+          if (gstDirectUploadCard) gstDirectUploadCard.style.display = "none";
           if (gstDetailsSection) gstDetailsSection.hidden = true;
           if (billingCard) billingCard.style.display = "block";
           if (stepperHeader) stepperHeader.style.display = "flex";
@@ -837,12 +803,22 @@
 
         function showGstFlow() {
           if (invoiceType) invoiceType.value = "gst";
+          const stepperHeader = document.querySelector(".stepper-header");
+          const billingCard = document.getElementById("billingIdentityCard");
+          const formActions = document.querySelectorAll(".form-actions");
+
+          if (choiceHint) choiceHint.textContent = "GST Tax Invoice flow selected. Simply upload your GST Invoice file and enter your Email below!";
           setChoiceState("gst");
-          if (gstSubChoiceSection) gstSubChoiceSection.style.display = "block";
-          if (gstDetailsSection) gstDetailsSection.hidden = false;
-          if (poNumber) poNumber.required = true;
-          if (gstin) gstin.required = true;
-          setGstSubMode(currentGstSubMode);
+          if (gstDirectUploadCard) gstDirectUploadCard.style.display = "block";
+          if (gstDetailsSection) gstDetailsSection.hidden = true;
+          if (billingCard) billingCard.style.display = "none";
+          if (stepperHeader) stepperHeader.style.display = "none";
+          formActions.forEach(fa => fa.style.display = "none");
+
+          if (poNumber) poNumber.required = false;
+          if (gstin) gstin.required = false;
+          currentStep = 1;
+          updateStepUI();
           syncAllPreviewFields();
         }
 
@@ -1244,6 +1220,28 @@
 
         // Submit form validation
         formEl.addEventListener("submit", (e) => {
+          if (invoiceType && invoiceType.value === "gst") {
+            const fileInput = document.getElementById("gstDirectFileInput");
+            const emailInput = document.getElementById("gstDirectEmailInput");
+
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+              e.preventDefault();
+              alert("Please select your GST Invoice PDF or image file to upload.");
+              return;
+            }
+
+            const emailVal = emailInput ? emailInput.value.trim() : "";
+            if (!emailVal || !emailVal.includes("@")) {
+              e.preventDefault();
+              alert("Please enter a valid Email address.");
+              if (emailInput) emailInput.focus();
+              return;
+            }
+
+            if (emailInput) emailInput.name = "email";
+            return;
+          }
+
           calculateTotal();
 
           if (!validateAllSteps()) {

@@ -1,0 +1,2110 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>3FM Fun & Games Studio - Fun Tab</title>
+  <link rel="stylesheet" href="/public/styles.css?v=45" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@400;600;700;800&family=Outfit:wght@400;600;700;800;900&family=Playfair+Display:ital,wght@0,700;1,700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    /* PORTAL NATIVE LIGHT THEME STUDIO & ARCADE STYLING (NO GRADIENTS) */
+    body.admin-page {
+      background: radial-gradient(circle at 20% 0%, rgba(124, 58, 237, 0.06), transparent 25%), #f8fafc !important;
+      color: #0f172a !important;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .fun-shell {
+      max-width: 1520px;
+      margin: 0 auto;
+      padding: 20px 24px 80px 24px;
+    }
+
+    /* Portal Light Cards & Panels */
+    .portal-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 24px;
+      padding: 26px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+      transition: all 0.25s ease;
+    }
+
+    .card-title-row {
+      font-size: 18px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 18px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      letter-spacing: -0.01em;
+    }
+
+    /* UNIQUE FUN TAB MINIMAL MATTE CARDS (ONLY GAME NAME, NO GRADIENTS) */
+    .hub-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 28px;
+      margin-top: 24px;
+      max-width: 1140px;
+    }
+
+    .hub-card-item {
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      border-radius: 32px;
+      padding: 38px 28px 28px 28px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+    }
+
+    .hub-card-item:hover {
+      transform: translateY(-8px) scale(1.02);
+      border-color: #7c3aed;
+      box-shadow: 0 24px 50px rgba(124, 58, 237, 0.12);
+    }
+
+    .hub-card-badge-row {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+    }
+
+    .hub-badge {
+      background: #f1f5f9;
+      color: #64748b;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid #cbd5e1;
+    }
+
+    .hub-card-icon-box {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      margin-bottom: 24px;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .hub-card-item:hover .hub-card-icon-box {
+      transform: scale(1.12) rotate(6deg);
+      background: #f3e8ff;
+      border-color: #7c3aed;
+    }
+
+    .hub-card-title {
+      font-size: 19px;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      margin: 0 0 24px 0;
+      text-transform: uppercase;
+    }
+
+    .hub-card-action-btn {
+      background: #0f172a;
+      color: #ffffff;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.25s ease;
+    }
+
+    .hub-card-item:hover .hub-card-action-btn {
+      background: #7c3aed;
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
+    }
+
+    /* CANVAS GAME STYLING - FULL CONTAINER FIT */
+    .game-viewport-card {
+      position: relative;
+      width: 100%;
+      height: 540px;
+      background: #0f172a;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 2px solid #cbd5e1;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+    }
+
+    .game-viewport-card canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }.game-overlay-screen {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      z-index: 30;
+    }
+
+    /* INSTRUCTIONS GLASS MODAL STYLING */
+    .modal-backdrop-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-backdrop-screen.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card-box {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 28px;
+      max-width: 580px;
+      width: 100%;
+      padding: 30px;
+      box-shadow: 0 25px 60px rgba(15, 23, 42, 0.2);
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .modal-backdrop-screen.active .modal-card-box {
+      transform: scale(1);
+    }
+
+    .modal-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .modal-close-btn {
+      background: #f1f5f9;
+      border: none;
+      color: #64748b;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close-btn:hover {
+      background: #ef4444;
+      color: #ffffff;
+    }
+
+    .instruction-step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .instruction-step-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: #f3e8ff;
+      color: #7c3aed;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .instruction-step-text {
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.5;
+    }
+
+    .instruction-step-text strong {
+      color: #0f172a;
+    }
+
+    /* 70/30 STUDIO GRID LAYOUT */
+    .studio-grid-7030 {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 26px;
+      align-items: start;
+    }
+
+    @media (max-width: 1100px) {
+      .studio-grid-7030 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 3D ELEVATED CAMERA VIEWPORT CONTAINER */
+    .camera-viewport-card {
+      position: relative;
+      width: 100%;
+      background: #0f172a;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 4px solid #cbd5e1;
+      box-shadow: inset 0 0 35px rgba(0,0,0,0.7), 0 20px 40px rgba(15, 23, 42, 0.12), 0 5px 0 #94a3b8;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .camera-viewport-card:hover {
+      transform: perspective(1000px) rotateX(1.5deg) scale(1.006);
+      box-shadow: inset 0 0 35px rgba(0,0,0,0.7), 0 25px 50px rgba(124, 58, 237, 0.2), 0 7px 0 #7c3aed;
+      border-color: #7c3aed;
+    }
+
+    /* Aspect Ratios */
+    .ratio-4-3 { aspect-ratio: 4 / 3; }
+    .ratio-16-9 { aspect-ratio: 16 / 9; }
+    .ratio-1-1 { aspect-ratio: 1 / 1; }
+    .ratio-3-4 { aspect-ratio: 3 / 4; }
+
+    .camera-feed {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      transition: filter 0.3s ease;
+    }
+
+    .camera-feed.unmirrored {
+      transform: scaleX(1);
+    }
+
+    /* Visual Filters */
+    .filter-normal { filter: none; }
+    .filter-sepia { filter: sepia(0.65) contrast(1.1) brightness(0.95); }
+    .filter-cyber { filter: hue-rotate(180deg) saturate(2.2) contrast(1.25); }
+    .filter-bw { filter: grayscale(1) contrast(1.3) brightness(1.05); }
+    .filter-warm { filter: sepia(0.3) saturate(1.5) contrast(1.05) hue-rotate(-10deg); }
+    .filter-grain { filter: contrast(1.35) brightness(0.9) saturate(1.15); }
+    .filter-pastel { filter: saturate(1.6) contrast(0.9) brightness(1.15) hue-rotate(15deg); }
+    .filter-noir { filter: grayscale(1) contrast(2) brightness(0.75); }
+
+    .live-status-pill {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      color: #ffffff;
+      padding: 6px 16px;
+      border-radius: 30px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 5;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .red-pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #ef4444;
+      border-radius: 50%;
+      animation: pulseDot 1.5s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.3; transform: scale(0.85); }
+    }
+
+    .countdown-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 120px;
+      font-weight: 900;
+      font-family: 'Outfit', sans-serif;
+      text-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      z-index: 10;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .countdown-overlay.active {
+      opacity: 1;
+      animation: popCount 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+    }
+
+    @keyframes popCount {
+      0% { transform: scale(0.5); opacity: 0; filter: blur(8px); }
+      50% { transform: scale(1.18); opacity: 1; filter: blur(0px); }
+      100% { transform: scale(1); opacity: 1; filter: blur(0px); }
+    }
+
+    .flash-overlay-screen {
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .flash-overlay-screen.trigger-flash {
+      animation: flashAnim 0.35s ease-out;
+    }
+
+    @keyframes flashAnim {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* 3D TACTILE LEICA SHUTTER BUTTON */
+    .shutter-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-top: 24px;
+    }
+
+    .shutter-outer-ring {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      border: 4px solid #0f172a;
+      background: #ffffff;
+      padding: 6px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 10px 0 #0f172a, 0 16px 30px rgba(15, 23, 42, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .shutter-inner-core {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: #7c3aed;
+      transition: all 0.2s ease;
+      box-shadow: inset 0 -4px 8px rgba(0,0,0,0.3);
+    }
+
+    .shutter-outer-ring:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 13px 0 #0f172a, 0 20px 35px rgba(124, 58, 237, 0.35);
+    }
+
+    .shutter-outer-ring:active {
+      transform: translateY(6px);
+      box-shadow: 0 4px 0 #0f172a, 0 8px 15px rgba(15, 23, 42, 0.2);
+    }
+
+    .shutter-outer-ring:active .shutter-inner-core {
+      transform: scale(0.88);
+      background: #4c1d95;
+    }
+
+    /* 3D TACTILE CONTROL PILLS */
+    .sublabel-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+
+    .pill-wrap-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .light-pill {
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      color: #334155;
+      padding: 9px 18px;
+      border-radius: 22px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 0 #cbd5e1;
+    }
+
+    .light-pill:hover {
+      background: #f8fafc;
+      color: #0f172a;
+      border-color: #7c3aed;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #7c3aed;
+    }
+
+    .light-pill:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #7c3aed;
+    }
+
+    .light-pill.active {
+      background: #7c3aed;
+      color: #ffffff !important;
+      border-color: #7c3aed !important;
+      box-shadow: 0 4px 0 #5b21b6 !important;
+    }
+
+    /* 3D PALETTE SWATCHES */
+    .color-swatch-item {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 3px solid #ffffff;
+      box-shadow: 0 4px 0 #cbd5e1, 0 6px 15px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .color-swatch-item:hover {
+      transform: translateY(-3px) scale(1.1);
+      box-shadow: 0 7px 0 #7c3aed, 0 10px 20px rgba(124, 58, 237, 0.25);
+    }
+
+    .color-swatch-item.active {
+      transform: translateY(-2px) scale(1.15);
+      box-shadow: 0 6px 0 #7c3aed, 0 12px 25px rgba(124, 58, 237, 0.4);
+    }
+
+    .input-light {
+      width: 100%;
+      background: #f8fafc;
+      border: 2px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 11px 16px;
+      color: #0f172a;
+      font-size: 13px;
+      font-weight: 700;
+      outline: none;
+      transition: all 0.2s ease;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
+    }
+
+    .input-light:focus {
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15), inset 0 2px 4px rgba(0,0,0,0.04);
+      background: #ffffff;
+    }
+
+    /* 3D LIVE PHOTO STRIP PREVIEW CARD */
+    .canvas-preview-card {
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      border-radius: 28px;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08), 0 6px 0 #cbd5e1;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .canvas-preview-card:hover {
+      transform: perspective(1000px) rotateY(-2deg) rotateX(1deg) translateY(-4px);
+      box-shadow: 0 28px 60px rgba(124, 58, 237, 0.15), 0 8px 0 #7c3aed;
+      border-color: #7c3aed;
+    }
+
+    #photoboothCanvas {
+      max-width: 100%;
+      height: auto;
+      max-height: 640px;
+      border-radius: 18px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+      transition: transform 0.3s ease;
+    }
+
+    /* 3D Thumbnails */
+    .thumb-strip-row {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      padding: 12px 4px;
+      margin-top: 14px;
+    }
+
+    .thumb-card-item {
+      position: relative;
+      width: 92px;
+      height: 68px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 2px solid #7c3aed;
+      flex-shrink: 0;
+      background: #0f172a;
+      box-shadow: 0 5px 0 #5b21b6, 0 10px 20px rgba(124, 58, 237, 0.2);
+      transition: all 0.25s ease;
+    }
+
+    .thumb-card-item:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 8px 0 #5b21b6, 0 14px 25px rgba(124, 58, 237, 0.3);
+    }
+
+    .thumb-card-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .thumb-del-btn {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+
+<body class="admin-page">
+  <div class="shell fun-shell">
+
+    <!-- Top Header Banner -->
+    <div class="topbar hero-banner folder-header-banner" style="margin-bottom: 20px;">
+      <div class="header-left">
+        <%- include('partials/brand') %>
+        <div class="eyebrow" style="margin-top: 10px;">Portal Playground</div>
+        <h2 style="margin: 4px 0 6px 0;">🎉 Fun & Games Studio</h2>
+        <div class="pill">
+          <%= typeof user !== 'undefined' ? user.role : 'ADMIN' %> • Photobooth & Arcade Suite
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="header-actions-row">
+          <form method="post" action="/admin/logout" style="margin:0;">
+            <button class="btn btn-3d-nav" type="submit">Logout</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Portal Main Navigation Bar -->
+    <div class="nav nav-3d" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <a href="/admin/dashboard"><button class="btn btn-3d-nav" type="button">Invoices</button></a>
+        <% if (typeof user !== 'undefined' && (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN')) { %>
+          <a href="/admin/dashboard?tab=hr_uploads"><button class="btn btn-3d-nav" type="button">💼 HR Uploads</button></a>
+        <% } %>
+        <% if (typeof user !== 'undefined' && (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN' || user.role === 'TEAM' || user.role === 'HEAD')) { %>
+          <a href="/admin/folders"><button class="btn btn-3d-nav" type="button">Folders</button></a>
+        <% } %>
+        <% if (typeof user !== 'undefined' && (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN')) { %>
+          <a href="/admin/notifications"><button class="btn btn-3d-nav" type="button">Notifications</button></a>
+        <% } %>
+        <% if (typeof user !== 'undefined' && (user.role === 'HEAD' || user.role === 'SUPER_ADMIN' || user.role === 'ACCOUNTS' || user.role === 'TEAM')) { %>
+          <a href="/admin/campaigns"><button class="btn btn-3d-nav" type="button">Campaigns</button></a>
+        <% } %>
+        <% if (typeof user !== 'undefined' && (user.role === 'SUPER_ADMIN' || user.role === 'HR')) { %>
+          <a href="/admin/users"><button class="btn btn-3d-nav" type="button">Users</button></a>
+        <% } %>
+        <a href="/admin/fun"><button class="btn btn-3d-nav active" type="button" style="background: #7c3aed; color: #ffffff; border-color: #7c3aed; font-weight: 800;">🎉 Fun Tab</button></a>
+      </div>
+
+      <!-- Back to Games Hub Button (Visible inside Studio/Game) -->
+      <div id="backToHubWrap" style="display: none;">
+        <button class="btn btn-3d-nav" onclick="showGamesHub()" style="background: #ffffff; color: #0f172a; border: 1.5px solid #cbd5e1; font-weight: 800;">
+          ← Back to Games Hub
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= 0. CARDS HUB LANDING SCREEN ================= -->
+    <div id="gamesHubSection">
+      <div style="margin-bottom: 24px;">
+        <h3 style="margin: 0 0 6px 0; font-size: 22px; font-weight: 900; color: #0f172a;">🎮 Select a Game or Studio Tool</h3>
+        <p style="margin: 0; font-size: 14px; color: #64748b;">Click on any card below to view how to play and launch!</p>
+      </div>
+
+      <div class="hub-cards-grid">
+        <!-- Card 1: Photobooth Studio -->
+        <div class="hub-card-item" onclick="openInstructionsModal('photobooth')">
+          <div class="hub-card-badge-row">
+            <span class="hub-badge">STUDIO</span>
+          </div>
+          <div class="hub-card-icon-box">
+            <span>📸</span>
+          </div>
+          <h3 class="hub-card-title">3FM Photobooth Studio</h3>
+          <button class="hub-card-action-btn">
+            LAUNCH STUDIO ➔
+          </button>
+        </div>
+
+        <!-- Card 2: Space Runner -->
+        <div class="hub-card-item" onclick="openInstructionsModal('space-runner')">
+          <div class="hub-card-badge-row">
+            <span class="hub-badge">ARCADE GAME</span>
+          </div>
+          <div class="hub-card-icon-box">
+            <span>🚀</span>
+          </div>
+          <h3 class="hub-card-title">3FM Jetpack Space Runner</h3>
+          <button class="hub-card-action-btn">
+            PLAY GAME ➔
+          </button>
+        </div>
+
+        <!-- Card 3: 🦖 3FM Dino Jump Runner -->
+        <div class="hub-card-item" onclick="openInstructionsModal('dino-jump')">
+          <div class="hub-card-badge-row">
+            <span class="hub-badge">ARCADE GAME</span>
+          </div>
+          <div class="hub-card-icon-box">
+            <span>🦖</span>
+          </div>
+          <h3 class="hub-card-title">3FM DINO JUMP RUNNER</h3>
+          <button class="hub-card-action-btn">
+            PLAY GAME ➔
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SECTION 1: PHOTOBOOTH STUDIO ================= -->
+    <div id="photoboothSection" style="display: none;">
+      <div class="studio-grid-7030">
+        
+        <!-- LEFT COLUMN: CAMERA VIEWPORT (~70%) -->
+        <div class="portal-card">
+          <div class="card-title-row">
+            <span>🎥 Camera Viewfinder</span>
+            <div style="display: flex; gap: 6px;">
+              <button class="light-pill" onclick="toggleMirror()" id="mirrorBtn" title="Flip Mirror">
+                🔄 Mirror
+              </button>
+              <button class="light-pill" onclick="toggleAudio()" id="audioBtn" title="Sound Effects">
+                🔊 Sound On
+              </button>
+            </div>
+          </div>
+
+          <!-- Camera Aspect Ratio Selector Pills -->
+          <div style="margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">
+            <span class="sublabel-title">Aspect Ratio</span>
+            <div class="pill-wrap-row" style="margin:0;">
+              <button class="light-pill active" onclick="setAspectRatio('4-3', this)">4:3 Classic</button>
+              <button class="light-pill" onclick="setAspectRatio('16-9', this)">16:9 Cinema</button>
+              <button class="light-pill" onclick="setAspectRatio('1-1', this)">1:1 Square</button>
+              <button class="light-pill" onclick="setAspectRatio('3-4', this)">3:4 Portrait</button>
+            </div>
+          </div>
+
+          <!-- Camera Viewport Box -->
+          <div class="camera-viewport-card ratio-4-3" id="camViewport">
+            <video id="webcamVideo" autoplay playsinline class="camera-feed filter-normal"></video>
+            <div class="live-status-pill">
+              <span class="red-pulse-dot"></span> LIVE 3FM CAM
+            </div>
+            <div class="countdown-overlay" id="countdownOverlay">3</div>
+            <div class="flash-overlay-screen" id="flashOverlay"></div>
+          </div>
+
+          <!-- Real-Time Camera Visual Filters -->
+          <div style="margin-top: 18px;">
+            <span class="sublabel-title">Real-Time Camera Visual Filters</span>
+            <div class="pill-wrap-row" style="margin-top: 8px;">
+              <button class="light-pill active" onclick="setFilter('normal', this)">Original</button>
+              <button class="light-pill" onclick="setFilter('sepia', this)">Vintage Sepia</button>
+              <button class="light-pill" onclick="setFilter('cyber', this)">Cyber Neon</button>
+              <button class="light-pill" onclick="setFilter('bw', this)">Classic B&W</button>
+              <button class="light-pill" onclick="setFilter('warm', this)">Warm Glow</button>
+              <button class="light-pill" onclick="setFilter('grain', this)">Film Grain</button>
+              <button class="light-pill" onclick="setFilter('pastel', this)">Dreamy Pastel</button>
+              <button class="light-pill" onclick="setFilter('noir', this)">Noir Cinema</button>
+            </div>
+          </div>
+
+          <!-- SHUTTER BUTTON -->
+          <div class="shutter-container">
+            <button type="button" class="shutter-outer-ring" onclick="captureSinglePhoto()" title="Capture Photo (Spacebar)">
+              <div class="shutter-inner-core"></div>
+            </button>
+            <span style="font-size: 11px; font-weight: 700; color: #64748b; margin-top: 8px;">Press [SPACE] or Click to Capture</span>
+          </div>
+
+          <!-- Action Controls -->
+          <div style="display: flex; gap: 12px; margin-top: 20px; justify-content: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-3d-nav" onclick="triggerAutoSequence()" style="background: #7c3aed; color: white; border: none; font-weight: 800; padding: 12px 22px;">
+              ⚡ Auto 3-Snap Sequence
+            </button>
+            <button type="button" class="btn btn-3d-nav" onclick="resetPhotos()" style="background: #f1f5f9; color: #ef4444; border: 1.5px solid #cbd5e1; font-weight: 700; padding: 12px 20px;">
+              🗑️ Reset Snaps [R]
+            </button>
+          </div>
+
+          <!-- Captured Snaps Carousel -->
+          <div style="margin-top: 22px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="sublabel-title" id="capturedCountLabel">Captured Snaps (0 / 3)</span>
+              <span style="font-size: 11px; color: #94a3b8; font-weight: 600;">Click ✕ to retake</span>
+            </div>
+            <div class="thumb-strip-row" id="thumbsRow">
+              <div style="font-size: 12px; color: #94a3b8; padding: 10px 0; font-weight: 600;">
+                No snaps taken yet. Click shutter to capture!
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: LIVE BRANDED PHOTO STRIP PREVIEW (~30%) -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+
+          <div class="canvas-preview-card">
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+                🖼️ Live Branded Photo Strip Preview
+              </h3>
+              <span style="font-size: 11px; color: #7c3aed; font-weight: 800; text-transform: uppercase;">1200 x 2600 HD</span>
+            </div>
+
+            <canvas id="photoboothCanvas" width="600" height="1300"></canvas>
+
+            <div style="width: 100%; margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+              <button type="button" class="btn btn-3d-nav" onclick="downloadStrip('png')" style="background: #7c3aed; color: white; border: none; font-weight: 900; padding: 16px; font-size: 15px; width: 100%; border-radius: 14px; box-shadow: 0 6px 20px rgba(124, 58, 237, 0.3);">
+                ⬇️ Download Photo Strip (PNG) [D]
+              </button>
+              <div style="display: flex; gap: 10px;">
+                <button type="button" class="light-pill" onclick="copyCanvasToClipboard()" style="flex: 1; padding: 12px; justify-content: center;">
+                  📋 Copy Image
+                </button>
+                <button type="button" class="light-pill" onclick="printStrip()" style="flex: 1; padding: 12px; justify-content: center;">
+                  🖨️ Print Photo Strip
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="portal-card">
+            <h3 style="margin: 0 0 16px 0; font-size: 17px; font-weight: 800; color: #0f172a;">
+              ⚙️ Strip Customization Studio
+            </h3>
+
+            <span class="sublabel-title">Strip Layout Template</span>
+            <div class="pill-wrap-row" style="margin-top: 8px;">
+              <button class="light-pill active" onclick="setLayout('vertical3', this)">🎞️ 3-Photo Strip</button>
+              <button class="light-pill" onclick="setLayout('vertical4', this)">🎞️ 4-Photo Strip</button>
+              <button class="light-pill" onclick="setLayout('grid2x2', this)">🔲 2x2 Photo Grid</button>
+              <button class="light-pill" onclick="setLayout('polaroid', this)">🖼️ Polaroid Frame</button>
+            </div>
+
+            <span class="sublabel-title">Strip Background Palette</span>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; margin-bottom: 16px;">
+              <div class="color-swatch-item active" style="background: #0f172a;" onclick="setBgTheme('midnight', this)" title="Midnight Velvet"></div>
+              <div class="color-swatch-item" style="background: #7c3aed;" onclick="setBgTheme('royal', this)" title="3FM Royal Purple"></div>
+              <div class="color-swatch-item" style="background: #0284c7;" onclick="setBgTheme('cyber', this)" title="Cyber Blue"></div>
+              <div class="color-swatch-item" style="background: #f472b6;" onclick="setBgTheme('pastel', this)" title="Blush Pink"></div>
+              <div class="color-swatch-item" style="background: #fef3c7;" onclick="setBgTheme('sepia', this)" title="Vintage Sepia"></div>
+              <div class="color-swatch-item" style="background: #ffffff;" onclick="setBgTheme('white', this)" title="Clean Studio White"></div>
+              <div class="color-swatch-item" style="background: #94a3b8;" onclick="setBgTheme('holographic', this)" title="Chrome Silver"></div>
+              <div class="color-swatch-item" style="background: #000000;" onclick="setBgTheme('dark', this)" title="Pitch Dark"></div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+              <div>
+                <span class="sublabel-title">Font Style</span>
+                <select class="input-light" id="fontSelect" onchange="renderStripCanvas()" style="margin-top: 6px;">
+                  <option value="'Outfit', sans-serif">Outfit (Modern)</option>
+                  <option value="'Playfair Display', serif">Playfair (Luxury Serif)</option>
+                  <option value="'Pacifico', cursive">Pacifico (Fun Cursive)</option>
+                  <option value="'Cinzel', serif">Cinzel (Cinematic)</option>
+                  <option value="'Space Grotesk', sans-serif">Space Grotesk (Tech)</option>
+                  <option value="'Inter', sans-serif">Inter (Clean)</option>
+                </select>
+              </div>
+              <div>
+                <span class="sublabel-title">Text Color</span>
+                <input type="color" id="textColorPicker" value="#ffffff" onchange="renderStripCanvas()" style="width: 100%; height: 40px; border-radius: 12px; border: 1.5px solid #cbd5e1; cursor: pointer; background: transparent; margin-top: 6px;">
+              </div>
+            </div>
+
+            <div style="margin-bottom: 16px;">
+              <span class="sublabel-title">Custom Header & Caption</span>
+              <input type="text" id="headerTextInput" class="input-light" value="3FOLKS MEDIA" placeholder="Main Header Text" oninput="renderStripCanvas()" style="margin: 6px 0 8px 0;">
+              <input type="text" id="captionTextInput" class="input-light" value="PHOTOBOOTH MEMORIES ✨" placeholder="Sub-caption text (e.g. Studio Session 2026)" oninput="renderStripCanvas()">
+            </div>
+
+            <div style="margin-bottom: 14px;">
+              <span class="sublabel-title">Sticker Badges</span>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="stickersContainer">
+                <span class="light-pill" onclick="toggleSticker('✨', this)" style="padding: 6px 12px; font-size: 18px;">✨</span>
+                <span class="light-pill" onclick="toggleSticker('📸', this)" style="padding: 6px 12px; font-size: 18px;">📸</span>
+                <span class="light-pill" onclick="toggleSticker('👑', this)" style="padding: 6px 12px; font-size: 18px;">👑</span>
+                <span class="light-pill" onclick="toggleSticker('🚀', this)" style="padding: 6px 12px; font-size: 18px;">🚀</span>
+                <span class="light-pill" onclick="toggleSticker('⚡', this)" style="padding: 6px 12px; font-size: 18px;">⚡</span>
+                <span class="light-pill" onclick="toggleSticker('🎬', this)" style="padding: 6px 12px; font-size: 18px;">🎬</span>
+                <span class="light-pill" onclick="toggleSticker('❤️', this)" style="padding: 6px 12px; font-size: 18px;">❤️</span>
+                <span class="light-pill" onclick="toggleSticker('💼', this)" style="padding: 6px 12px; font-size: 18px;">💼</span>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px;">
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #475569; cursor: pointer;">
+                <input type="checkbox" id="showLogoChk" checked onchange="renderStripCanvas()" style="width: 16px; height: 16px; accent-color: #7c3aed;">
+                Compulsory 3FM Logo Badge
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #475569; cursor: pointer;">
+                <input type="checkbox" id="showDateChk" checked onchange="renderStripCanvas()" style="width: 16px; height: 16px; accent-color: #7c3aed;">
+                Live Date & Timestamp
+              </label>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= SECTION 2: 🚀 3FM JETPACK SPACE RUNNER GAME ================= -->
+    <div id="spaceRunnerSection" style="display: none;">
+      <div class="portal-card" style="padding: 26px;">
+        <div class="card-title-row">
+          <span>🚀 3FM Jetpack Space Runner</span>
+          <div style="font-size: 14px; font-weight: 800; color: #7c3aed;">
+            HIGH SCORE: <span id="runnerHighScore">0</span> PTS
+          </div>
+        </div>
+
+        <p style="margin: -10px 0 16px 0; font-size: 14px; color: #64748b;">
+          Hold [SPACEBAR], [ARROW UP] or click/touch to fly your 3FM Jetpack! Collect golden 3FM coins and dodge space obstacles!
+        </p>
+
+        <div class="game-viewport-card" id="runnerViewportCard" style="height: 540px;">
+          <canvas id="runnerCanvas"></canvas>
+          <div class="game-overlay-screen" id="runnerOverlay">
+            <h2 style="font-size: 34px; font-weight: 900; margin-bottom: 8px;">🚀 3FM SPACE RUNNER</h2>
+            <p style="color: #94a3b8; font-size: 15px; margin-bottom: 24px;">Tap Space or Click to Fly!</p>
+            <button class="btn btn-3d-nav" onclick="startRunnerGame()" style="background: #7c3aed; color: white; border: none; font-size: 16px; padding: 14px 36px; font-weight: 900; border-radius: 30px; box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);">
+              ⚡ START RUN
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SECTION 3: 🦖 3FM DINO JUMP RUNNER GAME ================= -->
+    <div id="dinoJumpSection" style="display: none;">
+      <div class="portal-card" style="padding: 26px;">
+        <div class="card-title-row">
+          <span>🦖 3FM Chrome Dino Jump Runner</span>
+          <div style="font-size: 14px; font-weight: 800; color: #7c3aed;">
+            HIGH SCORE: <span id="dinoHighScore">0</span> PTS
+          </div>
+        </div>
+
+        <p style="margin: -10px 0 16px 0; font-size: 14px; color: #64748b;">
+          Press [SPACEBAR] or [ARROW UP] to jump over cacti! Press [ARROW DOWN] to duck under birds!
+        </p>
+
+        <div class="game-viewport-card" id="dinoViewportCard" style="height: 540px;">
+          <canvas id="dinoCanvas"></canvas>
+          <div class="game-overlay-screen" id="dinoOverlay">
+            <h2 style="font-size: 32px; font-weight: 900; margin-bottom: 8px;">🦖 3FM DINO RUNNER</h2>
+            <p style="color: #94a3b8; font-size: 15px; margin-bottom: 24px;">Press Space or Click to Jump!</p>
+            <button class="btn btn-3d-nav" onclick="startDinoGame()" style="background: #7c3aed; color: white; border: none; font-size: 16px; padding: 14px 32px; font-weight: 800;">
+              ⚡ START RUN
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAVED STRIPS MASONRY GALLERY SECTION -->
+    <div style="margin-top: 48px; display: none;" id="galleryContainerSection">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <span class="sublabel-title">Studio Archives</span>
+          <h3 style="margin: 4px 0 0 0; font-size: 22px; font-weight: 900; color: #0f172a;">📸 Saved Photo Strips Gallery</h3>
+        </div>
+
+        <div class="pill-wrap-row" style="margin: 0;">
+          <button class="light-pill active" onclick="filterGallery('all', this)">All Snaps</button>
+          <button class="light-pill" onclick="filterGallery('favorites', this)">❤️ Favorites Only</button>
+        </div>
+      </div>
+
+      <div class="gallery-grid-row" id="galleryGrid">
+        <div style="grid-column: 1 / -1; font-size: 13px; color: #94a3b8; padding: 20px 0; text-align: center; font-weight: 600;">
+          No saved photo strips yet. Download a photo strip to save it in your studio gallery archives!
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- HOW TO PLAY / HOW TO USE GLASS MODAL -->
+  <div class="modal-backdrop-screen" id="instructionsModal">
+    <div class="modal-card-box">
+      <div class="modal-header-row">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span id="modalHeaderIcon" style="font-size: 32px;">📸</span>
+          <div>
+            <h3 id="modalHeaderTitle" style="margin: 0; font-size: 20px; font-weight: 900; color: #0f172a;">How to Use</h3>
+            <span style="font-size: 12px; color: #64748b; font-weight: 600;">Follow these simple steps before playing</span>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="closeInstructionsModal()" title="Close">✕</button>
+      </div>
+
+      <div id="modalInstructionsContent">
+        <!-- Dynamic content injected by JS -->
+      </div>
+
+      <div style="margin-top: 26px; text-align: center;">
+        <button class="btn btn-3d-nav" id="gotItBtn" onclick="confirmLaunchGame()" style="background: #7c3aed; color: white; border: none; font-size: 16px; padding: 14px 36px; font-weight: 900; border-radius: 30px; box-shadow: 0 8px 25px rgba(124, 58, 237, 0.35); width: 100%;">
+          Got It! Launch Now 🚀
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Elements -->
+  <audio id="shutterAudio" src="https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.mp3" preload="auto"></audio>
+  <audio id="beepAudio" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+  <!-- Hidden Logo Image -->
+  <img id="logoImg" src="/public/logo.png" style="display: none;" crossorigin="anonymous" onload="renderStripCanvas()">
+
+  <script>
+    // GLOBAL HUB & NAVIGATION STATE
+    let currentSelectedTarget = null;
+
+    function showGamesHub() {
+      currentSelectedTarget = null;
+      document.getElementById('gamesHubSection').style.display = 'block';
+      document.getElementById('photoboothSection').style.display = 'none';
+      document.getElementById('spaceRunnerSection').style.display = 'none';
+      document.getElementById('dinoJumpSection').style.display = 'none';
+      document.getElementById('galleryContainerSection').style.display = 'none';
+      document.getElementById('backToHubWrap').style.display = 'none';
+    }
+
+    function openInstructionsModal(targetGame) {
+      currentSelectedTarget = targetGame;
+      const modal = document.getElementById('instructionsModal');
+      const iconElem = document.getElementById('modalHeaderIcon');
+      const titleElem = document.getElementById('modalHeaderTitle');
+      const contentElem = document.getElementById('modalInstructionsContent');
+
+      if (targetGame === 'photobooth') {
+        iconElem.innerText = '📸';
+        titleElem.innerText = 'How to Use 3FM Photobooth';
+        contentElem.innerHTML = `
+          <div class="instruction-step-item">
+            <div class="instruction-step-icon">🎥</div>
+            <div class="instruction-step-text">
+              <strong>Allow Camera Access:</strong> Make sure your browser has permission to access your webcam feed.
+            </div>
+          </div>
+          <div class="instruction-step-item">
+            <div class="instruction-step-icon">🎨</div>
+            <div class="instruction-step-text">
+              <strong>Customize Layout & Filters:</strong> Pick from 8 visual filters (Vintage Sepia, B&W, Cyber Neon) and 4 strip layout templates.
+            </div>
+          </div>
+          <div class="instruction-step-item">
+            <div class="instruction-step-icon">⚡</div>
+            <div class="instruction-step-text">
+              <strong>Press [SPACE] to Snap:</strong> Press spacebar or click the Leica shutter button to capture single photos or auto 3-snap sequence.
+            </div>
+          </div>
+          <div class="instruction-step-item">
+            <div class="instruction-step-icon">⬇️</div>
+            <div class="instruction-step-text">
+              <strong>Download & Share:</strong> Download your high-res PNG photo strip with compulsory 3FM logo watermark, copy to clipboard, or print!
+            </div>
+          </div>
+        `;
+      } else if (targetGame === 'space-runner') {
+        iconElem.innerText = '🚀';
+        titleElem.innerText = 'How to Play 3FM Space Runner';
+        contentElem.innerHTML = `
+          <div class="instruction-step-item">
+            <div class="instruction-step-icon">🎮</div>
+            <div class="instruction-step-text">
+              <strong>Jetpack Controls:</strong> Press & hold <strong>[SPACEBAR]</strong>, <strong>[ARROW UP]</strong> or <strong>CLICK/TOUCH</strong> screen to thrust upwards.
+            </div>
+          </div>
+          <div class="instruction-step-item">
+            <div class="instruction-step-icon">🪙</div>
+            <div class="instruction-step-text">
+              <strong>Collect Golden Coins:</strong> Fly into golden 3FM coins to score <strong>+10 bonus points</strong> per coin.
+            </div>
+          </div>
+          <div class="instruction-step-item">
+            <div class="instruction-step-icon">🪐</div>
+            <div class="instruction-step-text">
+              <strong>Dodge Obstacles:</strong> Avoid red laser barriers and space asteroids to keep flying!
+            </div>
+          </div>
+          <div class="instruction-step-item">
+            <div class="instruction-step-icon">🏆</div>
+            <div class="instruction-step-text">
+              <strong>Set High Scores:</strong> Beat your personal best high score saved right inside your portal browser!
+            </div>
+          </div>
+        `;
+      } else if (targetGame === 'dino-jump') {
+        iconElem.innerText = '🦖';
+        titleElem.innerText = 'How to Play 3FM Dino Jump';
+        contentElem.innerHTML = `
+          <div class="instruction-step-item">
+            <div class="instruction-step-icon">⌨️</div>
+            <div class="instruction-step-text">
+              <strong>Jump & Duck Controls:</strong> Press <strong>[SPACEBAR]</strong> or <strong>[ARROW UP]</strong> to jump over cacti. Press <strong>[ARROW DOWN]</strong> to duck under birds!
+            </div>
+          </div>
+          <div class="instruction-step-item">
+            <div class="instruction-step-icon">🌵</div>
+            <div class="instruction-step-text">
+              <strong>Dodge Desert Obstacles:</strong> Jump over green desert cacti and duck under flying pterodactyls.
+            </div>
+          </div>
+          <div class="instruction-step-item">
+            <div class="instruction-step-icon">🌙</div>
+            <div class="instruction-step-text">
+              <strong>Day/Night Cycle:</strong> Watch the desert sky shift between day and night mode as your score increases!
+            </div>
+          </div>
+          <div class="instruction-step-item">
+            <div class="instruction-step-icon">🏆</div>
+            <div class="instruction-step-text">
+              <strong>Set High Scores:</strong> Beat your personal best dino score saved right inside your portal browser!
+            </div>
+          </div>
+        `;
+      }
+
+      modal.classList.add('active');
+    }
+
+    function closeInstructionsModal() {
+      document.getElementById('instructionsModal').classList.remove('active');
+    }
+
+    function confirmLaunchGame() {
+      closeInstructionsModal();
+      if (!currentSelectedTarget) return;
+
+      document.getElementById('gamesHubSection').style.display = 'none';
+      document.getElementById('backToHubWrap').style.display = 'block';
+
+      if (currentSelectedTarget === 'photobooth') {
+        document.getElementById('photoboothSection').style.display = 'block';
+        document.getElementById('galleryContainerSection').style.display = 'block';
+        initCamera();
+        renderStripCanvas();
+      } else if (currentSelectedTarget === 'space-runner') {
+        document.getElementById('spaceRunnerSection').style.display = 'block';
+        initRunnerGame();
+      } else if (currentSelectedTarget === 'dino-jump') {
+        document.getElementById('dinoJumpSection').style.display = 'block';
+        initDinoGame();
+      }
+    }
+
+    // ================= 1. PHOTOBOOTH STUDIO CODE =================
+    let capturedPhotos = [];
+    let savedGalleryStrips = [];
+    let pendingDeleteIdx = null;
+
+    let currentFilter = 'normal';
+    let currentLayout = 'vertical3';
+    let currentBgTheme = 'midnight';
+    let activeStickers = [];
+    let isMirrored = true;
+    let audioEnabled = true;
+    let autoSequenceActive = false;
+
+    const imageCache = new Map();
+
+    function getLoadedImage(url) {
+      return new Promise((resolve) => {
+        if (imageCache.has(url)) return resolve(imageCache.get(url));
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => { imageCache.set(url, img); resolve(img); };
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    }
+
+    const videoElem = document.getElementById('webcamVideo');
+    const canvas = document.getElementById('photoboothCanvas');
+    const ctx = canvas.getContext('2d');
+    const countdownOverlay = document.getElementById('countdownOverlay');
+    const flashOverlay = document.getElementById('flashOverlay');
+    const shutterAudio = document.getElementById('shutterAudio');
+    const beepAudio = document.getElementById('beepAudio');
+    const logoImg = document.getElementById('logoImg');
+
+    async function initCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 960 }, facingMode: 'user' },
+          audio: false
+        });
+        videoElem.srcObject = stream;
+      } catch (err) {
+        console.error("Camera Error:", err);
+      }
+    }
+
+    function toggleMirror() {
+      isMirrored = !isMirrored;
+      if (isMirrored) videoElem.classList.remove('unmirrored');
+      else videoElem.classList.add('unmirrored');
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      document.getElementById('audioBtn').innerHTML = audioEnabled ? '🔊 Sound On' : '🔇 Muted';
+    }
+
+    function setAspectRatio(ratio, btnElem) {
+      const viewport = document.getElementById('camViewport');
+      viewport.className = `camera-viewport-card ratio-${ratio}`;
+      const parent = btnElem.parentElement;
+      parent.querySelectorAll('.light-pill').forEach(b => b.classList.remove('active'));
+      btnElem.classList.add('active');
+    }
+
+    function setFilter(filterName, btnElem) {
+      currentFilter = filterName;
+      videoElem.className = `camera-feed filter-${filterName} ${isMirrored ? '' : 'unmirrored'}`;
+      const parent = btnElem.parentElement;
+      parent.querySelectorAll('.light-pill').forEach(b => b.classList.remove('active'));
+      btnElem.classList.add('active');
+    }
+
+    function setLayout(layout, btnElem) {
+      currentLayout = layout;
+      const parent = btnElem.parentElement;
+      parent.querySelectorAll('.light-pill').forEach(b => b.classList.remove('active'));
+      btnElem.classList.add('active');
+
+      if (layout === 'vertical3') { canvas.width = 600; canvas.height = 1300; }
+      else if (layout === 'vertical4') { canvas.width = 600; canvas.height = 1600; }
+      else if (layout === 'grid2x2') { canvas.width = 900; canvas.height = 1200; }
+      else if (layout === 'polaroid') { canvas.width = 750; canvas.height = 950; }
+
+      renderStripCanvas();
+    }
+
+    function setBgTheme(theme, swatchElem) {
+      currentBgTheme = theme;
+      document.querySelectorAll('.color-swatch-item').forEach(s => s.classList.remove('active'));
+      swatchElem.classList.add('active');
+      renderStripCanvas();
+    }
+
+    function toggleSticker(emoji, pillElem) {
+      const idx = activeStickers.indexOf(emoji);
+      if (idx > -1) { activeStickers.splice(idx, 1); pillElem.classList.remove('active'); }
+      else { activeStickers.push(emoji); pillElem.classList.add('active'); }
+      renderStripCanvas();
+    }
+
+    function playBeep() { if (audioEnabled && beepAudio) { beepAudio.currentTime = 0; beepAudio.play().catch(() => {}); } }
+    function playShutter() { if (audioEnabled && shutterAudio) { shutterAudio.currentTime = 0; shutterAudio.play().catch(() => {}); } }
+
+    function captureSinglePhoto() {
+      return new Promise((resolve) => {
+        let count = 3;
+        countdownOverlay.innerText = count;
+        countdownOverlay.classList.add('active');
+        playBeep();
+
+        const timer = setInterval(async () => {
+          count--;
+          if (count > 0) {
+            countdownOverlay.innerText = count;
+            playBeep();
+          } else {
+            clearInterval(timer);
+            countdownOverlay.classList.remove('active');
+            
+            flashOverlay.classList.add('trigger-flash');
+            playShutter();
+            setTimeout(() => flashOverlay.classList.remove('trigger-flash'), 350);
+
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = videoElem.videoWidth || 640;
+            tempCanvas.height = videoElem.videoHeight || 480;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            if (isMirrored) {
+              tempCtx.translate(tempCanvas.width, 0);
+              tempCtx.scale(-1, 1);
+            }
+
+            if (currentFilter === 'sepia') tempCtx.filter = 'sepia(0.65) contrast(1.1) brightness(0.95)';
+            else if (currentFilter === 'cyber') tempCtx.filter = 'hue-rotate(180deg) saturate(2.2) contrast(1.25)';
+            else if (currentFilter === 'bw') tempCtx.filter = 'grayscale(1) contrast(1.3) brightness(1.05)';
+            else if (currentFilter === 'warm') tempCtx.filter = 'sepia(0.3) saturate(1.5) contrast(1.05) hue-rotate(-10deg)';
+            else if (currentFilter === 'grain') tempCtx.filter = 'contrast(1.35) brightness(0.9) saturate(1.15)';
+            else if (currentFilter === 'pastel') tempCtx.filter = 'saturate(1.6) contrast(0.9) brightness(1.15) hue-rotate(15deg)';
+            else if (currentFilter === 'noir') tempCtx.filter = 'grayscale(1) contrast(2) brightness(0.75)';
+            else tempCtx.filter = 'none';
+
+            tempCtx.drawImage(videoElem, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            const dataUrl = tempCanvas.toDataURL('image/png');
+            capturedPhotos.push(dataUrl);
+
+            await getLoadedImage(dataUrl);
+            updateThumbnails();
+            await renderStripCanvas();
+            resolve();
+          }
+        }, 850);
+      });
+    }
+
+    async function triggerAutoSequence() {
+      if (autoSequenceActive) return;
+      autoSequenceActive = true;
+      capturedPhotos = [];
+      updateThumbnails();
+
+      const totalRequired = currentLayout === 'vertical4' ? 4 : (currentLayout === 'polaroid' ? 1 : 3);
+
+      for (let i = 0; i < totalRequired; i++) {
+        await captureSinglePhoto();
+        if (i < totalRequired - 1) await new Promise(r => setTimeout(r, 1000));
+      }
+      autoSequenceActive = false;
+    }
+
+    function removePhoto(idx) { capturedPhotos.splice(idx, 1); updateThumbnails(); renderStripCanvas(); }
+    function resetPhotos() { capturedPhotos = []; updateThumbnails(); renderStripCanvas(); }
+
+    function updateThumbnails() {
+      const maxAllowed = currentLayout === 'vertical4' ? 4 : (currentLayout === 'polaroid' ? 1 : 3);
+      document.getElementById('capturedCountLabel').innerText = `Captured Snaps (${capturedPhotos.length} / ${maxAllowed})`;
+
+      const row = document.getElementById('thumbsRow');
+      if (capturedPhotos.length === 0) {
+        row.innerHTML = `<div style="font-size: 12px; color: #94a3b8; padding: 10px 0; font-weight: 600;">No snaps taken yet. Click shutter to capture!</div>`;
+        return;
+      }
+
+      row.innerHTML = capturedPhotos.map((url, i) => `
+        <div class="thumb-card-item">
+          <img src="${url}" class="thumb-card-img" />
+          <button class="thumb-del-btn" onclick="removePhoto(${i})" title="Remove">✕</button>
+        </div>
+      `).join('');
+    }
+
+    let whiteLogoCanvas = null;
+    function getWhiteLogoCanvas() {
+      if (!logoImg.complete || logoImg.naturalWidth === 0) return null;
+      if (whiteLogoCanvas) return whiteLogoCanvas;
+
+      const c = document.createElement('canvas');
+      c.width = logoImg.naturalWidth;
+      c.height = logoImg.naturalHeight;
+      const cCtx = c.getContext('2d');
+      cCtx.drawImage(logoImg, 0, 0);
+
+      const imgData = cCtx.getImageData(0, 0, c.width, c.height);
+      const data = imgData.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+        if (a > 15) {
+          const isPurple = (b > 100 && g < 90 && r > 70) || (r > 120 && b > 120 && g < 90);
+          if (!isPurple) { data[i] = 255; data[i + 1] = 255; data[i + 2] = 255; }
+        }
+      }
+      cCtx.putImageData(imgData, 0, 0);
+      whiteLogoCanvas = c;
+      return whiteLogoCanvas;
+    }
+
+    async function renderStripCanvas() {
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const loadedImages = await Promise.all(capturedPhotos.map(url => getLoadedImage(url)));
+
+      if (currentBgTheme === 'royal') { ctx.fillStyle = '#7c3aed'; }
+      else if (currentBgTheme === 'cyber') { ctx.fillStyle = '#0284c7'; }
+      else if (currentBgTheme === 'pastel') { ctx.fillStyle = '#f472b6'; }
+      else if (currentBgTheme === 'sepia') { ctx.fillStyle = '#fef3c7'; }
+      else if (currentBgTheme === 'white') { ctx.fillStyle = '#ffffff'; }
+      else if (currentBgTheme === 'holographic') { ctx.fillStyle = '#cbd5e1'; }
+      else if (currentBgTheme === 'dark') { ctx.fillStyle = '#000000'; }
+      else { ctx.fillStyle = '#0f172a'; }
+
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = (currentBgTheme === 'white' || currentBgTheme === 'sepia') ? '#cbd5e1' : 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 12;
+      ctx.strokeRect(6, 6, w - 12, h - 12);
+
+      const padding = 36;
+      const headerSpace = 110;
+      const footerSpace = 200;
+      const availableHeight = h - headerSpace - footerSpace;
+
+      if (currentLayout === 'vertical3' || currentLayout === 'vertical4') {
+        const numSlots = currentLayout === 'vertical4' ? 4 : 3;
+        const photoGap = 20;
+        const photoWidth = w - (padding * 2);
+        const photoHeight = (availableHeight - (photoGap * (numSlots - 1))) / numSlots;
+
+        for (let i = 0; i < numSlots; i++) {
+          const x = padding;
+          const y = headerSpace + i * (photoHeight + photoGap);
+
+          ctx.fillStyle = (currentBgTheme === 'white' || currentBgTheme === 'sepia') ? '#f1f5f9' : '#1e293b';
+          ctx.fillRect(x, y, photoWidth, photoHeight);
+
+          if (loadedImages[i]) {
+            drawCoverImage(ctx, loadedImages[i], x, y, photoWidth, photoHeight);
+          } else {
+            ctx.fillStyle = (currentBgTheme === 'white' || currentBgTheme === 'sepia') ? '#94a3b8' : '#475569';
+            ctx.font = 'bold 20px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`FRAME ${i + 1}`, x + photoWidth / 2, y + photoHeight / 2);
+          }
+
+          ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+          ctx.lineWidth = 4;
+          ctx.strokeRect(x, y, photoWidth, photoHeight);
+        }
+      } else if (currentLayout === 'grid2x2') {
+        const photoWidth = (w - (padding * 3)) / 2;
+        const photoHeight = (availableHeight - padding) / 2;
+        const slots = [
+          { x: padding, y: headerSpace },
+          { x: padding * 2 + photoWidth, y: headerSpace },
+          { x: padding, y: headerSpace + photoHeight + padding },
+          { x: padding * 2 + photoWidth, y: headerSpace + photoHeight + padding }
+        ];
+
+        slots.forEach((slot, i) => {
+          ctx.fillStyle = (currentBgTheme === 'white' || currentBgTheme === 'sepia') ? '#f1f5f9' : '#1e293b';
+          ctx.fillRect(slot.x, slot.y, photoWidth, photoHeight);
+
+          if (loadedImages[i]) {
+            drawCoverImage(ctx, loadedImages[i], slot.x, slot.y, photoWidth, photoHeight);
+          } else {
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'bold 18px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`FRAME ${i + 1}`, slot.x + photoWidth / 2, slot.y + photoHeight / 2);
+          }
+        });
+      } else if (currentLayout === 'polaroid') {
+        const photoWidth = w - (padding * 2);
+        const photoHeight = photoWidth * 0.85;
+        const x = padding;
+        const y = headerSpace + 20;
+
+        ctx.fillStyle = (currentBgTheme === 'white' || currentBgTheme === 'sepia') ? '#f1f5f9' : '#1e293b';
+        ctx.fillRect(x, y, photoWidth, photoHeight);
+
+        if (loadedImages[0]) {
+          drawCoverImage(ctx, loadedImages[0], x, y, photoWidth, photoHeight);
+        } else {
+          ctx.fillStyle = '#94a3b8';
+          ctx.font = 'bold 22px Outfit, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`POLAROID SNAP`, x + photoWidth / 2, y + photoHeight / 2);
+        }
+      }
+
+      const fontStyle = document.getElementById('fontSelect').value;
+      const textColor = document.getElementById('textColorPicker').value;
+      const headerText = document.getElementById('headerTextInput').value || '3FOLKS MEDIA';
+      const captionText = document.getElementById('captionTextInput').value || '';
+      const showLogo = document.getElementById('showLogoChk').checked;
+      const showDate = document.getElementById('showDateChk').checked;
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = textColor;
+      ctx.font = `bold 28px ${fontStyle}`;
+      ctx.fillText(headerText, w / 2, 60);
+
+      if (captionText) {
+        ctx.font = `bold 16px ${fontStyle}`;
+        ctx.fillStyle = textColor;
+        ctx.globalAlpha = 0.85;
+        ctx.fillText(captionText, w / 2, 90);
+        ctx.globalAlpha = 1.0;
+      }
+
+      const logoY = h - 165;
+      const dateY = h - 25;
+
+      if (showLogo) {
+        const whiteLogo = getWhiteLogoCanvas();
+        if (whiteLogo) {
+          const logoWidth = 140;
+          const logoHeight = (whiteLogo.height / whiteLogo.width) * logoWidth;
+          const logoX = (w - logoWidth) / 2;
+          ctx.drawImage(whiteLogo, logoX, logoY, logoWidth, logoHeight);
+        } else {
+          ctx.font = '900 26px Outfit, sans-serif';
+          ctx.textAlign = 'left';
+          const text3 = '3';
+          const textRest = 'FOLKS MEDIA';
+          const width3 = ctx.measureText(text3).width;
+          const widthRest = ctx.measureText(textRest).width;
+          const startX = (w - (width3 + widthRest)) / 2;
+          ctx.fillStyle = '#7c3aed';
+          ctx.fillText(text3, startX, logoY + 24);
+          ctx.fillStyle = (currentBgTheme === 'white' || currentBgTheme === 'sepia') ? '#0f172a' : '#ffffff';
+          ctx.fillText(textRest, startX + width3, logoY + 24);
+          ctx.textAlign = 'center';
+        }
+      }
+
+      if (showDate) {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }).toUpperCase();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        
+        ctx.font = 'bold 12px Inter, sans-serif';
+        ctx.fillStyle = textColor;
+        ctx.globalAlpha = 0.75;
+        ctx.fillText(`${dateStr} • ${timeStr} • STUDIO PHOTOBOOTH`, w / 2, dateY);
+        ctx.globalAlpha = 1.0;
+      }
+
+      if (activeStickers.length > 0) {
+        ctx.font = '36px sans-serif';
+        activeStickers.forEach((stk, idx) => {
+          const stkX = padding + (idx * 45);
+          ctx.fillText(stk, stkX + 10, h - 40);
+        });
+      }
+    }
+
+    function drawCoverImage(ctx, img, x, y, width, height) {
+      if (!img || !img.complete || img.naturalWidth === 0) return;
+      const imgRatio = img.naturalWidth / img.naturalHeight;
+      const targetRatio = width / height;
+
+      let sw, sh, sx, sy;
+      if (imgRatio > targetRatio) {
+        sh = img.naturalHeight; sw = sh * targetRatio; sx = (img.naturalWidth - sw) / 2; sy = 0;
+      } else {
+        sw = img.naturalWidth; sh = sw / targetRatio; sx = 0; sy = (img.naturalHeight - sh) / 2;
+      }
+      ctx.drawImage(img, sx, sy, sw, sh, x, y, width, height);
+    }
+
+    function downloadStrip(format = 'png') {
+      const dataUrl = canvas.toDataURL(`image/${format}`, 1.0);
+      savedGalleryStrips.unshift({
+        id: Date.now(),
+        url: dataUrl,
+        isFav: false,
+        timestamp: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
+      });
+      renderGallery();
+
+      const link = document.createElement('a');
+      link.download = `3FolksMedia_PhotoStrip_${Date.now()}.${format}`;
+      link.href = dataUrl;
+      link.click();
+    }
+
+    async function copyCanvasToClipboard() {
+      try {
+        canvas.toBlob(async (blob) => {
+          await navigator.clipboard.write([ new ClipboardItem({ 'image/png': blob }) ]);
+          alert("✅ Branded Photo Strip copied to clipboard!");
+        });
+      } catch (err) {
+        alert("Failed to copy image to clipboard automatically. Try downloading PNG instead!");
+      }
+    }
+
+    function printStrip() {
+      const dataUrl = canvas.toDataURL('image/png');
+      const win = window.open('');
+      win.document.write(`
+        <html>
+          <head><title>Print 3FolksMedia Photo Strip</title></head>
+          <body style="margin:0; display:flex; justify-content:center; align-items:center; height:100vh; background:#f8fafc;">
+            <img src="${dataUrl}" style="max-height:95vh; box-shadow: 0 10px 30px rgba(0,0,0,0.15);" onload="window.print();window.close();"/>
+          </body>
+        </html>
+      `);
+      win.document.close();
+    }
+
+    function renderGallery(filter = 'all') {
+      const grid = document.getElementById('galleryGrid');
+      let items = savedGalleryStrips;
+      if (filter === 'favorites') items = items.filter(item => item.isFav);
+
+      if (items.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1 / -1; font-size: 13px; color: #94a3b8; padding: 20px 0; text-align: center; font-weight: 600;">
+          No saved photo strips yet. Download a photo strip to save it in your studio gallery archives!
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = items.map((item) => `
+        <div class="gallery-item-card">
+          <img src="${item.url}" class="gallery-item-img" />
+          <button class="fav-btn ${item.isFav ? 'active' : ''}" onclick="toggleFav(${item.id})" title="Favorite">
+            ${item.isFav ? '❤️' : '🤍'}
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function toggleFav(id) {
+      const item = savedGalleryStrips.find(s => s.id === id);
+      if (item) { item.isFav = !item.isFav; renderGallery(); }
+    }
+
+    function filterGallery(type, btnElem) {
+      const parent = btnElem.parentElement;
+      parent.querySelectorAll('.light-pill').forEach(b => b.classList.remove('active'));
+      btnElem.classList.add('active');
+      renderGallery(type);
+    }
+
+    // ================= 2. 🚀 3FM JETPACK SPACE RUNNER GAME ENGINE =================
+    let runnerCanvas, runnerCtx;
+    let runnerGameRunning = false;
+    let playerY = 260, playerVelocity = 0, gravity = 0.28, lift = -5.8;
+    let coins = [], obstacles = [], particles = [], runnerScore = 0, runnerHighScore = localStorage.getItem('3fm_runner_highscore') || 0;
+    let runnerAnimationId;
+
+    document.getElementById('runnerHighScore').innerText = runnerHighScore;
+
+    function initRunnerGame() {
+      runnerCanvas = document.getElementById('runnerCanvas');
+      runnerCtx = runnerCanvas.getContext('2d');
+      resizeRunnerCanvas();
+    }
+
+    function resizeRunnerCanvas() {
+      const card = document.getElementById('runnerViewportCard');
+      if (card && runnerCanvas) {
+        runnerCanvas.width = card.clientWidth || 1100;
+        runnerCanvas.height = card.clientHeight || 540;
+      }
+    }
+
+    function startRunnerGame() {
+      document.getElementById('runnerOverlay').style.display = 'none';
+      resizeRunnerCanvas();
+      runnerGameRunning = true;
+      playerY = runnerCanvas.height / 2;
+      playerVelocity = 0;
+      runnerScore = 0; coins = []; obstacles = []; particles = [];
+      gameLoop();
+    }
+
+    function gameLoop() {
+      if (!runnerGameRunning) return;
+      const w = runnerCanvas.width, h = runnerCanvas.height;
+      runnerCtx.clearRect(0, 0, w, h);
+
+      // Deep Space Parallax Background
+      runnerCtx.fillStyle = '#090d16';
+      runnerCtx.fillRect(0, 0, w, h);
+
+      // Cosmic Radial Glow Nebulas
+      const nebGrad1 = runnerCtx.createRadialGradient(w * 0.2, h * 0.3, 20, w * 0.2, h * 0.3, 280);
+      nebGrad1.addColorStop(0, 'rgba(124, 58, 237, 0.15)'); nebGrad1.addColorStop(1, 'transparent');
+      runnerCtx.fillStyle = nebGrad1; runnerCtx.fillRect(0, 0, w, h);
+
+      const nebGrad2 = runnerCtx.createRadialGradient(w * 0.8, h * 0.7, 20, w * 0.8, h * 0.7, 300);
+      nebGrad2.addColorStop(0, 'rgba(2, 132, 199, 0.12)'); nebGrad2.addColorStop(1, 'transparent');
+      runnerCtx.fillStyle = nebGrad2; runnerCtx.fillRect(0, 0, w, h);
+
+      // Parallax Starfield (3 Layers)
+      const nowTime = Date.now();
+      for (let layer = 1; layer <= 3; layer++) {
+        const speed = layer * 0.8;
+        const starSize = layer * 1.2;
+        runnerCtx.fillStyle = layer === 3 ? '#ffffff' : (layer === 2 ? '#c084fc' : '#38bdf8');
+        
+        for (let i = 0; i < 25; i++) {
+          const sx = (w + ((nowTime * speed * 0.05 + i * 90) % w)) % w;
+          const sy = (i * 37 + layer * 40) % h;
+          runnerCtx.fillRect(w - sx, sy, starSize, starSize);
+        }
+      }
+
+      // Physics
+      playerVelocity += gravity;
+      playerY += playerVelocity;
+
+      if (playerY < 30) { playerY = 30; playerVelocity = 0; }
+      if (playerY > h - 30) { gameOverRunner(); return; }
+
+      // Spawn Jetpack Thruster Flame Particles
+      particles.push({
+        x: 100 + Math.random() * 4,
+        y: playerY + 12 + Math.random() * 6,
+        vx: -3.5 - Math.random() * 2,
+        vy: (Math.random() - 0.5) * 1.5,
+        life: 1.0,
+        color: Math.random() > 0.4 ? '#38bdf8' : '#7c3aed'
+      });
+
+      // Move & Draw Thruster Particles
+      particles.forEach((p, idx) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.06;
+        if (p.life > 0) {
+          runnerCtx.fillStyle = p.color;
+          runnerCtx.globalAlpha = p.life;
+          runnerCtx.beginPath();
+          runnerCtx.arc(p.x, p.y, 4 * p.life, 0, Math.PI * 2);
+          runnerCtx.fill();
+        }
+      });
+      runnerCtx.globalAlpha = 1.0;
+      particles = particles.filter(p => p.life > 0);
+
+      // Draw 3FM Jetpack Astronaut
+      // Jetpack Body
+      runnerCtx.fillStyle = '#475569';
+      runnerCtx.beginPath(); runnerCtx.roundRect(96, playerY - 14, 14, 28, 4); runnerCtx.fill();
+
+      // Astronaut Helmet & Body
+      runnerCtx.fillStyle = '#ffffff';
+      runnerCtx.beginPath(); runnerCtx.arc(120, playerY - 4, 18, 0, Math.PI * 2); runnerCtx.fill();
+      runnerCtx.beginPath(); runnerCtx.roundRect(110, playerY + 8, 22, 18, 6); runnerCtx.fill();
+
+      // Glowing Helmet Visor
+      const visorGrad = runnerCtx.createLinearGradient(120, playerY - 10, 134, playerY + 2);
+      visorGrad.addColorStop(0, '#7c3aed'); visorGrad.addColorStop(1, '#0284c7');
+      runnerCtx.fillStyle = visorGrad;
+      runnerCtx.beginPath(); runnerCtx.arc(124, playerY - 4, 10, 0, Math.PI * 2); runnerCtx.fill();
+      
+      runnerCtx.fillStyle = '#ffffff';
+      runnerCtx.beginPath(); runnerCtx.arc(127, playerY - 7, 3, 0, Math.PI * 2); runnerCtx.fill();
+
+      // Spawn Obstacles (Neon Laser Pillars & Asteroids)
+      if (Math.random() < 0.013 && (obstacles.length === 0 || obstacles[obstacles.length - 1].x < w - 260)) {
+        const obH = 70 + Math.random() * 110;
+        const isTop = Math.random() > 0.5;
+        obstacles.push({
+          x: w,
+          y: isTop ? 0 : h - obH,
+          w: 34,
+          h: obH,
+          color: isTop ? '#ef4444' : '#a855f7'
+        });
+      }
+
+      // Spawn Shiny 3FM Golden Coins
+      if (Math.random() < 0.024 && (coins.length === 0 || coins[coins.length - 1].x < w - 180)) {
+        coins.push({
+          x: w,
+          y: 60 + Math.random() * (h - 120),
+          r: 14,
+          spin: 0
+        });
+      }
+
+      // Move & Draw Obstacles
+      obstacles.forEach((ob) => {
+        ob.x -= 2.8;
+
+        // Glowing Laser Pillar Effect
+        runnerCtx.save();
+        runnerCtx.shadowBlur = 16;
+        runnerCtx.shadowColor = ob.color;
+        runnerCtx.fillStyle = ob.color;
+        runnerCtx.fillRect(ob.x, ob.y, ob.w, ob.h);
+
+        // Inner Core Beam
+        runnerCtx.fillStyle = '#ffffff';
+        runnerCtx.fillRect(ob.x + 8, ob.y, ob.w - 16, ob.h);
+        runnerCtx.restore();
+
+        // Collision Check
+        if (ob.x < 138 && ob.x + ob.w > 102) {
+          if (playerY - 18 < ob.y + ob.h && playerY + 18 > ob.y) {
+            gameOverRunner();
+          }
+        }
+      });
+      obstacles = obstacles.filter(ob => ob.x > -50);
+
+      // Move & Draw Shiny Coins
+      coins.forEach((c) => {
+        c.x -= 2.8;
+        c.spin += 0.1;
+
+        runnerCtx.save();
+        runnerCtx.shadowBlur = 12;
+        runnerCtx.shadowColor = '#f59e0b';
+
+        // Outer Gold Ring
+        runnerCtx.fillStyle = '#f59e0b';
+        runnerCtx.beginPath();
+        runnerCtx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+        runnerCtx.fill();
+
+        // Inner Shiny Core
+        runnerCtx.fillStyle = '#fef08a';
+        runnerCtx.beginPath();
+        runnerCtx.arc(c.x, c.y, c.r - 4, 0, Math.PI * 2);
+        runnerCtx.fill();
+
+        // 3FM Insignia Text
+        runnerCtx.fillStyle = '#78350f';
+        runnerCtx.font = '900 11px Outfit, sans-serif';
+        runnerCtx.textAlign = 'center';
+        runnerCtx.fillText('3FM', c.x, c.y + 4);
+        runnerCtx.restore();
+
+        // Collect Coin Check
+        const dist = Math.hypot(120 - c.x, playerY - c.y);
+        if (dist < 32) {
+          runnerScore += 10;
+          playBeep();
+          c.collected = true;
+        }
+      });
+      coins = coins.filter(c => !c.collected && c.x > -30);
+
+      // Score Display HUD
+      runnerCtx.fillStyle = '#ffffff';
+      runnerCtx.font = '900 22px Outfit, sans-serif';
+      runnerCtx.fillText(`SCORE: ${runnerScore}  HI: ${runnerHighScore}`, 30, 45);
+
+      runnerAnimationId = requestAnimationFrame(gameLoop);
+    }
+
+    function gameOverRunner() {
+      runnerGameRunning = false;
+      cancelAnimationFrame(runnerAnimationId);
+
+      if (runnerScore > runnerHighScore) {
+        runnerHighScore = runnerScore;
+        localStorage.setItem('3fm_runner_highscore', runnerHighScore);
+        document.getElementById('runnerHighScore').innerText = runnerHighScore;
+      }
+
+      const overlay = document.getElementById('runnerOverlay');
+      overlay.innerHTML = `
+        <h2 style="font-size: 34px; font-weight: 900; color: #ef4444; margin-bottom: 8px;">💥 MISSION FAILED!</h2>
+        <p style="font-size: 20px; font-weight: 800; color: #ffffff; margin-bottom: 24px;">SCORE: ${runnerScore} PTS</p>
+        <button class="btn btn-3d-nav" onclick="startRunnerGame()" style="background: #7c3aed; color: white; border: none; font-size: 16px; padding: 14px 36px; font-weight: 900; border-radius: 30px; box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);">
+          ⚡ PLAY AGAIN
+        </button>
+      `;
+      overlay.style.display = 'flex';
+    }
+
+    // ================= 3. 🦖 3FM CHROME DINO JUMP RUNNER GAME ENGINE =================
+    let dinoCanvas, dinoCtx;
+    let dinoGameRunning = false;
+    let dinoY = 460, dinoVelocity = 0, dinoGravity = 0.65, dinoJump = -13.0;
+    let isDucking = false;
+    let dinoCacti = [], dinoBirds = [], dinoClouds = [];
+    let dinoScore = 0, dinoHighScore = localStorage.getItem('3fm_dino_highscore') || 0;
+    let dinoAnimationId;
+
+    document.getElementById('dinoHighScore').innerText = dinoHighScore;
+
+    function initDinoGame() {
+      dinoCanvas = document.getElementById('dinoCanvas');
+      dinoCtx = dinoCanvas.getContext('2d');
+      resizeDinoCanvas();
+    }
+
+    function resizeDinoCanvas() {
+      const card = document.getElementById('dinoViewportCard');
+      if (card && dinoCanvas) {
+        dinoCanvas.width = card.clientWidth || 1100;
+        dinoCanvas.height = card.clientHeight || 540;
+      }
+    }
+
+    function startDinoGame() {
+      document.getElementById('dinoOverlay').style.display = 'none';
+      resizeDinoCanvas();
+      dinoGameRunning = true;
+      dinoY = dinoCanvas.height - 50; 
+      dinoVelocity = 0; 
+      isDucking = false;
+      dinoScore = 0; dinoCacti = []; dinoBirds = []; dinoClouds = [];
+      dinoLoop();
+    }
+
+    function dinoLoop() {
+      if (!dinoGameRunning) return;
+      const w = dinoCanvas.width, h = dinoCanvas.height;
+      dinoCtx.clearRect(0, 0, w, h);
+
+      dinoScore++;
+      if (dinoScore % 100 === 0) playBeep();
+
+      const isNight = Math.floor(dinoScore / 500) % 2 === 1;
+
+      // Background Sky - Fills 100% of height!
+      dinoCtx.fillStyle = isNight ? '#0f172a' : '#f8fafc';
+      dinoCtx.fillRect(0, 0, w, h);
+
+      // Sun or Moon
+      dinoCtx.fillStyle = isNight ? '#f1f5f9' : '#fef08a';
+      dinoCtx.beginPath();
+      dinoCtx.arc(w - 100, 70, isNight ? 22 : 30, 0, Math.PI * 2);
+      dinoCtx.fill();
+
+      // Desert Ground Line
+      const groundLineY = h - 50;
+      dinoCtx.strokeStyle = isNight ? '#475569' : '#94a3b8';
+      dinoCtx.lineWidth = 4;
+      dinoCtx.beginPath();
+      dinoCtx.moveTo(0, groundLineY);
+      dinoCtx.lineTo(w, groundLineY);
+      dinoCtx.stroke();
+
+      // Physics
+      dinoVelocity += dinoGravity;
+      dinoY += dinoVelocity;
+
+      const restingY = isDucking ? groundLineY - 14 : groundLineY;
+      if (dinoY > restingY) {
+        dinoY = restingY;
+        dinoVelocity = 0;
+      }
+
+      // Draw Dino (T-Rex)
+      dinoCtx.fillStyle = isNight ? '#38bdf8' : '#7c3aed';
+      const dinoHeight = isDucking ? 28 : 46;
+      const dinoWidth = isDucking ? 52 : 38;
+      const drawY = dinoY - dinoHeight;
+
+      // Dino Body
+      dinoCtx.beginPath();
+      dinoCtx.roundRect(100, drawY, dinoWidth, dinoHeight, 6);
+      dinoCtx.fill();
+
+      // Dino Eye
+      dinoCtx.fillStyle = '#ffffff';
+      dinoCtx.beginPath();
+      dinoCtx.arc(100 + (isDucking ? 40 : 26), drawY + 10, 4.5, 0, Math.PI * 2);
+      dinoCtx.fill();
+
+      // Dino Legs Running Animation
+      dinoCtx.strokeStyle = isNight ? '#38bdf8' : '#7c3aed';
+      dinoCtx.lineWidth = 4;
+      const legOffset = (Math.floor(Date.now() / 100) % 2 === 0) ? 7 : -7;
+      dinoCtx.beginPath();
+      dinoCtx.moveTo(110, dinoY); dinoCtx.lineTo(110 + legOffset, dinoY + 14);
+      dinoCtx.moveTo(126, dinoY); dinoCtx.lineTo(126 - legOffset, dinoY + 14);
+      dinoCtx.stroke();
+
+      // Spawn Cacti
+      if (Math.random() < 0.014 && (dinoCacti.length === 0 || dinoCacti[dinoCacti.length - 1].x < w - 240)) {
+        const cHeight = 40 + Math.random() * 30;
+        dinoCacti.push({ x: w, w: 26, h: cHeight });
+      }
+
+      // Spawn Flying Birds (Score > 200)
+      if (dinoScore > 200 && Math.random() < 0.008 && (dinoBirds.length === 0 || dinoBirds[dinoBirds.length - 1].x < w - 300)) {
+        dinoBirds.push({ x: w, y: groundLineY - 80 - Math.random() * 40, w: 34, h: 22 });
+      }
+
+      // Move & Draw Cacti
+      dinoCtx.fillStyle = '#10b981';
+      dinoCacti.forEach((cactus) => {
+        cactus.x -= 5.8 + (dinoScore * 0.002);
+        const cY = groundLineY - cactus.h;
+
+        dinoCtx.fillRect(cactus.x, cY, cactus.w, cactus.h);
+
+        // Collision Check
+        if (cactus.x < 100 + dinoWidth && cactus.x + cactus.w > 100) {
+          if (dinoY > cY) {
+            gameOverDino();
+          }
+        }
+      });
+      dinoCacti = dinoCacti.filter(c => c.x > -40);
+
+      // Move & Draw Birds
+      dinoBirds.forEach((bird) => {
+        bird.x -= 6.8 + (dinoScore * 0.002);
+        dinoCtx.fillStyle = '#ef4444';
+        dinoCtx.beginPath();
+        dinoCtx.ellipse(bird.x, bird.y, bird.w / 2, bird.h / 2, 0, 0, Math.PI * 2);
+        dinoCtx.fill();
+
+        // Bird Wings Animation
+        const wingY = (Math.floor(Date.now() / 150) % 2 === 0) ? -12 : 12;
+        dinoCtx.beginPath();
+        dinoCtx.moveTo(bird.x, bird.y);
+        dinoCtx.lineTo(bird.x - 10, bird.y + wingY);
+        dinoCtx.strokeStyle = '#ef4444';
+        dinoCtx.lineWidth = 3.5;
+        dinoCtx.stroke();
+
+        // Collision Check
+        if (bird.x - 16 < 100 + dinoWidth && bird.x + 16 > 100) {
+          if (drawY < bird.y + 12 && dinoY > bird.y - 12) {
+            gameOverDino();
+          }
+        }
+      });
+      dinoBirds = dinoBirds.filter(b => b.x > -40);
+
+      // Score Display
+      dinoCtx.fillStyle = isNight ? '#ffffff' : '#0f172a';
+      dinoCtx.font = 'bold 22px Outfit, sans-serif';
+      dinoCtx.fillText(`SCORE: ${dinoScore}  HI: ${dinoHighScore}`, 30, 45);
+
+      dinoAnimationId = requestAnimationFrame(dinoLoop);
+    }
+
+    function gameOverDino() {
+      dinoGameRunning = false;
+      cancelAnimationFrame(dinoAnimationId);
+
+      if (dinoScore > dinoHighScore) {
+        dinoHighScore = dinoScore;
+        localStorage.setItem('3fm_dino_highscore', dinoHighScore);
+        document.getElementById('dinoHighScore').innerText = dinoHighScore;
+      }
+
+      const overlay = document.getElementById('dinoOverlay');
+      overlay.innerHTML = `
+        <h2 style="font-size: 32px; font-weight: 900; color: #ef4444; margin-bottom: 8px;">💥 GAME OVER!</h2>
+        <p style="font-size: 20px; font-weight: 800; color: #ffffff; margin-bottom: 20px;">SCORE: ${dinoScore} PTS</p>
+        <button class="btn btn-3d-nav" onclick="startDinoGame()" style="background: #7c3aed; color: white; border: none; font-size: 16px; padding: 14px 32px; font-weight: 800;">
+          ⚡ PLAY AGAIN
+        </button>
+      `;
+      overlay.style.display = 'flex';
+    }
+
+    // KEYBOARD HANDLERS
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+      if (currentSelectedTarget === 'photobooth') {
+        if (e.code === 'Space') { e.preventDefault(); captureSinglePhoto(); }
+        else if (e.code === 'KeyR') resetPhotos();
+        else if (e.code === 'KeyD') downloadStrip('png');
+      } else if (currentSelectedTarget === 'space-runner') {
+        if (e.code === 'Space' || e.code === 'ArrowUp') {
+          e.preventDefault();
+          if (runnerGameRunning) playerVelocity = lift;
+        }
+      } else if (currentSelectedTarget === 'dino-jump') {
+        if (e.code === 'Space' || e.code === 'ArrowUp') {
+          e.preventDefault();
+          if (dinoGameRunning && dinoY >= (dinoCanvas ? dinoCanvas.height - 70 : 300)) dinoVelocity = dinoJump;
+        } else if (e.code === 'ArrowDown') {
+          e.preventDefault();
+          if (dinoGameRunning) isDucking = true;
+        }
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (currentSelectedTarget === 'dino-jump' && e.code === 'ArrowDown') {
+        isDucking = false;
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (currentSelectedTarget === 'dino-jump') resizeDinoCanvas();
+      if (currentSelectedTarget === 'space-runner') resizeRunnerCanvas();
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      showGamesHub();
+    });
+  </script>
+</body>
+
+</html>
