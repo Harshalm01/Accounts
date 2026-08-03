@@ -56,9 +56,9 @@ function requireAuth(req, res, next) {
   }
 
   if (!user) {
-    // Zero-Redirect Fallback: Render login page directly instead of sending HTTP 302 redirects to prevent Vercel edge loops
+    // Zero-Redirect Fallback: Render clean login page directly instead of sending HTTP 302 redirects to prevent Vercel edge loops
     if (req.accepts("html")) {
-      return res.status(200).render("admin_login", { error: "Session expired. Please log in again." });
+      return res.status(200).render("admin_login", { error: null });
     }
     return res.status(401).json({ error: "Unauthorized" });
   }
@@ -74,7 +74,7 @@ function requireRole(roles = []) {
 
     if (!user) {
       if (req.accepts("html")) {
-        return res.status(200).render("admin_login", { error: "Session expired. Please log in again." });
+        return res.status(200).render("admin_login", { error: null });
       }
       return res.status(401).json({ error: "Unauthorized" });
     }

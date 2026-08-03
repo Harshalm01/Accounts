@@ -49,26 +49,7 @@
         </div>
       </div>
 
-      <!-- Main Navigation Bar -->
-      <div class="nav nav-3d" style="margin-bottom: 20px;">
-        <a href="/admin/dashboard"><button class="btn btn-3d-nav" type="button">Invoices</button></a>
-        <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' ) { %>
-          <a href="/admin/dashboard?tab=hr_uploads"><button class="btn btn-3d-nav" type="button">💼 HR Uploads</button></a>
-        <% } %>
-        <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' || user.role==='TEAM' || user.role==='HEAD' ) { %>
-          <a href="/admin/folders"><button class="btn btn-3d-nav" type="button">Folders</button></a>
-        <% } %>
-        <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' ) { %>
-          <a href="/admin/notifications"><button class="btn btn-3d-nav" type="button">Notifications</button></a>
-        <% } %>
-        <% if (user.role==='HEAD' || user.role==='SUPER_ADMIN' ) { %>
-          <a href="/admin/campaigns"><button class="btn btn-3d-nav active" type="button" style="background: #7c3aed; color: #ffffff; border-color: #7c3aed; font-weight: 800;">Campaigns</button></a>
-        <% } %>
-        <% if (user.role==='SUPER_ADMIN' ) { %>
-          <a href="/admin/users"><button class="btn btn-3d-nav" type="button">Users</button></a>
-        <% } %>
-        <a href="/admin/fun"><button class="btn btn-3d-nav" type="button">🎉 Fun Tab</button></a>
-      </div>
+
 
       <% if (error) { %>
         <div class="alert alert-error"><%= error %></div>

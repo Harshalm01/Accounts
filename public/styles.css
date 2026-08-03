@@ -5352,6 +5352,31 @@ body.admin-page .main-content-wrapper {
   box-shadow: 0 6px 18px rgba(239, 68, 68, 0.2);
 }
 
+.mobile-login-logo {
+  display: none;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+@media (max-width: 900px) {
+  .mobile-login-logo {
+    display: flex;
+  }
+}
+
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="date"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* ================= MOBILE PHONE VIEW STYLING ================= */
 .mobile-nav-topbar {
   display: none;
