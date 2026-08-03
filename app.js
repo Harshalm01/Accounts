@@ -936,9 +936,17 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
       });
     }
 
+    const safeMobile = String(mobile || "").trim();
+
     const mapping = await db.get(
-      "SELECT id, creator_name, amount FROM campaign_creators WHERE campaign_id = ? AND mobile = ?",
-      [campaignId, mobile.trim()]
+      `SELECT id, creator_name, amount 
+       FROM campaign_creators 
+       WHERE campaign_id = ? 
+         AND (
+           mobile = ? OR
+           REPLACE(REPLACE(REPLACE(TRIM(mobile), ' ', ''), '-', ''), '+91', '') = REPLACE(REPLACE(REPLACE(TRIM(?), ' ', ''), '-', ''), '+91', '')
+         )`,
+      [campaignId, safeMobile, safeMobile]
     );
     if (!mapping) {
       return res.render("creator_form", {
@@ -951,9 +959,15 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
     const safeFullName = String(fullName || mapping.creator_name || "Creator").trim();
     const safePan = String(pan || "AACFZ6393B").trim().toUpperCase();
     const safeEmail = String(email || "creator@3folks.com").trim();
+    const safeInvoiceNo = String(invoiceNo || "").trim();
+    const safeAddress = String(address || "").trim();
+    const safePaymentMode = String(paymentMode || "").trim();
+    const safePocName = String(pocName || "").trim();
+    const safeOtherReferences = String(otherReferences || "").trim();
+    const safePoNumber = String(poNumber || "").trim();
 
     if (!isDirectGstUpload) {
-      if (!campaignId || !campaignCode || !mobile || !fullName || !pan || !String(pan).trim() || !email || !String(email).trim() || !invoiceNo) {
+      if (!campaignId || !campaignCode || !safeMobile || !safeFullName || !safePan || !safeEmail || !safeInvoiceNo) {
         return res.render("creator_form", {
           error: "Full Name, Address, PAN Number, Email, and all required fields are mandatory.",
           success: null,
@@ -964,7 +978,7 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
         });
       }
 
-      if (invoiceType === "gst" && (!String(poNumber || "").trim() || !String(gstin || "").trim())) {
+      if (invoiceType === "gst" && (!safePoNumber || !String(gstin || "").trim())) {
         return res.render("creator_form", {
           error: "PO Number and GSTIN are required for GST based invoices.",
           success: null,
@@ -1003,11 +1017,15 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
     }
 
     const existingInvoice = existingInvoiceId
-      ? await db.get("SELECT * FROM invoices WHERE id = ? AND campaign_id = ? AND creator_mobile = ?", [
-          existingInvoiceId,
-          campaignId,
-          mobile.trim()
-        ])
+      ? await db.get(
+          `SELECT * FROM invoices 
+           WHERE id = ? AND campaign_id = ? 
+             AND (
+               creator_mobile = ? OR
+               REPLACE(REPLACE(REPLACE(TRIM(creator_mobile), ' ', ''), '-', ''), '+91', '') = REPLACE(REPLACE(REPLACE(TRIM(?), ' ', ''), '-', ''), '+91', '')
+             )`,
+          [existingInvoiceId, campaignId, safeMobile, safeMobile]
+        )
       : null;
 
     let items = itemsFromBody(req.body);
@@ -1052,7 +1070,7 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
           validated: true,
           campaignId,
           campaignCode,
-          mobile,
+          mobile: safeMobile,
           campaignName: campaign.campaign_name,
           creatorName: mapping.creator_name,
           amount: mapping.amount,
@@ -1080,16 +1098,16 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
         [
           mapping.creator_name,
           invoiceKind,
-          fullName.trim(),
-          address || "",
+          safeFullName,
+          safeAddress,
           normalizedPan,
-          email || "",
-          invoiceNo.trim(),
+          safeEmail,
+          safeInvoiceNo,
           invoiceDate,
-          paymentMode || "",
-          pocName || "",
-          otherReferences || "",
-          poNumber || "",
+          safePaymentMode,
+          safePocName,
+          safeOtherReferences,
+          safePoNumber,
           normalizedGstin,
           taxableAmount,
           gstRate,
@@ -1130,19 +1148,19 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           campaignId,
-          mobile.trim(),
+          safeMobile,
           mapping.creator_name,
           invoiceKind,
-          fullName.trim(),
-          address || "",
+          safeFullName,
+          safeAddress,
           normalizedPan,
-          email || "",
-          invoiceNo.trim(),
+          safeEmail,
+          safeInvoiceNo,
           invoiceDate,
-          paymentMode || "",
-          pocName || "",
-          otherReferences || "",
-          poNumber || "",
+          safePaymentMode,
+          safePocName,
+          safeOtherReferences,
+          safePoNumber,
           normalizedGstin,
           taxableAmount,
           gstRate,
@@ -1195,8 +1213,8 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
         campaign_name: campaign.campaign_name,
         campaign_code: campaign.campaign_code,
         creator_name: mapping.creator_name,
-        creator_mobile: mobile.trim(),
-        invoice_no: invoiceNo.trim(),
+        creator_mobile: safeMobile,
+        invoice_no: safeInvoiceNo,
         invoice_date: invoiceDate,
         status: isRegenerated ? "REGENERATED" : "SUBMITTED",
         final_amount: finalAmount,
@@ -1208,7 +1226,7 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
   } catch (error) {
     console.error("Creator submit failed:", error);
     res.render("creator_form", {
-      error: "Something went wrong while submitting invoice.",
+      error: "Something went wrong while submitting invoice: " + (error.message || String(error)),
       success: null,
       form: {
         validated: true,
