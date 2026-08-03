@@ -14,21 +14,10 @@ const customIpv4Lookup = (hostname, options, callback) => {
 };
 
 /**
- * Dedicated Gmail Delivery Engine for Organisation Gmail Account with IPv4 Enforcement
+ * Multi-provider Email Delivery Engine with Brevo HTTPS API First Priority
  */
 async function sendMailWithFallback(mailOptions) {
-  const user = (process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "").trim();
-  const pass = (process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.EMAIL_PASS || "").trim();
-
-  // 1. If Gmail credentials are provided, attempt IPv4 Gmail connection profiles
-  if (user && pass) {
-    const gmailSuccess = await sendViaGmailModes(mailOptions, user, pass);
-    if (gmailSuccess) return true;
-  } else {
-    console.warn("[Mailer Warning] Cannot send email. SMTP_USER or SMTP_PASS environment variables are missing on your server host.");
-  }
-
-  // 2. Optional HTTP API fallbacks if configured (Port 443 HTTPS - Never blocked)
+  // 1. If Brevo / Sendinblue HTTP API Key is provided, send via HTTPS Port 443 FIRST (Never blocked)
   if (process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY) {
     try {
       const brevoRes = await sendViaBrevoHttp(mailOptions);
@@ -38,6 +27,7 @@ async function sendMailWithFallback(mailOptions) {
     }
   }
 
+  // 2. If Resend HTTP API Key is provided, send via HTTPS Port 443
   if (process.env.RESEND_API_KEY) {
     try {
       const resendRes = await sendViaResendHttp(mailOptions);
@@ -47,7 +37,18 @@ async function sendMailWithFallback(mailOptions) {
     }
   }
 
-  console.error(`[Mailer Error] Failed to deliver email to "${mailOptions.to}". If your cloud host completely blocks socket ports, add a free BREVO_API_KEY or RESEND_API_KEY to send via HTTPS 443!`);
+  // 3. If Gmail credentials are provided, attempt IPv4 Gmail connection profiles
+  const user = (process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "").trim();
+  const pass = (process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.EMAIL_PASS || "").trim();
+
+  if (user && pass) {
+    const gmailSuccess = await sendViaGmailModes(mailOptions, user, pass);
+    if (gmailSuccess) return true;
+  } else {
+    console.warn("[Mailer Warning] Cannot send email. SMTP_USER, SMTP_PASS, or BREVO_API_KEY environment variables are missing on your server host.");
+  }
+
+  console.error(`[Mailer Error] Failed to deliver email to "${mailOptions.to}". Please verify your BREVO_API_KEY or Gmail App Password.`);
   return false;
 }
 
@@ -66,9 +67,9 @@ async function sendViaGmailModes(mailOptions, user, pass) {
         family: 4,
         lookup: customIpv4Lookup,
         auth: { user, pass },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 12000,
         tls: { rejectUnauthorized: false }
       }
     },
@@ -81,9 +82,9 @@ async function sendViaGmailModes(mailOptions, user, pass) {
         family: 4,
         lookup: customIpv4Lookup,
         auth: { user, pass },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 12000,
         tls: { rejectUnauthorized: false }
       }
     },
@@ -94,9 +95,9 @@ async function sendViaGmailModes(mailOptions, user, pass) {
         family: 4,
         lookup: customIpv4Lookup,
         auth: { user, pass },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 12000,
         tls: { rejectUnauthorized: false }
       }
     }
@@ -125,9 +126,12 @@ function sendViaBrevoHttp(mailOptions) {
     const apiKey = (process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY || "").trim();
     if (!apiKey) return resolve(false);
 
-    const senderEmail = (process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "accounts@3folksmedia.com").trim();
+    // Uses BREVO_SENDER_EMAIL or SMTP_USER or fallback to noreply@3fm.co (Brevo verified sender)
+    const senderEmail = (process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "noreply@3fm.co").trim();
+    const senderName = (process.env.EMAIL_FROM_NAME || "Team 3Folks Media").trim();
+
     const postData = JSON.stringify({
-      sender: { name: "Team 3Folks Media", email: senderEmail },
+      sender: { name: senderName, email: senderEmail },
       to: [{ email: mailOptions.to }],
       subject: mailOptions.subject,
       htmlContent: mailOptions.html
@@ -149,7 +153,7 @@ function sendViaBrevoHttp(mailOptions) {
       res.on("data", chunk => body += chunk);
       res.on("end", () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          console.log(`[Mailer Brevo HTTP Success] Email sent to "${mailOptions.to}" via Brevo HTTPS API.`);
+          console.log(`[Mailer Brevo HTTP Success] Email sent to "${mailOptions.to}" via Brevo HTTPS API (Sender: ${senderEmail}).`);
           resolve(true);
         } else {
           console.warn(`[Mailer Brevo HTTP Failed ${res.statusCode}]: ${body}`);
@@ -228,7 +232,7 @@ async function sendInvoiceStatusEmail({ to, status, invoiceNo, creatorName, camp
   }
 
   const fromName = (process.env.EMAIL_FROM_NAME || "Team 3Folks Media").trim();
-  const fromEmail = (process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "accounts@3folksmedia.com").trim();
+  const fromEmail = (process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "noreply@3fm.co").trim();
   const name = String(creatorName || "Creator").trim();
   const normStatus = String(status || "").toUpperCase();
 

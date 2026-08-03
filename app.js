@@ -966,13 +966,24 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
 
     const safeFullName = String(fullName || mapping.creator_name || "Creator").trim();
     const safePan = String(pan || "AACFZ6393B").trim().toUpperCase();
-    const safeEmail = String(req.body.gstEmail || email || "creator@3folks.com").trim();
+    const safeEmail = String(req.body.gstEmail || req.body.email || email || (mapping ? mapping.email : "") || "").trim();
     const safeInvoiceNo = String(invoiceNo || "").trim();
     const safeAddress = String(address || "").trim();
     const safePaymentMode = String(paymentMode || "").trim();
     const safePocName = String(pocName || "").trim();
     const safeOtherReferences = String(otherReferences || "").trim();
     const safePoNumber = String(poNumber || "").trim();
+
+    if (isDirectGstUpload && (!safeEmail || !safeEmail.includes("@"))) {
+      return res.render("creator_form", {
+        error: "Valid Email address is required to submit your GST Invoice document.",
+        success: null,
+        form: {
+          validated: true,
+          ...req.body
+        }
+      });
+    }
 
     if (!isDirectGstUpload) {
       if (!campaignId || !campaignCode || !safeMobile || !safeFullName || !safePan || !safeEmail || !safeInvoiceNo) {
