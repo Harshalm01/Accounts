@@ -787,6 +787,9 @@
           const stepperHeader = document.querySelector(".stepper-header");
           const billingCard = document.getElementById("billingIdentityCard");
           const formActions = document.querySelectorAll(".form-actions");
+          const previewPane = document.getElementById("previewPane");
+          const portalGrid = document.querySelector(".portal-grid");
+          const mobilePreviewToggle = document.querySelector(".mobile-preview-toggle");
 
           if (choiceHint) choiceHint.textContent = "Non-GST based Bill of Supply flow selected. Fill details below.";
           setChoiceState("non_gst");
@@ -795,6 +798,9 @@
           if (billingCard) billingCard.style.display = "block";
           if (stepperHeader) stepperHeader.style.display = "flex";
           formActions.forEach(fa => fa.style.display = "flex");
+          if (previewPane) previewPane.style.display = "";
+          if (mobilePreviewToggle) mobilePreviewToggle.style.display = "";
+          if (portalGrid) portalGrid.style.gridTemplateColumns = "";
 
           if (poNumber) poNumber.required = false;
           if (gstin) gstin.required = false;
@@ -806,6 +812,9 @@
           const stepperHeader = document.querySelector(".stepper-header");
           const billingCard = document.getElementById("billingIdentityCard");
           const formActions = document.querySelectorAll(".form-actions");
+          const previewPane = document.getElementById("previewPane");
+          const portalGrid = document.querySelector(".portal-grid");
+          const mobilePreviewToggle = document.querySelector(".mobile-preview-toggle");
 
           if (choiceHint) choiceHint.textContent = "GST Tax Invoice flow selected. Simply upload your GST Invoice file and enter your Email below!";
           setChoiceState("gst");
@@ -814,6 +823,9 @@
           if (billingCard) billingCard.style.display = "none";
           if (stepperHeader) stepperHeader.style.display = "none";
           formActions.forEach(fa => fa.style.display = "none");
+          if (previewPane) previewPane.style.display = "none";
+          if (mobilePreviewToggle) mobilePreviewToggle.style.display = "none";
+          if (portalGrid) portalGrid.style.gridTemplateColumns = "1fr";
 
           if (poNumber) poNumber.required = false;
           if (gstin) gstin.required = false;
