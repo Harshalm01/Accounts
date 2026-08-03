@@ -627,13 +627,17 @@
                 <td data-label="Payment Status">
                   <% if (isPaid) { %>
                     <span class="pill" style="font-size: 11px; font-weight: 800; background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); display: inline-block;">
-                      ✅ COMPLETED
+                      ✅ PAYMENT CLEARED
                     </span>
                     <% if (inv.utr) { %>
                       <div style="font-size: 11px; font-family: monospace; color: #059669; margin-top: 4px; font-weight: 700;">
                         UTR: <%= inv.utr %>
                       </div>
                     <% } %>
+                  <% } else if (st === 'ACCEPTED' || st === 'APPROVED') { %>
+                    <span class="pill" style="font-size: 11px; font-weight: 800; background: rgba(59, 130, 246, 0.15); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.3); display: inline-block;">
+                      ✅ APPROVED
+                    </span>
                   <% } else if (isRejected) { %>
                     <span class="pill" style="font-size: 11px; font-weight: 800; background: rgba(239, 68, 68, 0.15); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.3); display: inline-block;">
                       ❌ REJECTED
@@ -645,11 +649,43 @@
                   <% } %>
                 </td>
                 <td data-label="Document / Action">
-                  <% if (inv.file_path) { %>
-                    <a href="<%= inv.file_path %>" target="_blank" class="btn btn-3d-sm btn-3d-open" style="padding: 5px 12px; font-size: 12px;">📁 Open Document</a>
-                  <% } else { %>
-                    <a href="/admin/invoices/<%= inv.id %>" class="btn btn-3d-sm btn-3d-open" style="padding: 5px 12px; font-size: 12px;">👁️ View Invoice</a>
-                  <% } %>
+                  <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                    <% if (inv.file_path) { %>
+                      <a href="<%= inv.file_path %>" target="_blank" class="btn btn-3d-sm btn-3d-open" style="padding: 5px 12px; font-size: 12px;">📁 Open Document</a>
+                    <% } else { %>
+                      <a href="/admin/invoices/<%= inv.id %>" class="btn btn-3d-sm btn-3d-open" style="padding: 5px 12px; font-size: 12px;">👁️ View Invoice</a>
+                    <% } %>
+
+                    <% if (typeof user !== 'undefined' && user && (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN')) { %>
+                      <% if (st !== 'ACCEPTED' && st !== 'APPROVED' && !isPaid) { %>
+                        <form method="POST" action="/admin/invoices/<%= inv.id %>/status" style="display:inline;">
+                          <input type="hidden" name="action" value="accept" />
+                          <button type="submit" class="btn btn-3d-sm" style="padding: 5px 10px; font-size: 11px; background: #10b981; color: #ffffff; border: none; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                            ✅ Approve
+                          </button>
+                        </form>
+                      <% } %>
+
+                      <% if (!isRejected && !isPaid) { %>
+                        <form method="POST" action="/admin/invoices/<%= inv.id %>/status" onsubmit="const r = prompt('Reason for rejection:'); if (!r) return false; this.reason.value = r;" style="display:inline;">
+                          <input type="hidden" name="action" value="reject" />
+                          <input type="hidden" name="reason" value="" />
+                          <button type="submit" class="btn btn-3d-sm" style="padding: 5px 10px; font-size: 11px; background: #ef4444; color: #ffffff; border: none; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                            ❌ Reject
+                          </button>
+                        </form>
+                      <% } %>
+
+                      <% if (!isPaid) { %>
+                        <form method="POST" action="/admin/invoices/<%= inv.id %>/status" style="display:inline;">
+                          <input type="hidden" name="action" value="payment_completed" />
+                          <button type="submit" class="btn btn-3d-sm" style="padding: 5px 10px; font-size: 11px; background: #7c3aed; color: #ffffff; border: none; font-weight: 700; border-radius: 8px; cursor: pointer;">
+                            💳 Payment Cleared
+                          </button>
+                        </form>
+                      <% } %>
+                    <% } %>
+                  </div>
                 </td>
               </tr>
             <% }) %>
