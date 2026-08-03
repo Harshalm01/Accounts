@@ -204,6 +204,19 @@
                       </button>
                     </div>
 
+                    <!-- GST SUB-OPTIONS: CREATE GST vs UPLOAD GST -->
+                    <div id="gstSubOptions" style="display: none; margin-top: 14px; background: rgba(124, 58, 237, 0.04); border: 1.5px solid rgba(124, 58, 237, 0.2); border-radius: 14px; padding: 14px;">
+                      <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #7c3aed; letter-spacing: 0.5px; margin-bottom: 10px;">Select GST Submission Method:</div>
+                      <div class="grid-2 choice-grid">
+                        <button type="button" class="btn btn-light flow-choice" id="createGstChoice" style="padding: 12px 14px; border-radius: 12px; font-size: 13px; font-weight: 700;">
+                          <span>📝 Create GST Invoice</span>
+                        </button>
+                        <button type="button" class="btn btn-light flow-choice" id="uploadGstChoice" style="padding: 12px 14px; border-radius: 12px; font-size: 13px; font-weight: 700;">
+                          <span>📁 Upload GST Invoice</span>
+                        </button>
+                      </div>
+                    </div>
+
                     <!-- GST DIRECT UPLOAD SECTION (ONLY FILE UPLOAD + EMAIL REQUIRED) -->
                     <div id="gstDirectUploadCard" style="display: none; margin-top: 18px; border-top: 1.5px dashed rgba(124, 58, 237, 0.2); padding-top: 18px;">
                       <div class="portal-kicker" style="color: #7c3aed; font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; margin-bottom: 6px;">GST Invoice Upload Station</div>
@@ -782,6 +795,24 @@
           }
         }
 
+        let activeGstMode = "upload"; // 'create' or 'upload'
+
+        const gstSubOptions = document.getElementById("gstSubOptions");
+        const createGstChoice = document.getElementById("createGstChoice");
+        const uploadGstChoice = document.getElementById("uploadGstChoice");
+
+        function setGstSubChoiceState(mode) {
+          activeGstMode = mode;
+          if (createGstChoice) {
+            createGstChoice.classList.toggle("btn-primary", mode === "create");
+            createGstChoice.classList.toggle("btn-light", mode !== "create");
+          }
+          if (uploadGstChoice) {
+            uploadGstChoice.classList.toggle("btn-primary", mode === "upload");
+            uploadGstChoice.classList.toggle("btn-light", mode !== "upload");
+          }
+        }
+
         function showNonGstFlow() {
           if (invoiceType) invoiceType.value = "non_gst";
           const stepperHeader = document.querySelector(".stepper-header");
@@ -793,6 +824,7 @@
 
           if (choiceHint) choiceHint.textContent = "Non-GST based Bill of Supply flow selected. Fill details below.";
           setChoiceState("non_gst");
+          if (gstSubOptions) gstSubOptions.style.display = "none";
           if (gstDirectUploadCard) gstDirectUploadCard.style.display = "none";
           if (gstDetailsSection) gstDetailsSection.hidden = true;
           if (billingCard) billingCard.style.display = "block";
@@ -809,6 +841,19 @@
 
         function showGstFlow() {
           if (invoiceType) invoiceType.value = "gst";
+          setChoiceState("gst");
+          if (gstSubOptions) gstSubOptions.style.display = "block";
+
+          if (activeGstMode === "create") {
+            showCreateGstFlow();
+          } else {
+            showUploadGstFlow();
+          }
+        }
+
+        function showCreateGstFlow() {
+          if (invoiceType) invoiceType.value = "gst";
+          setGstSubChoiceState("create");
           const stepperHeader = document.querySelector(".stepper-header");
           const billingCard = document.getElementById("billingIdentityCard");
           const formActions = document.querySelectorAll(".form-actions");
@@ -816,8 +861,34 @@
           const portalGrid = document.querySelector(".portal-grid");
           const mobilePreviewToggle = document.querySelector(".mobile-preview-toggle");
 
-          if (choiceHint) choiceHint.textContent = "GST Tax Invoice flow selected. Simply upload your GST Invoice file and enter your Email below!";
-          setChoiceState("gst");
+          if (choiceHint) choiceHint.textContent = "Create GST Tax Invoice online selected. Enter your GSTIN, PO number & billing details.";
+          if (gstDirectUploadCard) gstDirectUploadCard.style.display = "none";
+          if (gstDetailsSection) gstDetailsSection.hidden = false;
+          if (billingCard) billingCard.style.display = "block";
+          if (stepperHeader) stepperHeader.style.display = "flex";
+          formActions.forEach(fa => fa.style.display = "flex");
+          if (previewPane) previewPane.style.display = "";
+          if (mobilePreviewToggle) mobilePreviewToggle.style.display = "";
+          if (portalGrid) portalGrid.style.gridTemplateColumns = "";
+
+          if (poNumber) poNumber.required = true;
+          if (gstin) gstin.required = true;
+          currentStep = 1;
+          updateStepUI();
+          syncAllPreviewFields();
+        }
+
+        function showUploadGstFlow() {
+          if (invoiceType) invoiceType.value = "gst";
+          setGstSubChoiceState("upload");
+          const stepperHeader = document.querySelector(".stepper-header");
+          const billingCard = document.getElementById("billingIdentityCard");
+          const formActions = document.querySelectorAll(".form-actions");
+          const previewPane = document.getElementById("previewPane");
+          const portalGrid = document.querySelector(".portal-grid");
+          const mobilePreviewToggle = document.querySelector(".mobile-preview-toggle");
+
+          if (choiceHint) choiceHint.textContent = "Upload GST Invoice file selected. Simply select your GST document file & enter Email below!";
           if (gstDirectUploadCard) gstDirectUploadCard.style.display = "block";
           if (gstDetailsSection) gstDetailsSection.hidden = true;
           if (billingCard) billingCard.style.display = "none";
@@ -829,13 +900,13 @@
 
           if (poNumber) poNumber.required = false;
           if (gstin) gstin.required = false;
-          currentStep = 1;
-          updateStepUI();
           syncAllPreviewFields();
         }
 
         if (nonGstChoice) nonGstChoice.addEventListener("click", showNonGstFlow);
         if (gstChoice) gstChoice.addEventListener("click", showGstFlow);
+        if (createGstChoice) createGstChoice.addEventListener("click", showCreateGstFlow);
+        if (uploadGstChoice) uploadGstChoice.addEventListener("click", showUploadGstFlow);
 
         if (invoiceType && invoiceType.value === "gst") {
           showGstFlow();
@@ -1232,7 +1303,7 @@
 
         // Submit form validation
         formEl.addEventListener("submit", (e) => {
-          if (invoiceType && invoiceType.value === "gst") {
+          if (invoiceType && invoiceType.value === "gst" && activeGstMode === "upload") {
             const fileInput = document.getElementById("gstDirectFileInput");
             const emailInput = document.getElementById("gstDirectEmailInput");
 
