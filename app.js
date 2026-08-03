@@ -849,30 +849,38 @@ app.post("/creator/validated_form", async (req, res) => {
     });
   }
 
+  const cleanMobile = mobile.trim().replace(/\s+|-/g, '').replace(/^\+91/, '');
+
   const existingInvoice = await db.get(
     `SELECT *
      FROM invoices
-     WHERE campaign_id = ? AND creator_mobile = ?
+     WHERE campaign_id = ? 
+       AND (
+         creator_mobile = ? OR
+         REPLACE(REPLACE(REPLACE(TRIM(creator_mobile), ' ', ''), '-', ''), '+91', '') = ?
+       )
      ORDER BY id DESC
      LIMIT 1`,
-    [campaign.id, mobile.trim()]
+    [campaign.id, mobile.trim(), cleanMobile]
   );
   const existingItems = existingInvoice
     ? await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [existingInvoice.id])
     : [];
 
-  const cleanMobile = mobile.trim().replace(/\s+|-/g, '').replace(/^\+91/, '');
-  const countRow = await db.get(
-    `SELECT COUNT(*) AS cnt FROM invoices 
-     WHERE REPLACE(REPLACE(REPLACE(TRIM(creator_mobile), ' ', ''), '-', ''), '+91', '') = ?
-        OR (creator_mobile IS NULL AND LOWER(TRIM(creator_name)) = LOWER(TRIM(?)))`,
-    [cleanMobile, campaign.creator_name]
-  );
-  const seqNumber = String((countRow ? countRow.cnt : 0) + (existingInvoice ? 0 : 1)).padStart(2, '0');
-
-  const autoInvoiceNo = existingInvoice && existingInvoice.invoice_no
-    ? existingInvoice.invoice_no
-    : `3FM-INV-${seqNumber}`;
+  let autoInvoiceNo;
+  if (existingInvoice && existingInvoice.invoice_no) {
+    autoInvoiceNo = existingInvoice.invoice_no;
+  } else {
+    const countRow = await db.get(
+      `SELECT COUNT(*) AS cnt FROM invoices 
+       WHERE REPLACE(REPLACE(REPLACE(TRIM(creator_mobile), ' ', ''), '-', ''), '+91', '') = ?
+          OR creator_mobile = ?`,
+      [cleanMobile, mobile.trim()]
+    );
+    const prevCount = countRow ? Number(countRow.cnt || 0) : 0;
+    const seqNumber = String(prevCount + 1).padStart(2, '0');
+    autoInvoiceNo = `3FM-INV-${seqNumber}`;
+  }
 
   res.render("creator_form", {
     error: null,
