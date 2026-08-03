@@ -288,8 +288,8 @@ async function sendInvoiceStatusEmail({ to, status, invoiceNo, creatorName, camp
       <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 0; color: #334155; }
         .container { max-width: 580px; margin: 30px auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
-        .header { background: #0f172a; padding: 24px 28px; text-align: left; }
-        .header img { max-height: 40px; width: auto; }
+        .header { background: #0f172a; padding: 24px 28px; text-align: left; border-bottom: 3px solid #7c3aed; }
+        .header img { max-height: 48px; width: auto; display: block; }
         .body { padding: 32px 28px; font-size: 15px; line-height: 1.6; color: #1e293b; }
         .footer { background: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
       </style>
@@ -297,7 +297,7 @@ async function sendInvoiceStatusEmail({ to, status, invoiceNo, creatorName, camp
     <body>
       <div class="container">
         <div class="header">
-          <div style="font-size: 18px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px;">3Folks Media</div>
+          <img src="https://invoices.3folks.com/public/logo.png" alt="3Folks Media" />
         </div>
         <div class="body">
           ${bodyHtml}
