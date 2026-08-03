@@ -1,14 +1,26 @@
 const nodemailer = require("nodemailer");
 const https = require("https");
+const dns = require("dns");
+
+// Force Node.js DNS resolution to prioritize IPv4 globally (prevents ENETUNREACH IPv6 errors)
+if (dns.setDefaultResultOrder) {
+  try {
+    dns.setDefaultResultOrder("ipv4first");
+  } catch (_) {}
+}
+
+const customIpv4Lookup = (hostname, options, callback) => {
+  return dns.lookup(hostname, { family: 4 }, callback);
+};
 
 /**
- * Dedicated Gmail Delivery Engine for Organisation Gmail Account
+ * Dedicated Gmail Delivery Engine for Organisation Gmail Account with IPv4 Enforcement
  */
 async function sendMailWithFallback(mailOptions) {
   const user = (process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "").trim();
   const pass = (process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.EMAIL_PASS || "").trim();
 
-  // If Gmail credentials are provided, use dedicated Gmail Transport Modes
+  // 1. If Gmail credentials are provided, attempt IPv4 Gmail connection profiles
   if (user && pass) {
     const gmailSuccess = await sendViaGmailModes(mailOptions, user, pass);
     if (gmailSuccess) return true;
@@ -16,7 +28,7 @@ async function sendMailWithFallback(mailOptions) {
     console.warn("[Mailer Warning] Cannot send email. SMTP_USER or SMTP_PASS environment variables are missing on your server host.");
   }
 
-  // Optional HTTP API fallbacks if configured
+  // 2. Optional HTTP API fallbacks if configured (Port 443 HTTPS - Never blocked)
   if (process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY) {
     try {
       const brevoRes = await sendViaBrevoHttp(mailOptions);
@@ -35,50 +47,56 @@ async function sendMailWithFallback(mailOptions) {
     }
   }
 
-  console.error(`[Mailer Error] Failed to deliver email to "${mailOptions.to}". Please check your SMTP_USER and SMTP_PASS (Gmail App Password).`);
+  console.error(`[Mailer Error] Failed to deliver email to "${mailOptions.to}". If your cloud host completely blocks socket ports, add a free BREVO_API_KEY or RESEND_API_KEY to send via HTTPS 443!`);
   return false;
 }
 
 /**
- * Sends email specifically using your Organisation Gmail Account credentials across 3 distinct Gmail connection profiles
+ * Sends email specifically using your Organisation Gmail Account credentials with strict IPv4 resolution
  */
 async function sendViaGmailModes(mailOptions, user, pass) {
   const modes = [
     {
-      name: "Gmail Built-in Engine",
-      options: {
-        service: "gmail",
-        auth: { user, pass },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 20000,
-        tls: { rejectUnauthorized: false }
-      }
-    },
-    {
-      name: "smtp.gmail.com Port 465 (Direct SSL)",
-      options: {
-        host: "smtp.gmail.com",
-        port: 465,
-        secure: true,
-        auth: { user, pass },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 20000,
-        tls: { rejectUnauthorized: false }
-      }
-    },
-    {
-      name: "smtp.gmail.com Port 587 (TLS)",
+      name: "smtp.gmail.com Port 587 (IPv4 TLS)",
       options: {
         host: "smtp.gmail.com",
         port: 587,
         secure: false,
         requireTLS: true,
+        family: 4,
+        lookup: customIpv4Lookup,
         auth: { user, pass },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 20000,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+        tls: { rejectUnauthorized: false }
+      }
+    },
+    {
+      name: "smtp.gmail.com Port 465 (IPv4 Direct SSL)",
+      options: {
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        family: 4,
+        lookup: customIpv4Lookup,
+        auth: { user, pass },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+        tls: { rejectUnauthorized: false }
+      }
+    },
+    {
+      name: "Gmail Service Engine (IPv4)",
+      options: {
+        service: "gmail",
+        family: 4,
+        lookup: customIpv4Lookup,
+        auth: { user, pass },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
         tls: { rejectUnauthorized: false }
       }
     }
@@ -100,7 +118,7 @@ async function sendViaGmailModes(mailOptions, user, pass) {
 }
 
 /**
- * Send via Brevo (Sendinblue) HTTP API over HTTPS 443
+ * Send via Brevo (Sendinblue) HTTP API over HTTPS 443 (300 free emails/day)
  */
 function sendViaBrevoHttp(mailOptions) {
   return new Promise((resolve) => {
