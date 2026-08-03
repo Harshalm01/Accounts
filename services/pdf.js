@@ -275,7 +275,7 @@ async function ensurePdfForInvoice(invoiceId) {
   });
 
   const { uploadToStorage } = require("./s3");
-  const publicPdfUrl = await uploadToStorage(filePath, path.basename(filePath), "application/pdf");
+  const publicPdfUrl = await uploadToStorage(abs, path.basename(abs), "application/pdf");
 
   await db.run("UPDATE invoices SET pdf_path = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [publicPdfUrl, invoiceId]);
   return publicPdfUrl;
