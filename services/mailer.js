@@ -2,68 +2,156 @@ const nodemailer = require("nodemailer");
 const https = require("https");
 
 /**
- * Multi-port SMTP sender that automatically falls back across ports (465 SSL, 587 TLS, 2525)
- * to bypass cloud server firewall port blocks.
+ * Dedicated Gmail Delivery Engine for Organisation Gmail Account
  */
 async function sendMailWithFallback(mailOptions) {
   const user = (process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "").trim();
   const pass = (process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.EMAIL_PASS || "").trim();
-  const host = (process.env.SMTP_HOST || "smtp.gmail.com").trim();
 
-  // 1. If Resend HTTP API Key is provided, use HTTPS Port 443 (Never blocked)
+  // If Gmail credentials are provided, use dedicated Gmail Transport Modes
+  if (user && pass) {
+    const gmailSuccess = await sendViaGmailModes(mailOptions, user, pass);
+    if (gmailSuccess) return true;
+  } else {
+    console.warn("[Mailer Warning] Cannot send email. SMTP_USER or SMTP_PASS environment variables are missing on your server host.");
+  }
+
+  // Optional HTTP API fallbacks if configured
+  if (process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY) {
+    try {
+      const brevoRes = await sendViaBrevoHttp(mailOptions);
+      if (brevoRes) return true;
+    } catch (e) {
+      console.warn("[Mailer] Brevo HTTP error:", e.message);
+    }
+  }
+
   if (process.env.RESEND_API_KEY) {
     try {
       const resendRes = await sendViaResendHttp(mailOptions);
       if (resendRes) return true;
     } catch (e) {
-      console.warn("[Mailer] Resend HTTP fallback error:", e.message);
+      console.warn("[Mailer] Resend HTTP error:", e.message);
     }
   }
 
-  if (!user || !pass) {
-    console.warn("[Mailer Warning] Cannot send email. SMTP_USER or SMTP_PASS environment variables are missing.");
-    return false;
-  }
-
-  // 2. Try SMTP ports in sequence: 465 (Direct SSL), 587 (TLS), 2525 (Alt SMTP), 25
-  const portsToTry = [
-    { port: 465, secure: true },
-    { port: 587, secure: false },
-    { port: 2525, secure: false },
-    { port: 25, secure: false }
-  ];
-
-  let lastError = null;
-
-  for (const config of portsToTry) {
-    try {
-      const transporter = nodemailer.createTransport({
-        host: host.toLowerCase().includes("gmail") ? "smtp.gmail.com" : host,
-        port: config.port,
-        secure: config.secure,
-        family: 4, // Force IPv4 to prevent ENETUNREACH
-        connectionTimeout: 5000,
-        greetingTimeout: 5000,
-        socketTimeout: 7000,
-        auth: { user, pass },
-        tls: { rejectUnauthorized: false }
-      });
-
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`[Mailer Success] Email sent to "${mailOptions.to}" via port ${config.port}. Message ID: ${info.messageId}`);
-      return true;
-    } catch (err) {
-      lastError = err;
-      console.warn(`[Mailer Port ${config.port} failed]: ${err.message}`);
-    }
-  }
-
-  console.error(`[Mailer Error] All SMTP ports (465, 587, 2525, 25) timed out or failed for "${mailOptions.to}":`, lastError ? lastError.message : "Connection timeout");
+  console.error(`[Mailer Error] Failed to deliver email to "${mailOptions.to}". Please check your SMTP_USER and SMTP_PASS (Gmail App Password).`);
   return false;
 }
 
 /**
- * Send via Resend HTTP API over HTTPS 443 (Backup for cloud servers with total SMTP blocks)
+ * Sends email specifically using your Organisation Gmail Account credentials across 3 distinct Gmail connection profiles
+ */
+async function sendViaGmailModes(mailOptions, user, pass) {
+  const modes = [
+    {
+      name: "Gmail Built-in Engine",
+      options: {
+        service: "gmail",
+        auth: { user, pass },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+        tls: { rejectUnauthorized: false }
+      }
+    },
+    {
+      name: "smtp.gmail.com Port 465 (Direct SSL)",
+      options: {
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
+        auth: { user, pass },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+        tls: { rejectUnauthorized: false }
+      }
+    },
+    {
+      name: "smtp.gmail.com Port 587 (TLS)",
+      options: {
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false,
+        requireTLS: true,
+        auth: { user, pass },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+        tls: { rejectUnauthorized: false }
+      }
+    }
+  ];
+
+  for (const m of modes) {
+    try {
+      console.log(`[Mailer] Attempting email send via ${m.name} to ${mailOptions.to}...`);
+      const transporter = nodemailer.createTransport(m.options);
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`[Mailer Success] Email delivered to "${mailOptions.to}" via ${m.name}! Message ID: ${info.messageId}`);
+      return true;
+    } catch (err) {
+      console.warn(`[Mailer ${m.name} Failed]: ${err.message}`);
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Send via Brevo (Sendinblue) HTTP API over HTTPS 443
+ */
+function sendViaBrevoHttp(mailOptions) {
+  return new Promise((resolve) => {
+    const apiKey = (process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY || "").trim();
+    if (!apiKey) return resolve(false);
+
+    const senderEmail = (process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "accounts@3folksmedia.com").trim();
+    const postData = JSON.stringify({
+      sender: { name: "Team 3Folks Media", email: senderEmail },
+      to: [{ email: mailOptions.to }],
+      subject: mailOptions.subject,
+      htmlContent: mailOptions.html
+    });
+
+    const req = https.request({
+      hostname: "api.brevo.com",
+      path: "/v3/smtp/email",
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Content-Length": Buffer.byteLength(postData)
+      },
+      timeout: 10000
+    }, (res) => {
+      let body = "";
+      res.on("data", chunk => body += chunk);
+      res.on("end", () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          console.log(`[Mailer Brevo HTTP Success] Email sent to "${mailOptions.to}" via Brevo HTTPS API.`);
+          resolve(true);
+        } else {
+          console.warn(`[Mailer Brevo HTTP Failed ${res.statusCode}]: ${body}`);
+          resolve(false);
+        }
+      });
+    });
+
+    req.on("error", (e) => {
+      console.warn(`[Mailer Brevo HTTP Error]: ${e.message}`);
+      resolve(false);
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
+/**
+ * Send via Resend HTTP API over HTTPS 443
  */
 function sendViaResendHttp(mailOptions) {
   return new Promise((resolve) => {
@@ -71,7 +159,7 @@ function sendViaResendHttp(mailOptions) {
     if (!apiKey) return resolve(false);
 
     const postData = JSON.stringify({
-      from: mailOptions.from || "3Folks Media <onboarding@resend.dev>",
+      from: mailOptions.from || "Team 3Folks Media <onboarding@resend.dev>",
       to: [mailOptions.to],
       subject: mailOptions.subject,
       html: mailOptions.html
@@ -86,7 +174,7 @@ function sendViaResendHttp(mailOptions) {
         "Content-Type": "application/json",
         "Content-Length": Buffer.byteLength(postData)
       },
-      timeout: 6000
+      timeout: 10000
     }, (res) => {
       let body = "";
       res.on("data", chunk => body += chunk);
