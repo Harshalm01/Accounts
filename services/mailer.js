@@ -1,8 +1,6 @@
 const nodemailer = require("nodemailer");
 
 function getTransporter() {
-  const host = (process.env.SMTP_HOST || "smtp.gmail.com").trim();
-  const port = Number(process.env.SMTP_PORT || 465);
   const user = (process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "").trim();
   const pass = (process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.EMAIL_PASS || "").trim();
 
@@ -10,19 +8,24 @@ function getTransporter() {
     return null;
   }
 
-  const isSecure = port === 465;
+  const host = (process.env.SMTP_HOST || "smtp.gmail.com").trim();
 
+  // For Gmail / Google Workspace accounts, service: 'gmail' is standard & reliable
+  if (host.toLowerCase().includes("gmail")) {
+    return nodemailer.createTransport({
+      service: "gmail",
+      auth: { user, pass },
+      tls: { rejectUnauthorized: false }
+    });
+  }
+
+  const port = Number(process.env.SMTP_PORT || 587);
   return nodemailer.createTransport({
     host,
     port,
-    secure: isSecure,
-    auth: {
-      user,
-      pass
-    },
-    tls: {
-      rejectUnauthorized: false
-    }
+    secure: port === 465,
+    auth: { user, pass },
+    tls: { rejectUnauthorized: false }
   });
 }
 
@@ -41,13 +44,13 @@ function getTransporter() {
 async function sendInvoiceStatusEmail({ to, status, invoiceNo, creatorName, campaignName, amount, rejectionReason, utr }) {
   const normEmail = String(to || "").trim();
   if (!normEmail || !normEmail.includes("@")) {
-    console.log(`[Mailer Warning] Cannot send email for Invoice #${invoiceNo}. Creator recipient email is missing or invalid: "${normEmail}".`);
+    console.warn(`[Mailer Warning] Cannot send email for Invoice #${invoiceNo}. Creator recipient email is missing or invalid: "${normEmail}".`);
     return false;
   }
 
   const transporter = getTransporter();
   if (!transporter) {
-    console.log("[Mailer Warning] Cannot send email. SMTP_USER or SMTP_PASS environment variables are missing.");
+    console.warn("[Mailer Warning] Cannot send email. SMTP_USER or SMTP_PASS environment variables are missing on the server.");
     return false;
   }
 

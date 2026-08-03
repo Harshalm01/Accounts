@@ -1971,10 +1971,19 @@ app.post("/admin/invoices/:id/status", requireRole(["ACCOUNTS", "SUPER_ADMIN"]),
 
   // Send automated email notification to creator's Gmail / Email
   try {
+    let creatorEmail = invoice.email;
+    if (!creatorEmail || !creatorEmail.includes("@")) {
+      const mapping = await db.get(
+        "SELECT email FROM campaign_creators WHERE campaign_id = ? AND (mobile = ? OR LOWER(creator_name) = LOWER(?))",
+        [invoice.campaign_id, invoice.creator_mobile, invoice.creator_name]
+      );
+      if (mapping && mapping.email) creatorEmail = mapping.email;
+    }
+
     const campaign = await db.get("SELECT campaign_name FROM campaigns WHERE id = ?", [invoice.campaign_id]);
     const { sendInvoiceStatusEmail } = require("./services/mailer");
     sendInvoiceStatusEmail({
-      to: invoice.email,
+      to: creatorEmail,
       status: nextStatus,
       invoiceNo: invoice.invoice_no,
       creatorName: invoice.creator_name,
