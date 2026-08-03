@@ -10,23 +10,19 @@
     <link rel="stylesheet" href="/public/styles.css?v=45" />
   </head>
   <body class="admin-page">
-    <div class="shell">
+    <div class="app-layout">
+      <%- include('partials/sidebar', { activeTab: 'campaigns' }) %>
+      <div class="main-content-wrapper">
 
-      <!-- Hero Banner Header -->
-      <div class="topbar hero-banner folder-header-banner">
-        <div class="header-left">
-          <%- include('partials/brand') %>
-          <div class="eyebrow">Team workspace</div>
-          <h2 style="margin: 8px 0 6px 0;">Campaigns</h2>
-          <p class="subtitle" style="color: #4B5563 !important;"><%= typeof canEdit !== 'undefined' && canEdit ? 'Create campaigns and map creators by serial number.' : 'View campaign folders and mapped creators.' %></p>
-        </div>
-
-        <div class="header-right">
-          <div class="header-actions-row">
-            <form method="post" action="/admin/logout" style="display:inline;">
-              <button class="btn btn-3d-nav" type="submit" style="background: linear-gradient(135deg, #ef4444, #dc2626); color:#ffffff; border:none; font-weight:800; letter-spacing:0.05em;">LOGOUT</button>
-            </form>
+        <!-- Hero Banner Header -->
+        <div class="topbar hero-banner folder-header-banner" style="margin-bottom: 24px;">
+          <div class="header-left">
+            <div class="eyebrow">Team workspace</div>
+            <h2 style="margin: 8px 0 6px 0;">Campaigns</h2>
+            <p class="subtitle" style="color: #4B5563 !important;"><%= typeof canEdit !== 'undefined' && canEdit ? 'Create campaigns and map creators by serial number.' : 'View campaign folders and mapped creators.' %></p>
           </div>
+
+          <div class="header-right">
           <div class="header-stats-grid">
             <div class="header-stat-card">
               <span class="stat-icon">📣</span>
@@ -254,5 +250,7 @@
         isAscending = !isAscending;
       }
     </script>
+      </div>
+    </div>
   </body>
 </html>

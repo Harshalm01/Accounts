@@ -1,0 +1,117 @@
+<%
+  const currentTab = typeof activeTab !== 'undefined' ? activeTab : 'invoices';
+  const currentUser = typeof user !== 'undefined' ? user : (typeof req !== 'undefined' && req.session ? req.session.user : null);
+%>
+<!-- Mobile Top Navigation Header -->
+<div class="mobile-nav-topbar">
+  <a href="/admin/dashboard" class="sidebar-brand-link">
+    <img src="/public/logo.png" alt="3Folks Media" class="sidebar-logo-img" />
+  </a>
+  <button type="button" class="mobile-sidebar-toggle-btn" onclick="toggleMobileSidebarMenu()">
+    <span class="toggle-icon">☰</span> Menu
+  </button>
+</div>
+
+<aside class="sidebar-nav" id="sidebarNav">
+  <div>
+    <div class="sidebar-header">
+      <a href="/admin/dashboard" class="sidebar-brand-link">
+        <img src="/public/logo.png" alt="3Folks Media" class="sidebar-logo-img" />
+      </a>
+      <span class="sidebar-brand-badge">3FOLKS ACCOUNTS</span>
+    </div>
+
+    <% if (currentUser) { %>
+      <div class="sidebar-user-card">
+        <div class="sidebar-user-avatar">
+          <%= currentUser.username ? currentUser.username.charAt(0).toUpperCase() : 'U' %>
+        </div>
+        <div class="sidebar-user-info">
+          <span class="sidebar-username"><%= currentUser.username %></span>
+          <span class="sidebar-user-role"><%= currentUser.role %></span>
+        </div>
+      </div>
+    <% } %>
+
+    <div class="sidebar-menu-section">
+      <div class="sidebar-menu-label">Navigation Menu</div>
+      <ul class="sidebar-menu">
+        <li>
+          <a href="/admin/dashboard" class="sidebar-item <%= currentTab === 'invoices' ? 'active' : '' %>">
+            <span class="sidebar-icon">📄</span>
+            <span class="sidebar-text">Invoices</span>
+          </a>
+        </li>
+
+        <% if (currentUser && (currentUser.role === 'ACCOUNTS' || currentUser.role === 'SUPER_ADMIN')) { %>
+          <li>
+            <a href="/admin/dashboard?tab=hr_uploads" class="sidebar-item <%= currentTab === 'hr_uploads' ? 'active' : '' %>">
+              <span class="sidebar-icon">💼</span>
+              <span class="sidebar-text">HR Uploads</span>
+            </a>
+          </li>
+        <% } %>
+
+        <% if (currentUser && (currentUser.role === 'ACCOUNTS' || currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'TEAM' || currentUser.role === 'HEAD')) { %>
+          <li>
+            <a href="/admin/folders" class="sidebar-item <%= currentTab === 'folders' ? 'active' : '' %>">
+              <span class="sidebar-icon">📁</span>
+              <span class="sidebar-text">Folders</span>
+            </a>
+          </li>
+        <% } %>
+
+        <% if (currentUser && (currentUser.role === 'ACCOUNTS' || currentUser.role === 'SUPER_ADMIN')) { %>
+          <li>
+            <a href="/admin/notifications" class="sidebar-item <%= currentTab === 'notifications' ? 'active' : '' %>">
+              <span class="sidebar-icon">🔔</span>
+              <span class="sidebar-text">Notifications</span>
+            </a>
+          </li>
+        <% } %>
+
+        <% if (currentUser && (currentUser.role === 'HEAD' || currentUser.role === 'SUPER_ADMIN')) { %>
+          <li>
+            <a href="/admin/campaigns" class="sidebar-item <%= currentTab === 'campaigns' ? 'active' : '' %>">
+              <span class="sidebar-icon">📢</span>
+              <span class="sidebar-text">Campaigns</span>
+            </a>
+          </li>
+        <% } %>
+
+        <% if (currentUser && (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'HR')) { %>
+          <li>
+            <a href="/admin/users" class="sidebar-item <%= currentTab === 'users' ? 'active' : '' %>">
+              <span class="sidebar-icon">👥</span>
+              <span class="sidebar-text">Users</span>
+            </a>
+          </li>
+        <% } %>
+
+        <li>
+          <a href="/admin/fun" class="sidebar-item <%= currentTab === 'fun' ? 'active' : '' %>">
+            <span class="sidebar-icon">🎉</span>
+            <span class="sidebar-text">Fun Tab</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <form method="post" action="/admin/logout">
+      <button class="sidebar-logout-btn" type="submit">
+        <span>🚪</span> Logout
+      </button>
+    </form>
+  </div>
+</aside>
+
+<script>
+  function toggleMobileSidebarMenu() {
+    const nav = document.getElementById('sidebarNav');
+    if (nav) {
+      nav.classList.toggle('mobile-open');
+    }
+  }
+</script>

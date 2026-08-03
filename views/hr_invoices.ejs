@@ -133,40 +133,30 @@
     </style>
   </head>
   <body class="admin-page">
-    <div class="shell">
+    <div class="app-layout">
+      <%- include('partials/sidebar', { activeTab: 'hr_uploads' }) %>
+      <div class="main-content-wrapper">
 
-      <!-- TOPBAR HERO BANNER -->
-      <div class="topbar hero-banner folder-header-banner">
-        <div class="header-left" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
-          <%- include('partials/brand') %>
-          <div class="eyebrow" style="color: #ec4899; margin-top: 10px; font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: 0.08em;">HR - People & Culture</div>
-          <h2 style="margin: 4px 0 6px 0;">HR Uploads & Document Station</h2>
-          <p class="subtitle" style="color: #4B5563 !important; margin: 0;">Upload GST and NON-GST invoice vouchers, add custom descriptions, and dispatch to Accounts station.</p>
-        </div>
-
-        <div class="header-right">
-          <div class="header-actions-row">
-            <span style="font-size: 13px; color: #9ca3af; margin-right: 8px;">Logged in: <strong style="color: #ffffff;"><%= user.username %></strong></span>
-            <a href="/logout"><button class="btn btn-3d-danger" type="button">Logout</button></a>
+        <!-- TOPBAR HERO BANNER -->
+        <div class="topbar hero-banner folder-header-banner" style="margin-bottom: 24px;">
+          <div class="header-left" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+            <div class="eyebrow" style="color: #ec4899; margin-top: 4px; font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: 0.08em;">HR - People & Culture</div>
+            <h2 style="margin: 4px 0 6px 0;">HR Uploads & Document Station</h2>
+            <p class="subtitle" style="color: #4B5563 !important; margin: 0;">Upload GST and NON-GST invoice vouchers, add custom descriptions, and dispatch to Accounts station.</p>
           </div>
-          <div class="header-stats-grid">
-            <div class="header-stat-card">
-              <span class="stat-icon">📄</span>
-              <div class="stat-info">
-                <span class="stat-value"><%= (typeof hrInvoices !== 'undefined' && hrInvoices) ? hrInvoices.length : 0 %></span>
-                <span class="stat-label">Total HR Uploads</span>
+
+          <div class="header-right">
+            <div class="header-stats-grid">
+              <div class="header-stat-card">
+                <span class="stat-icon">📄</span>
+                <div class="stat-info">
+                  <span class="stat-value"><%= (typeof hrInvoices !== 'undefined' && hrInvoices) ? hrInvoices.length : 0 %></span>
+                  <span class="stat-label">Total HR Uploads</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- NAVIGATION TABS -->
-      <div class="nav nav-3d" style="margin-bottom: 24px; display: flex; gap: 10px; align-items: center;">
-        <a href="/hr/invoices"><button class="btn btn-3d-nav active" type="button">⚡ HR Station</button></a>
-        <a href="/admin/users"><button class="btn btn-3d-nav" type="button">👥 Users Management</button></a>
-        <a href="/admin/fun"><button class="btn btn-3d-nav" type="button">🎉 Fun Tab</button></a>
-      </div>
 
       <% if (typeof success !== 'undefined' && success) { %>
         <div class="alert alert-success" style="margin-bottom: 20px; background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 14px 18px; border-radius: 12px; font-weight: 600;">
@@ -371,5 +361,7 @@
         document.getElementById('uploadInvoiceModal').classList.remove('active');
       }
     </script>
+      </div>
+    </div>
   </body>
 </html>

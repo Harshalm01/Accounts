@@ -162,21 +162,19 @@
 </head>
 
 <body class="admin-page">
-  <div class="shell">
+  <div class="app-layout">
+    <%- include('partials/sidebar', { activeTab: 'users' }) %>
+    <div class="main-content-wrapper">
 
-    <!-- Hero Banner Header -->
-    <div class="topbar hero-banner folder-header-banner">
-      <div class="header-left" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
-        <%- include('partials/brand') %>
-          <div class="eyebrow" style="margin-top: 10px;"><%= (typeof user !== 'undefined' && user && user.role === 'HR') ? 'HR - People & Culture' : 'Super Admin' %></div>
+      <!-- Hero Banner Header -->
+      <div class="topbar hero-banner folder-header-banner" style="margin-bottom: 24px;">
+        <div class="header-left" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+          <div class="eyebrow" style="margin-top: 4px;"><%= (typeof user !== 'undefined' && user && user.role === 'HR') ? 'HR - People & Culture' : 'Super Admin' %></div>
           <h2 style="margin: 4px 0 6px 0;">User Management</h2>
           <p class="subtitle" style="color: #4B5563 !important; margin: 0;">Create users, assign roles and reset passwords.</p>
-      </div>
-
-      <div class="header-right">
-        <div class="header-actions-row">
-          <a href="<%= (typeof user !== 'undefined' && user && user.role === 'HR') ? '/hr/invoices' : '/admin/dashboard' %>"><button class="btn btn-3d-nav" type="button">← Back</button></a>
         </div>
+
+        <div class="header-right">
         <div class="header-stats-grid">
           <div class="header-stat-card">
             <span class="stat-icon">👤</span>
@@ -475,7 +473,7 @@
             })();
           });
         </script>
-
+    </div>
   </div>
 </body>
 

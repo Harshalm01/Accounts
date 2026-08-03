@@ -668,57 +668,28 @@
 </head>
 
 <body class="admin-page">
-  <div class="shell fun-shell">
+  <div class="app-layout">
+    <%- include('partials/sidebar', { activeTab: 'fun' }) %>
+    <div class="main-content-wrapper">
 
-    <!-- Top Header Banner -->
-    <div class="topbar hero-banner folder-header-banner" style="margin-bottom: 20px;">
-      <div class="header-left">
-        <%- include('partials/brand') %>
-        <div class="eyebrow" style="margin-top: 10px;">Portal Playground</div>
-        <h2 style="margin: 4px 0 6px 0;">🎉 Fun & Games Studio</h2>
-        <div class="pill">
-          <%= typeof user !== 'undefined' ? user.role : 'ADMIN' %> • Photobooth & Arcade Suite
+      <!-- Top Header Banner -->
+      <div class="topbar hero-banner folder-header-banner" style="margin-bottom: 20px;">
+        <div class="header-left">
+          <div class="eyebrow">Portal Playground</div>
+          <h2 style="margin: 4px 0 6px 0;">🎉 Fun & Games Studio</h2>
+          <div class="pill">
+            <%= typeof user !== 'undefined' ? user.role : 'ADMIN' %> • Photobooth & Arcade Suite
+          </div>
+        </div>
+
+        <div class="header-right">
+          <div id="backToHubWrap" style="display: none;">
+            <button class="btn btn-3d-nav" onclick="showGamesHub()" style="background: #ffffff; color: #0f172a; border: 1.5px solid #cbd5e1; font-weight: 800;">
+              ← Back to Games Hub
+            </button>
+          </div>
         </div>
       </div>
-
-      <div class="header-right">
-        <div class="header-actions-row">
-          <form method="post" action="/admin/logout" style="margin:0;">
-            <button class="btn btn-3d-nav" type="submit">Logout</button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Portal Main Navigation Bar -->
-    <div class="nav nav-3d" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-        <a href="/admin/dashboard"><button class="btn btn-3d-nav" type="button">Invoices</button></a>
-        <% if (typeof user !== 'undefined' && (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN')) { %>
-          <a href="/admin/dashboard?tab=hr_uploads"><button class="btn btn-3d-nav" type="button">💼 HR Uploads</button></a>
-        <% } %>
-        <% if (typeof user !== 'undefined' && (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN' || user.role === 'TEAM' || user.role === 'HEAD')) { %>
-          <a href="/admin/folders"><button class="btn btn-3d-nav" type="button">Folders</button></a>
-        <% } %>
-        <% if (typeof user !== 'undefined' && (user.role === 'ACCOUNTS' || user.role === 'SUPER_ADMIN')) { %>
-          <a href="/admin/notifications"><button class="btn btn-3d-nav" type="button">Notifications</button></a>
-        <% } %>
-        <% if (typeof user !== 'undefined' && (user.role === 'HEAD' || user.role === 'SUPER_ADMIN' || user.role === 'ACCOUNTS' || user.role === 'TEAM')) { %>
-          <a href="/admin/campaigns"><button class="btn btn-3d-nav" type="button">Campaigns</button></a>
-        <% } %>
-        <% if (typeof user !== 'undefined' && (user.role === 'SUPER_ADMIN' || user.role === 'HR')) { %>
-          <a href="/admin/users"><button class="btn btn-3d-nav" type="button">Users</button></a>
-        <% } %>
-        <a href="/admin/fun"><button class="btn btn-3d-nav active" type="button" style="background: #7c3aed; color: #ffffff; border-color: #7c3aed; font-weight: 800;">🎉 Fun Tab</button></a>
-      </div>
-
-      <!-- Back to Games Hub Button (Visible inside Studio/Game) -->
-      <div id="backToHubWrap" style="display: none;">
-        <button class="btn btn-3d-nav" onclick="showGamesHub()" style="background: #ffffff; color: #0f172a; border: 1.5px solid #cbd5e1; font-weight: 800;">
-          ← Back to Games Hub
-        </button>
-      </div>
-    </div>
 
     <!-- ================= 0. CARDS HUB LANDING SCREEN ================= -->
     <div id="gamesHubSection">
@@ -2358,6 +2329,8 @@
       setupMobileTouchEvents();
     });
   </script>
+    </div>
+  </div>
 </body>
 
 </html>

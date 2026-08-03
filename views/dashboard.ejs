@@ -114,109 +114,86 @@
 </head>
 
 <body class="admin-page">
-  <div class="shell">
-    <% function gstBreakup(inv) { %>
-      <% const isGst=inv.invoice_type==='gst' ; %>
-        <% const taxable=Number(inv.taxable_amount ?? inv.locked_amount ?? inv.total_amount ?? 0); %>
-          <% const cgst=Number(inv.cgst_amount ?? (taxable * 0.09).toFixed(2)); %>
-            <% const sgst=Number(inv.sgst_amount ?? (taxable * 0.09).toFixed(2)); %>
-              <% const gst=Number(inv.gst_amount ?? (cgst + sgst).toFixed(2)); %>
-                <% return Number(inv.final_amount ?? (isGst ? (taxable + gst) : inv.total_amount ?? taxable)); %>
-                  <% } %>
-                    <div class="topbar hero-banner folder-header-banner">
-                      <div class="header-left">
-                        <%- include('partials/brand') %>
+  <div class="app-layout">
+    <%- include('partials/sidebar') %>
+    <div class="main-content-wrapper">
+      <% function gstBreakup(inv) { %>
+        <% const isGst=inv.invoice_type==='gst' ; %>
+          <% const taxable=Number(inv.taxable_amount ?? inv.locked_amount ?? inv.total_amount ?? 0); %>
+            <% const cgst=Number(inv.cgst_amount ?? (taxable * 0.09).toFixed(2)); %>
+              <% const sgst=Number(inv.sgst_amount ?? (taxable * 0.09).toFixed(2)); %>
+                <% const gst=Number(inv.gst_amount ?? (cgst + sgst).toFixed(2)); %>
+                  <% return Number(inv.final_amount ?? (isGst ? (taxable + gst) : inv.total_amount ?? taxable)); %>
+                    <% } %>
+                      <div class="topbar hero-banner folder-header-banner" style="margin-bottom: 24px;">
+                        <div class="header-left">
                           <div class="eyebrow">Portal overview</div>
                           <h2 style="margin: 8px 0 6px 0;">Dashboard</h2>
                           <div class="pill">
                             <%= user.role %> • <%= user.username %>
                           </div>
-                      </div>
-
-                      <div class="header-right">
-                        <div class="header-actions-row">
-                          <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' ) { %>
-                            <button type="button" class="btn btn-3d-nav btn-3d-bell" id="bellBtn">
-                              🔔
-                              <% if (notifications.length> 0) { %>
-                                <span class="bell-badge" id="bellCount">
-                                  <%= notifications.length %>
-                                </span>
-                                <% } %>
-                            </button>
-                            <% } %>
-                              <form method="post" action="/admin/logout">
-                                <button class="btn btn-3d-nav" type="submit">Logout</button>
-                              </form>
                         </div>
 
-                        <div class="header-stats-grid">
-                          <div class="header-stat-card">
-                            <span class="stat-icon">📄</span>
-                            <div class="stat-info">
-                              <span class="stat-value">
-                                <%= invoices.length %>
-                              </span>
-                              <span class="stat-label">Total Invoices</span>
-                            </div>
+                        <div class="header-right">
+                          <div class="header-actions-row">
+                            <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' ) { %>
+                              <button type="button" class="btn btn-3d-nav btn-3d-bell" id="bellBtn">
+                                🔔
+                                <% if (notifications.length> 0) { %>
+                                  <span class="bell-badge" id="bellCount">
+                                    <%= notifications.length %>
+                                  </span>
+                                  <% } %>
+                              </button>
+                              <% } %>
                           </div>
 
-                          <div class="header-stat-card">
-                            <span class="stat-icon">⏳</span>
-                            <div class="stat-info">
-                              <% let pendingCount=invoices.filter(i=> i.status === 'SUBMITTED' || i.status ===
-                                'REGENERATED').length; %>
+                          <div class="header-stats-grid">
+                            <div class="header-stat-card">
+                              <span class="stat-icon">📄</span>
+                              <div class="stat-info">
                                 <span class="stat-value">
-                                  <%= pendingCount %>
+                                  <%= invoices.length %>
                                 </span>
-                                <span class="stat-label">Pending Review</span>
+                                <span class="stat-label">Total Invoices</span>
+                              </div>
                             </div>
-                          </div>
 
-                          <div class="header-stat-card">
-                            <span class="stat-icon">💰</span>
-                            <div class="stat-info">
-                              <% let totalPayout=invoices.reduce((sum, i)=> sum + gstBreakup(i), 0);
-                                %>
-                                <span class="stat-value">₹<%= Math.round(totalPayout).toLocaleString('en-IN') %></span>
-                                <span class="stat-label">Total Payout</span>
+                            <div class="header-stat-card">
+                              <span class="stat-icon">⏳</span>
+                              <div class="stat-info">
+                                <% let pendingCount=invoices.filter(i=> i.status === 'SUBMITTED' || i.status ===
+                                  'REGENERATED').length; %>
+                                  <span class="stat-value">
+                                    <%= pendingCount %>
+                                  </span>
+                                  <span class="stat-label">Pending Review</span>
+                              </div>
+                            </div>
+
+                            <div class="header-stat-card">
+                              <span class="stat-icon">💰</span>
+                              <div class="stat-info">
+                                <% let totalPayout=invoices.reduce((sum, i)=> sum + gstBreakup(i), 0);
+                                  %>
+                                  <span class="stat-value">₹<%= Math.round(totalPayout).toLocaleString('en-IN') %></span>
+                                  <span class="stat-label">Total Payout</span>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <% if (typeof utrSuccess !== 'undefined' && utrSuccess) { %>
-                      <div class="alert alert-success" style="margin-bottom: 16px; background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px 16px; border-radius: 10px; font-weight: 600; font-size: 14px;">
-                        ✅ <%= utrSuccess %>
-                      </div>
-                    <% } %>
-                    <% if (typeof utrError !== 'undefined' && utrError) { %>
-                      <div class="alert alert-error" style="margin-bottom: 16px; background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 12px 16px; border-radius: 10px; font-weight: 600; font-size: 14px;">
-                        ⚠️ <%= utrError %>
-                      </div>
-                    <% } %>
-                    <div class="nav nav-3d" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                        <a href="/admin/dashboard"><button class="btn btn-3d-nav <%= typeof activeTab === 'undefined' || activeTab !== 'hr_uploads' ? 'active' : '' %>" type="button">Invoices</button></a>
-                        <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' ) { %>
-                          <a href="/admin/dashboard?tab=hr_uploads"><button class="btn btn-3d-nav <%= typeof activeTab !== 'undefined' && activeTab === 'hr_uploads' ? 'active' : '' %>" type="button">💼 HR Uploads</button></a>
-                        <% } %>
-                        <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' || user.role==='TEAM' || user.role==='HEAD' ) { %>
-                          <a href="/admin/folders"><button class="btn btn-3d-nav" type="button">Folders</button></a>
-                        <% } %>
-                        <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' ) { %>
-                          <a href="/admin/notifications"><button class="btn btn-3d-nav" type="button">Notifications</button></a>
-                        <% } %>
-                        <% if (user.role==='HEAD' || user.role==='SUPER_ADMIN' ) { %>
-                          <a href="/admin/campaigns"><button class="btn btn-3d-nav" type="button">Campaigns</button></a>
-                        <% } %>
-                        <% if (user.role==='SUPER_ADMIN' || user.role==='HR' ) { %>
-                          <a href="/admin/users"><button class="btn btn-3d-nav" type="button">Users</button></a>
-                        <% } %>
-                        <a href="/admin/fun"><button class="btn btn-3d-nav <%= typeof activeTab !== 'undefined' && activeTab === 'fun' ? 'active' : '' %>" type="button">🎉 Fun Tab</button></a>
-                      </div>
-                    </div>
+                      <% if (typeof utrSuccess !== 'undefined' && utrSuccess) { %>
+                        <div class="alert alert-success" style="margin-bottom: 16px; background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px 16px; border-radius: 10px; font-weight: 600; font-size: 14px;">
+                          ✅ <%= utrSuccess %>
+                        </div>
+                      <% } %>
+                      <% if (typeof utrError !== 'undefined' && utrError) { %>
+                        <div class="alert alert-error" style="margin-bottom: 16px; background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 12px 16px; border-radius: 10px; font-weight: 600; font-size: 14px;">
+                          ⚠️ <%= utrError %>
+                        </div>
+                      <% } %>
 
                     <% if (user.role==='ACCOUNTS' || user.role==='SUPER_ADMIN' ) { %>
                       <!-- Accounts UTR Settlement Card -->
@@ -1197,6 +1174,8 @@
           });
         }
       </script>
+    </div>
+  </div>
 </body>
 
 </html>
