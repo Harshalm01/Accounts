@@ -1,54 +1,118 @@
 const nodemailer = require("nodemailer");
+const https = require("https");
 
-function getTransporter() {
+/**
+ * Multi-port SMTP sender that automatically falls back across ports (465 SSL, 587 TLS, 2525)
+ * to bypass cloud server firewall port blocks.
+ */
+async function sendMailWithFallback(mailOptions) {
   const user = (process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "").trim();
   const pass = (process.env.SMTP_PASS || process.env.GMAIL_PASS || process.env.EMAIL_PASS || "").trim();
-
-  if (!user || !pass) {
-    return null;
-  }
-
   const host = (process.env.SMTP_HOST || "smtp.gmail.com").trim();
 
-  // Force IPv4 (family: 4) & Port 587 TLS to prevent ENETUNREACH IPv6 / Port 465 firewall errors
-  if (host.toLowerCase().includes("gmail")) {
-    return nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false, // TLS
-      requireTLS: true,
-      family: 4, // Force IPv4
-      auth: { user, pass },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
+  // 1. If Resend HTTP API Key is provided, use HTTPS Port 443 (Never blocked)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const resendRes = await sendViaResendHttp(mailOptions);
+      if (resendRes) return true;
+    } catch (e) {
+      console.warn("[Mailer] Resend HTTP fallback error:", e.message);
+    }
   }
 
-  const port = Number(process.env.SMTP_PORT || 587);
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    family: 4, // Force IPv4
-    auth: { user, pass },
-    tls: {
-      rejectUnauthorized: false
+  if (!user || !pass) {
+    console.warn("[Mailer Warning] Cannot send email. SMTP_USER or SMTP_PASS environment variables are missing.");
+    return false;
+  }
+
+  // 2. Try SMTP ports in sequence: 465 (Direct SSL), 587 (TLS), 2525 (Alt SMTP), 25
+  const portsToTry = [
+    { port: 465, secure: true },
+    { port: 587, secure: false },
+    { port: 2525, secure: false },
+    { port: 25, secure: false }
+  ];
+
+  let lastError = null;
+
+  for (const config of portsToTry) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: host.toLowerCase().includes("gmail") ? "smtp.gmail.com" : host,
+        port: config.port,
+        secure: config.secure,
+        family: 4, // Force IPv4 to prevent ENETUNREACH
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 7000,
+        auth: { user, pass },
+        tls: { rejectUnauthorized: false }
+      });
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`[Mailer Success] Email sent to "${mailOptions.to}" via port ${config.port}. Message ID: ${info.messageId}`);
+      return true;
+    } catch (err) {
+      lastError = err;
+      console.warn(`[Mailer Port ${config.port} failed]: ${err.message}`);
     }
+  }
+
+  console.error(`[Mailer Error] All SMTP ports (465, 587, 2525, 25) timed out or failed for "${mailOptions.to}":`, lastError ? lastError.message : "Connection timeout");
+  return false;
+}
+
+/**
+ * Send via Resend HTTP API over HTTPS 443 (Backup for cloud servers with total SMTP blocks)
+ */
+function sendViaResendHttp(mailOptions) {
+  return new Promise((resolve) => {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) return resolve(false);
+
+    const postData = JSON.stringify({
+      from: mailOptions.from || "3Folks Media <onboarding@resend.dev>",
+      to: [mailOptions.to],
+      subject: mailOptions.subject,
+      html: mailOptions.html
+    });
+
+    const req = https.request({
+      hostname: "api.resend.com",
+      path: "/emails",
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(postData)
+      },
+      timeout: 6000
+    }, (res) => {
+      let body = "";
+      res.on("data", chunk => body += chunk);
+      res.on("end", () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          console.log(`[Mailer Resend HTTP Success] Email sent to "${mailOptions.to}" via Resend HTTPS API.`);
+          resolve(true);
+        } else {
+          console.warn(`[Mailer Resend HTTP Failed ${res.statusCode}]: ${body}`);
+          resolve(false);
+        }
+      });
+    });
+
+    req.on("error", (e) => {
+      console.warn(`[Mailer Resend HTTP Error]: ${e.message}`);
+      resolve(false);
+    });
+
+    req.write(postData);
+    req.end();
   });
 }
 
 /**
  * Send Automated Email Notification to Creator with Exact Formatting
- * @param {Object} opts
- * @param {string} opts.to - Creator Email Address
- * @param {string} opts.status - Invoice Status ('APPROVED' / 'ACCEPTED', 'REJECTED', 'PAID' / 'PAYMENT COMPLETED')
- * @param {string} opts.invoiceNo - Invoice Number
- * @param {string} opts.creatorName - Creator Full Name
- * @param {string} opts.campaignName - Campaign Name
- * @param {number|string} opts.amount - Amount (₹)
- * @param {string} [opts.rejectionReason] - Reason if REJECTED
- * @param {string} [opts.utr] - UTR reference if payment processed
  */
 async function sendInvoiceStatusEmail({ to, status, invoiceNo, creatorName, campaignName, amount, rejectionReason, utr }) {
   const normEmail = String(to || "").trim();
@@ -57,14 +121,8 @@ async function sendInvoiceStatusEmail({ to, status, invoiceNo, creatorName, camp
     return false;
   }
 
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn("[Mailer Warning] Cannot send email. SMTP_USER or SMTP_PASS environment variables are missing on the server.");
-    return false;
-  }
-
   const fromName = (process.env.EMAIL_FROM_NAME || "Team 3Folks Media").trim();
-  const fromEmail = (process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "").trim();
+  const fromEmail = (process.env.SMTP_USER || process.env.GMAIL_USER || process.env.EMAIL_USER || "accounts@3folksmedia.com").trim();
   const name = String(creatorName || "Creator").trim();
   const normStatus = String(status || "").toUpperCase();
 
@@ -146,19 +204,12 @@ async function sendInvoiceStatusEmail({ to, status, invoiceNo, creatorName, camp
     </html>
   `;
 
-  try {
-    const info = await transporter.sendMail({
-      from: `"${fromName}" <${fromEmail}>`,
-      to: normEmail,
-      subject,
-      html
-    });
-    console.log(`[Mailer Success] Email sent to "${normEmail}" for Invoice #${invoiceNo} (${subject}). Message ID: ${info.messageId}`);
-    return true;
-  } catch (err) {
-    console.error(`[Mailer Error] Failed sending email to "${normEmail}":`, err.message);
-    return false;
-  }
+  return await sendMailWithFallback({
+    from: `"${fromName}" <${fromEmail}>`,
+    to: normEmail,
+    subject,
+    html
+  });
 }
 
 module.exports = {
