@@ -52,6 +52,8 @@
         </div>
       <% } %>
 
+      <% const isDirectGstUpload = Boolean(invoice.file_path || (isGstInvoice && !invoice.po_number && (invoice.creator_gstin === '27AACFZ6393B1ZZ' || !invoice.creator_gstin))); %>
+
       <!-- Info Details Card -->
       <div class="card glass-panel" style="margin-bottom: 16px; padding: 24px 32px;">
         <div class="grid-3" style="row-gap: 20px; column-gap: 32px;">
@@ -68,14 +70,17 @@
           <div>
             <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Creator / Serial No</span>
             <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= invoice.creator_name %> / <%= invoice.creator_mobile %></span>
+            <% if (invoice.email) { %>
+              <div style="font-size: 13px; font-weight: 700; color: #7c3aed; margin-top: 3px;">✉️ <%= invoice.email %></div>
+            <% } %>
           </div>
           <div>
-            <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Total</span>
+            <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Total Amount</span>
             <span style="font-weight: 800; color: #7c3aed; font-size: 16px;">₹<%= grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></span>
           </div>
           <div>
             <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Type</span>
-            <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= isGstInvoice ? 'GST Based' : 'Non-GST Based' %></span>
+            <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= isGstInvoice ? (isDirectGstUpload ? 'GST Direct Upload' : 'GST Based') : 'Non-GST Based' %></span>
           </div>
           <div>
             <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Invoice No</span>
@@ -86,7 +91,7 @@
             <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= invoice.invoice_date %></span>
           </div>
 
-          <% if (isGstInvoice) { %>
+          <% if (isGstInvoice && !isDirectGstUpload) { %>
             <div>
               <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">PO Number</span>
               <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= invoice.po_number || '—' %></span>
@@ -127,8 +132,12 @@
           <% } %>
 
           <div>
-            <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">PDF Invoice</span>
-            <% if (invoice.pdf_path) { %>
+            <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Document File</span>
+            <% if (invoice.file_path) { %>
+              <a href="<%= invoice.file_path %>" target="_blank" style="font-weight: 700; color: #7c3aed; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                📁 Open GST Document ↗
+              </a>
+            <% else if (invoice.pdf_path) { %>
               <a href="<%= invoice.pdf_path %>" target="_blank" style="font-weight: 700; color: #7c3aed; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
                 Download PDF 📥
               </a>
@@ -148,71 +157,89 @@
         </div>
       </div>
 
-      <!-- Line Items Rows Card -->
-      <div class="card glass-panel" style="margin-bottom: 16px; padding: 24px 32px;">
-        <div class="section-head" style="margin-bottom: 20px;">
-          <div>
-            <h3 style="font-size: 18px; font-weight: 800; color: #0f172a;">Rows</h3>
-            <p class="subtitle">Invoice line items captured from the creator portal.</p>
+      <% if (isDirectGstUpload) { %>
+        <!-- Dedicated GST Document File Card for Direct Uploads -->
+        <div class="card glass-panel" style="margin-bottom: 16px; padding: 24px 32px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+              <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #7c3aed; letter-spacing: 0.5px;">📁 GST Invoice Document</div>
+              <h3 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 4px 0 0 0;">Uploaded GST Tax Invoice File</h3>
+              <p class="subtitle" style="margin-top: 2px;">This official GST Tax Invoice document file was uploaded directly by <%= invoice.creator_name %>.</p>
+            </div>
+            <% if (invoice.file_path) { %>
+              <a href="<%= invoice.file_path %>" target="_blank" class="btn btn-3d-nav" style="padding: 12px 24px; font-size: 14px; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); color: white; text-decoration: none; border-radius: 12px; font-weight: 800;">
+                📁 Open / Download GST Document File ↗
+              </a>
+            <% } %>
           </div>
         </div>
+      <% } else { %>
+        <!-- Line Items Rows Card (Only for Generated Invoices) -->
+        <div class="card glass-panel" style="margin-bottom: 16px; padding: 24px 32px;">
+          <div class="section-head" style="margin-bottom: 20px;">
+            <div>
+              <h3 style="font-size: 18px; font-weight: 800; color: #0f172a;">Rows</h3>
+              <p class="subtitle">Invoice line items captured from the creator portal.</p>
+            </div>
+          </div>
 
-        <div class="users-table-wrap">
-          <table class="users-table">
-            <thead>
-              <tr>
-                <th style="width: 60px;">#</th>
-                <th>Description</th>
-                <th style="text-align: center;">Qty</th>
-                <th style="text-align: right;">Rate</th>
-                <% if (isGstInvoice) { %>
-                  <% if (isIntraState) { %>
-                    <th style="text-align: right;">CGST</th>
-                    <th style="text-align: right;">SGST</th>
-                  <% } else { %>
-                    <th style="text-align: right;">IGST</th>
-                  <% } %>
-                <% } %>
-                <th style="text-align: right; padding-right: 24px;">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% items.forEach((it, idx) => { %>
-                <% const row = rowBreakup(it.amount); %>
+          <div class="users-table-wrap">
+            <table class="users-table">
+              <thead>
                 <tr>
-                  <td class="user-id-cell"><%= idx + 1 %></td>
-                  <td style="font-weight: 600; color: #334155;"><%= it.description %></td>
-                  <td style="text-align: center; font-weight: 600;"><%= it.quantity %></td>
-                  <td style="text-align: right; font-family: monospace; font-size: 14px;">
-                    <%= isGstInvoice ? '18.00' : Number(it.rate || 0).toFixed(2) %>
-                  </td>
+                  <th style="width: 60px;">#</th>
+                  <th>Description</th>
+                  <th style="text-align: center;">Qty</th>
+                  <th style="text-align: right;">Rate</th>
                   <% if (isGstInvoice) { %>
                     <% if (isIntraState) { %>
-                      <td style="text-align: right; font-family: monospace; font-size: 14px; color: #475569;">
-                        ₹<%= row.cgst.toFixed(2) %>
-                      </td>
-                      <td style="text-align: right; font-family: monospace; font-size: 14px; color: #475569;">
-                        ₹<%= row.sgst.toFixed(2) %>
+                      <th style="text-align: right;">CGST</th>
+                      <th style="text-align: right;">SGST</th>
+                    <% } else { %>
+                      <th style="text-align: right;">IGST</th>
+                    <% } %>
+                  <% } %>
+                  <th style="text-align: right; padding-right: 24px;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% items.forEach((it, idx) => { %>
+                  <% const row = rowBreakup(it.amount); %>
+                  <tr>
+                    <td class="user-id-cell"><%= idx + 1 %></td>
+                    <td style="font-weight: 600; color: #334155;"><%= it.description %></td>
+                    <td style="text-align: center; font-weight: 600;"><%= it.quantity %></td>
+                    <td style="text-align: right; font-family: monospace; font-size: 14px;">
+                      <%= isGstInvoice ? '18.00' : Number(it.rate || 0).toFixed(2) %>
+                    </td>
+                    <% if (isGstInvoice) { %>
+                      <% if (isIntraState) { %>
+                        <td style="text-align: right; font-family: monospace; font-size: 14px; color: #475569;">
+                          ₹<%= row.cgst.toFixed(2) %>
+                        </td>
+                        <td style="text-align: right; font-family: monospace; font-size: 14px; color: #475569;">
+                          ₹<%= row.sgst.toFixed(2) %>
+                        </td>
+                      <% } else { %>
+                        <td style="text-align: right; font-family: monospace; font-size: 14px; color: #475569;">
+                          ₹<%= row.igst.toFixed(2) %>
+                        </td>
+                      <% } %>
+                      <td style="text-align: right; font-weight: 700; color: #1e293b; padding-right: 24px;">
+                        ₹<%= row.finalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %>
                       </td>
                     <% } else { %>
-                      <td style="text-align: right; font-family: monospace; font-size: 14px; color: #475569;">
-                        ₹<%= row.igst.toFixed(2) %>
+                      <td style="text-align: right; font-weight: 700; color: #1e293b; padding-right: 24px;">
+                        ₹<%= Number(it.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) %>
                       </td>
                     <% } %>
-                    <td style="text-align: right; font-weight: 700; color: #1e293b; padding-right: 24px;">
-                      ₹<%= row.finalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %>
-                    </td>
-                  <% } else { %>
-                    <td style="text-align: right; font-weight: 700; color: #1e293b; padding-right: 24px;">
-                      ₹<%= Number(it.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) %>
-                    </td>
-                  <% } %>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      <% } %>
 
       <!-- 3D Realistic Paper Document Viewer Controls -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin: 32px 0 16px 0;">

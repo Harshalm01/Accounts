@@ -966,7 +966,7 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
 
     const safeFullName = String(fullName || mapping.creator_name || "Creator").trim();
     const safePan = String(pan || "AACFZ6393B").trim().toUpperCase();
-    const safeEmail = String(email || "creator@3folks.com").trim();
+    const safeEmail = String(req.body.gstEmail || email || "creator@3folks.com").trim();
     const safeInvoiceNo = String(invoiceNo || "").trim();
     const safeAddress = String(address || "").trim();
     const safePaymentMode = String(paymentMode || "").trim();
