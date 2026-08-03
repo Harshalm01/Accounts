@@ -1010,7 +1010,7 @@
         </div>
 
         <p style="margin: -10px 0 16px 0; font-size: 14px; color: #64748b;">
-          Tap screen / button or press [SPACEBAR] to jump over cacti! Tap Duck to duck under birds!
+          Tap screen / button or press [SPACEBAR] / [UP ARROW] to jump! Laptop/comp users can duck down using [DOWN ARROW] key!
         </p>
 
         <div class="game-viewport-card" id="dinoViewportCard" style="height: 540px; cursor: pointer;">
@@ -1183,7 +1183,7 @@
           <div class="instruction-step-item">
             <div class="instruction-step-icon">⌨️</div>
             <div class="instruction-step-text">
-              <strong>Jump & Duck Controls:</strong> Press <strong>[SPACEBAR]</strong> or <strong>[ARROW UP]</strong> to jump over cacti. Press <strong>[ARROW DOWN]</strong> to duck under birds!
+              <strong>Jump & Duck Controls:</strong> Press <strong>[SPACEBAR]</strong> or <strong>[ARROW UP]</strong> to jump over cacti. Laptop & comp users can duck down using <strong>[ARROW DOWN]</strong> (or tap 🦆 DUCK DOWN)!
             </div>
           </div>
           <div class="instruction-step-item">
@@ -2124,9 +2124,12 @@
 
       // Physics
       dinoVelocity += dinoGravity;
+      if (isDucking && dinoY < groundLineY) {
+        dinoVelocity += 2.5; // Fast-fall when ducking in mid-air
+      }
       dinoY += dinoVelocity;
 
-      const restingY = isDucking ? groundLineY - 14 : groundLineY;
+      const restingY = groundLineY;
       if (dinoY > restingY) {
         dinoY = restingY;
         dinoVelocity = 0;
@@ -2134,7 +2137,7 @@
 
       // Draw Dino (T-Rex)
       dinoCtx.fillStyle = isNight ? '#38bdf8' : '#7c3aed';
-      const dinoHeight = isDucking ? 28 : 46;
+      const dinoHeight = isDucking ? 26 : 46;
       const dinoWidth = isDucking ? 52 : 38;
       const drawY = dinoY - dinoHeight;
 
@@ -2146,7 +2149,7 @@
       // Dino Eye
       dinoCtx.fillStyle = '#ffffff';
       dinoCtx.beginPath();
-      dinoCtx.arc(100 + (isDucking ? 40 : 26), drawY + 10, 4.5, 0, Math.PI * 2);
+      dinoCtx.arc(100 + (isDucking ? 42 : 26), drawY + (isDucking ? 8 : 10), 4, 0, Math.PI * 2);
       dinoCtx.fill();
 
       // Dino Legs Running Animation
@@ -2256,13 +2259,13 @@
           if (runnerGameRunning) { playerVelocity = lift; playJumpSound(); }
         }
       } else if (currentSelectedTarget === 'dino-jump') {
-        if (e.code === 'Space' || e.code === 'ArrowUp') {
+        if (e.code === 'Space' || e.code === 'ArrowUp' || e.key === ' ' || e.key === 'ArrowUp') {
           e.preventDefault();
           if (dinoGameRunning && dinoY >= (dinoCanvas ? dinoCanvas.height - 70 : 300)) {
             dinoVelocity = dinoJump;
             playJumpSound();
           }
-        } else if (e.code === 'ArrowDown') {
+        } else if (e.code === 'ArrowDown' || e.key === 'ArrowDown') {
           e.preventDefault();
           if (dinoGameRunning) isDucking = true;
         }
@@ -2270,7 +2273,7 @@
     });
 
     document.addEventListener('keyup', (e) => {
-      if (currentSelectedTarget === 'dino-jump' && e.code === 'ArrowDown') {
+      if (currentSelectedTarget === 'dino-jump' && (e.code === 'ArrowDown' || e.key === 'ArrowDown')) {
         isDucking = false;
       }
     });
@@ -2343,8 +2346,10 @@
       if (dinoDuckBtn) {
         dinoDuckBtn.addEventListener('touchstart', triggerDinoDuckStart, { passive: false });
         dinoDuckBtn.addEventListener('touchend', triggerDinoDuckEnd);
+        dinoDuckBtn.addEventListener('touchcancel', triggerDinoDuckEnd);
         dinoDuckBtn.addEventListener('mousedown', triggerDinoDuckStart);
         dinoDuckBtn.addEventListener('mouseup', triggerDinoDuckEnd);
+        dinoDuckBtn.addEventListener('mouseleave', triggerDinoDuckEnd);
       }
     }
 

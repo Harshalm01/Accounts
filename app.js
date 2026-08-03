@@ -861,9 +861,12 @@ app.post("/creator/validated_form", async (req, res) => {
     ? await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [existingInvoice.id])
     : [];
 
+  const cleanMobile = mobile.trim().replace(/\s+|-/g, '').replace(/^\+91/, '');
   const countRow = await db.get(
-    "SELECT COUNT(*) AS cnt FROM invoices WHERE campaign_id = ? AND (creator_mobile = ? OR LOWER(TRIM(creator_name)) = LOWER(TRIM(?)))",
-    [campaign.id, mobile.trim(), campaign.creator_name]
+    `SELECT COUNT(*) AS cnt FROM invoices 
+     WHERE REPLACE(REPLACE(REPLACE(TRIM(creator_mobile), ' ', ''), '-', ''), '+91', '') = ?
+        OR (creator_mobile IS NULL AND LOWER(TRIM(creator_name)) = LOWER(TRIM(?)))`,
+    [cleanMobile, campaign.creator_name]
   );
   const seqNumber = String((countRow ? countRow.cnt : 0) + (existingInvoice ? 0 : 1)).padStart(2, '0');
 
@@ -1114,6 +1117,7 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
       );
       await db.run("DELETE FROM invoice_items WHERE invoice_id = ?", [invoiceId]);
     } else {
+      const isHrCampaign = campaign && campaign.campaign_code && campaign.campaign_code.startsWith("HR-");
       const invoiceResult = await db.run(
         `INSERT INTO invoices (
           campaign_id, creator_mobile, creator_name, invoice_type, full_name, address, pan, email,
@@ -1122,8 +1126,8 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
           taxable_amount, gst_rate, cgst_rate, sgst_rate, igst_rate,
           cgst_amount, sgst_amount, igst_amount, gst_amount, final_amount,
           account_name, bank_name, account_no, ifsc_code, branch, upi_id,
-          signature_type, signature_value, total_amount, locked_amount, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          signature_type, signature_value, total_amount, locked_amount, status, is_hr_upload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           campaignId,
           mobile.trim(),
@@ -1160,7 +1164,8 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
           signatureValue,
           savedTotalAmount,
           mapping.amount,
-          "SUBMITTED"
+          "SUBMITTED",
+          isHrCampaign ? 1 : 0
         ]
       );
       invoiceId = invoiceResult.lastID;
@@ -1351,6 +1356,8 @@ app.get("/admin/dashboard", async (req, res) => {
        JOIN campaigns c ON c.id = i.campaign_id
        LEFT JOIN users u ON u.id = c.created_by
        WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?))
+         AND COALESCE(i.is_hr_upload, 0) = 0
+         AND (c.campaign_code IS NULL OR c.campaign_code NOT LIKE 'HR-%')
        ORDER BY i.id DESC`,
       [user.teamName]
     );
@@ -1360,6 +1367,8 @@ app.get("/admin/dashboard", async (req, res) => {
        FROM invoices i
        JOIN campaigns c ON c.id = i.campaign_id
        LEFT JOIN users u ON u.id = c.created_by
+       WHERE COALESCE(i.is_hr_upload, 0) = 0
+         AND (c.campaign_code IS NULL OR c.campaign_code NOT LIKE 'HR-%')
        ORDER BY i.id DESC`
     );
   }
@@ -1395,6 +1404,8 @@ app.get("/admin/dashboard", async (req, res) => {
      FROM invoices i
      LEFT JOIN campaigns c ON c.id = i.campaign_id
      LEFT JOIN users u ON u.id = c.created_by
+     WHERE COALESCE(i.is_hr_upload, 0) = 0
+       AND (c.campaign_code IS NULL OR c.campaign_code NOT LIKE 'HR-%')
 
      UNION ALL
 
@@ -1414,13 +1425,20 @@ app.get("/admin/dashboard", async (req, res) => {
      FROM campaign_creators cc
      JOIN campaigns c ON c.id = cc.campaign_id
      LEFT JOIN users u ON u.id = c.created_by
-     WHERE NOT EXISTS (
-       SELECT 1 FROM invoices inv WHERE inv.campaign_id = cc.campaign_id AND (inv.creator_mobile = cc.mobile OR LOWER(inv.creator_name) = LOWER(cc.creator_name))
-     )
+     WHERE (c.campaign_code IS NULL OR c.campaign_code NOT LIKE 'HR-%')
+       AND NOT EXISTS (
+         SELECT 1 FROM invoices inv WHERE inv.campaign_id = cc.campaign_id AND (inv.creator_mobile = cc.mobile OR LOWER(inv.creator_name) = LOWER(cc.creator_name))
+       )
      ORDER BY invoice_id DESC`
   );
 
-  const hrInvoicesPromise = db.all("SELECT * FROM invoices WHERE is_hr_upload = 1 ORDER BY id DESC");
+  const hrInvoicesPromise = db.all(
+    `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name
+     FROM invoices i
+     LEFT JOIN campaigns c ON c.id = i.campaign_id
+     WHERE i.is_hr_upload = 1 OR c.campaign_code LIKE 'HR-%'
+     ORDER BY i.id DESC`
+  );
 
   const [invoices, notifications, creatorLedger, hrInvoices] = await Promise.all([invoicesPromise, notificationsPromise, creatorLedgerPromise, hrInvoicesPromise]);
   const utrSuccess = req.session.utrSuccess || null;
@@ -1443,6 +1461,8 @@ app.get("/admin/api/invoices", async (req, res) => {
        JOIN campaigns c ON c.id = i.campaign_id
        LEFT JOIN users u ON u.id = c.created_by
        WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?))
+         AND COALESCE(i.is_hr_upload, 0) = 0
+         AND (c.campaign_code IS NULL OR c.campaign_code NOT LIKE 'HR-%')
        ORDER BY i.id DESC`,
       [user.teamName]
     );
@@ -1452,6 +1472,8 @@ app.get("/admin/api/invoices", async (req, res) => {
        FROM invoices i
        JOIN campaigns c ON c.id = i.campaign_id
        LEFT JOIN users u ON u.id = c.created_by
+       WHERE COALESCE(i.is_hr_upload, 0) = 0
+         AND (c.campaign_code IS NULL OR c.campaign_code NOT LIKE 'HR-%')
        ORDER BY i.id DESC`
     );
   }
@@ -2059,7 +2081,13 @@ app.post("/admin/users/:id/delete", requireRole(["SUPER_ADMIN", "HR"]), async (r
 // ── HR INVOICES PORTAL ROUTES (HR & SUPER_ADMIN) ──
 app.get("/hr/invoices", requireRole(["HR", "SUPER_ADMIN"]), async (req, res) => {
   try {
-    const hrInvoices = await db.all("SELECT * FROM invoices WHERE is_hr_upload = 1 ORDER BY id DESC");
+    const hrInvoices = await db.all(
+      `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name
+       FROM invoices i
+       LEFT JOIN campaigns c ON c.id = i.campaign_id
+       WHERE i.is_hr_upload = 1 OR c.campaign_code LIKE 'HR-%'
+       ORDER BY i.id DESC`
+    );
     const hrAssignments = await db.all(
       `SELECT cc.*, c.campaign_name, c.campaign_code, c.team_name
        FROM campaign_creators cc
