@@ -10,12 +10,18 @@ function getTransporter() {
 
   const host = (process.env.SMTP_HOST || "smtp.gmail.com").trim();
 
-  // For Gmail / Google Workspace accounts, service: 'gmail' is standard & reliable
+  // Force IPv4 (family: 4) & Port 587 TLS to prevent ENETUNREACH IPv6 / Port 465 firewall errors
   if (host.toLowerCase().includes("gmail")) {
     return nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, // TLS
+      requireTLS: true,
+      family: 4, // Force IPv4
       auth: { user, pass },
-      tls: { rejectUnauthorized: false }
+      tls: {
+        rejectUnauthorized: false
+      }
     });
   }
 
@@ -24,8 +30,11 @@ function getTransporter() {
     host,
     port,
     secure: port === 465,
+    family: 4, // Force IPv4
     auth: { user, pass },
-    tls: { rejectUnauthorized: false }
+    tls: {
+      rejectUnauthorized: false
+    }
   });
 }
 
