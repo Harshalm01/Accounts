@@ -71,7 +71,8 @@
             <span style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">Creator / Serial No</span>
             <span style="font-weight: 600; color: #1e293b; font-size: 15px;"><%= invoice.creator_name %> / <%= invoice.creator_mobile %></span>
             <% if (invoice.email) { %>
-              <div style="font-size: 13px; font-weight: 700; color: #7c3aed; margin-top: 3px;">✉️ <%= invoice.email %></div>
+              <% const cleanEmail = String(invoice.email).split(',')[0].trim(); %>
+              <div style="font-size: 13px; font-weight: 700; color: #7c3aed; margin-top: 3px;">✉️ <%= cleanEmail %></div>
             <% } %>
           </div>
           <div>

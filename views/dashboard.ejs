@@ -709,28 +709,13 @@
                               <p class="subtitle">Track submitted invoices, edits, and approval status.</p>
                             </div>
                             <div style="display: flex; align-items: center; gap: 20px;">
-                              <!-- Custom 3D Toggle Switch (GST to Non-GST) -->
+                              <!-- 3-way Filter Pills (All Invoices, GST, Non-GST) -->
                               <div style="display: flex; align-items: center; gap: 12px; margin-top: 40px;">
-                                <span id="labelGst"
-                                  style="font-size: 13px; font-weight: 800; color: #dc2626; cursor: pointer; user-select: none;">GST</span>
-
-                                <div class="toggle-container">
-                                  <input class="toggle-input" id="invoiceTypeToggle" type="checkbox" />
-                                  <div class="toggle-handle-wrapper">
-                                    <div class="toggle-handle">
-                                      <div class="toggle-handle-knob"></div>
-                                      <div class="toggle-handle-bar-wrapper">
-                                        <div class="toggle-handle-bar"></div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div class="toggle-base">
-                                    <div class="toggle-base-inside"></div>
-                                  </div>
+                                <div class="filter-pill-group" style="display: inline-flex; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 12px; padding: 3px; gap: 3px;">
+                                  <button type="button" class="inv-filter-btn" id="btnFilterAll" onclick="filterInvoicesByKind('all')" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; background: #7c3aed; color: #ffffff; transition: all 0.2s;">All Invoices</button>
+                                  <button type="button" class="inv-filter-btn" id="btnFilterGst" onclick="filterInvoicesByKind('gst')" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; background: transparent; color: #64748b; transition: all 0.2s;">GST</button>
+                                  <button type="button" class="inv-filter-btn" id="btnFilterNonGst" onclick="filterInvoicesByKind('non_gst')" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; background: transparent; color: #64748b; transition: all 0.2s;">Non-GST</button>
                                 </div>
-
-                                <span id="labelNonGst"
-                                  style="font-size: 13px; font-weight: 800; color: #16a34a; cursor: pointer; user-select: none;">Non-GST</span>
                               </div>
                               <div class="pill" id="invoiceCountPill" style="margin-top: 40px;">
                                 <%= invoices.length %> items
@@ -909,95 +894,70 @@
     <% } %>
 
       <script>
-        document.addEventListener("DOMContentLoaded", () => {
-          const typeToggle = document.getElementById('invoiceTypeToggle');
+        let currentInvoiceKindFilter = 'all';
+
+        function filterInvoicesByKind(kind) {
+          currentInvoiceKindFilter = kind || 'all';
+          localStorage.setItem('dashboard_invoice_kind_filter', currentInvoiceKindFilter);
+
+          const invoiceRows = document.querySelectorAll('#invoiceTableBody .context-row');
+          let visibleCount = 0;
+
+          invoiceRows.forEach(row => {
+            const typeCell = row.querySelector('.type-cell');
+            if (!typeCell) {
+              row.style.removeProperty('display');
+              visibleCount++;
+              return;
+            }
+            const typeText = typeCell.textContent.trim().toLowerCase();
+            const isNonGst = typeText.includes('non');
+
+            let show = false;
+            if (currentInvoiceKindFilter === 'all') {
+              show = true;
+            } else if (currentInvoiceKindFilter === 'gst' && !isNonGst) {
+              show = true;
+            } else if (currentInvoiceKindFilter === 'non_gst' && isNonGst) {
+              show = true;
+            }
+
+            if (show) {
+              row.style.removeProperty('display');
+              visibleCount++;
+            } else {
+              row.style.setProperty('display', 'none', 'important');
+            }
+          });
+
           const countPill = document.getElementById('invoiceCountPill');
-
-          // 1. Restore saved state from localStorage on load
-          if (typeToggle) {
-            const savedToggleState = localStorage.getItem('dashboard_show_non_gst');
-            if (savedToggleState !== null) {
-              typeToggle.checked = (savedToggleState === 'true');
-            }
+          if (countPill) {
+            countPill.textContent = `${visibleCount} item${visibleCount !== 1 ? 's' : ''}`;
           }
 
-          function filterInvoices() {
-            if (!typeToggle) return;
-            const showNonGst = typeToggle.checked;
-            const invoiceRows = document.querySelectorAll('#invoiceTableBody .context-row');
-            let visibleCount = 0;
+          // Update active styles on the 3 filter buttons
+          const btnAll = document.getElementById('btnFilterAll');
+          const btnGst = document.getElementById('btnFilterGst');
+          const btnNonGst = document.getElementById('btnFilterNonGst');
 
-            invoiceRows.forEach(row => {
-              const typeCell = row.querySelector('.type-cell');
-              if (!typeCell) {
-                row.style.removeProperty('display');
-                visibleCount++;
-                return;
-              }
-              const typeText = typeCell.textContent.trim().toLowerCase();
-              const isNonGst = typeText.includes('non');
-
-              let show = false;
-              if (!showNonGst && !isNonGst) {
-                show = true;
-              } else if (showNonGst && isNonGst) {
-                show = true;
-              }
-
-              if (show) {
-                row.style.removeProperty('display');
-                visibleCount++;
-              } else {
-                row.style.setProperty('display', 'none', 'important');
-              }
-            });
-
-            if (countPill) {
-              countPill.textContent = `${visibleCount} item${visibleCount !== 1 ? 's' : ''}`;
-            }
+          if (btnAll) {
+            btnAll.style.background = currentInvoiceKindFilter === 'all' ? '#7c3aed' : 'transparent';
+            btnAll.style.color = currentInvoiceKindFilter === 'all' ? '#ffffff' : '#64748b';
           }
-
-          const labelGst = document.getElementById('labelGst');
-          const labelNonGst = document.getElementById('labelNonGst');
-
-          if (labelGst && typeToggle) {
-            labelGst.addEventListener('click', () => {
-              if (typeToggle.checked) {
-                typeToggle.checked = false;
-                localStorage.setItem('dashboard_show_non_gst', 'false');
-                filterInvoices();
-              }
-            });
+          if (btnGst) {
+            btnGst.style.background = currentInvoiceKindFilter === 'gst' ? '#7c3aed' : 'transparent';
+            btnGst.style.color = currentInvoiceKindFilter === 'gst' ? '#ffffff' : '#64748b';
           }
-
-          if (labelNonGst && typeToggle) {
-            labelNonGst.addEventListener('click', () => {
-              if (!typeToggle.checked) {
-                typeToggle.checked = true;
-                localStorage.setItem('dashboard_show_non_gst', 'true');
-                filterInvoices();
-              }
-            });
+          if (btnNonGst) {
+            btnNonGst.style.background = currentInvoiceKindFilter === 'non_gst' ? '#7c3aed' : 'transparent';
+            btnNonGst.style.color = currentInvoiceKindFilter === 'non_gst' ? '#ffffff' : '#64748b';
           }
+        }
 
-          if (typeToggle) {
-            typeToggle.addEventListener('change', () => {
-              localStorage.setItem('dashboard_show_non_gst', typeToggle.checked ? 'true' : 'false');
-              filterInvoices();
-            });
-            filterInvoices();
-          }
-
-          // Make the entire 3D switch lever container clickable (improves mobile touch responsiveness)
-          const toggleContainer = document.querySelector('.toggle-container');
-          if (toggleContainer && typeToggle) {
-            toggleContainer.addEventListener('click', (e) => {
-              if (e.target !== typeToggle) {
-                typeToggle.checked = !typeToggle.checked;
-                typeToggle.dispatchEvent(new Event('change'));
-              }
-            });
-          }
+        document.addEventListener("DOMContentLoaded", () => {
+          // Restore saved filter preference on load (default to 'all')
+          const savedFilter = localStorage.getItem('dashboard_invoice_kind_filter') || 'all';
+          filterInvoicesByKind(savedFilter);
 
           // Helper to format Indian currency
           function formatInr(val) {
@@ -1124,8 +1084,8 @@
               }
             }
 
-            // 4. Re-run local filters to keep the active toggle view synced
-            filterInvoices();
+            // 4. Re-run local filters to keep the active view synced
+            filterInvoicesByKind(currentInvoiceKindFilter);
           }
 
           // Initialize state hash

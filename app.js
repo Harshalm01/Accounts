@@ -966,7 +966,21 @@ app.post("/creator/submit", upload.fields([{ name: "signatureFile", maxCount: 1 
 
     const safeFullName = String(fullName || mapping.creator_name || "Creator").trim();
     const safePan = String(pan || "AACFZ6393B").trim().toUpperCase();
-    const safeEmail = String(req.body.gstEmail || req.body.email || email || (mapping ? mapping.email : "") || "").trim();
+    
+    function extractSingleEmail(raw) {
+      if (Array.isArray(raw)) {
+        const valid = raw.find(e => e && String(e).trim().includes("@"));
+        raw = valid || raw[0] || "";
+      }
+      let str = String(raw || "").trim();
+      if (str.includes(",")) {
+        str = str.split(",")[0].trim();
+      }
+      return str;
+    }
+
+    const rawEmailChoice = isDirectGstUpload ? (req.body.gstEmail || req.body.email) : (req.body.email || req.body.gstEmail);
+    const safeEmail = extractSingleEmail(rawEmailChoice || (mapping ? mapping.email : ""));
     const safeInvoiceNo = String(invoiceNo || "").trim();
     const safeAddress = String(address || "").trim();
     const safePaymentMode = String(paymentMode || "").trim();
