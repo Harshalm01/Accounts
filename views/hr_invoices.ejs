@@ -188,13 +188,42 @@
 
       <!-- COMPLETED & UPLOADED HR INVOICES TABLE -->
       <div class="card glass-panel">
-        <div class="section-head" style="margin-bottom: 16px;">
+        <div class="section-head" style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div>
             <h3>Uploaded HR Invoices & Document Vouchers</h3>
             <p class="subtitle">History of all uploaded HR invoices and custom notes dispatched to Accounts station.</p>
           </div>
-          <div class="pill">
-            <%= (typeof hrInvoices !== 'undefined' && hrInvoices) ? hrInvoices.length : 0 %> Documents
+          
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <!-- Monthly Filter Dropdown -->
+            <div style="display: flex; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.9); padding: 6px 12px; border-radius: 12px; border: 1.5px solid #cbd5e1; box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);">
+              <span style="font-size: 12px; font-weight: 800; color: #7c3aed; text-transform: uppercase; letter-spacing: 0.5px;">📅 Month:</span>
+              <select id="hrMonthFilter" onchange="filterHrInvoicesByMonth()" style="background: transparent; border: none; font-size: 13px; font-weight: 700; color: #0f172a; cursor: pointer; outline: none;">
+                <option value="ALL">All Months</option>
+                <%
+                  const monthsMap = new Map();
+                  if (typeof hrInvoices !== 'undefined' && hrInvoices) {
+                    hrInvoices.forEach(inv => {
+                      const dateStr = inv.invoice_date || inv.created_at || '';
+                      const d = new Date(dateStr);
+                      if (!isNaN(d.getTime())) {
+                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                        monthsMap.set(key, label);
+                      }
+                    });
+                  }
+                  const sortedMonths = Array.from(monthsMap.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+                  sortedMonths.forEach(([key, label]) => {
+                %>
+                  <option value="<%= key %>"><%= label %></option>
+                <% }); %>
+              </select>
+            </div>
+
+            <div class="pill" id="hrInvoiceCountPill">
+              <%= (typeof hrInvoices !== 'undefined' && hrInvoices) ? hrInvoices.length : 0 %> Documents
+            </div>
           </div>
         </div>
 
@@ -219,8 +248,13 @@
                     const st = String(inv.status || '').toUpperCase();
                     const isPaid = st === 'PAID' || st === 'PAYMENT COMPLETED' || !!inv.utr;
                     const isRejected = st === 'REJECTED';
+
+                    const rawDate = inv.invoice_date || inv.created_at || '';
+                    const dObj = new Date(rawDate);
+                    const monthKey = !isNaN(dObj.getTime()) ? `${dObj.getFullYear()}-${String(dObj.getMonth() + 1).padStart(2, '0')}` : 'ALL';
+                    const invAmt = Number(inv.final_amount || inv.total_amount || 0);
                   %>
-                  <tr>
+                  <tr class="hr-invoice-row" data-month="<%= monthKey %>" data-amount="<%= invAmt %>">
                     <td data-label="Invoice #">
                       <strong style="color: #a78bfa;">#<%= inv.invoice_no %></strong>
                     </td>
@@ -394,6 +428,33 @@
 
       function closeHrModal() {
         document.getElementById('uploadInvoiceModal').classList.remove('active');
+      }
+
+      function filterHrInvoicesByMonth() {
+        const selectedMonth = document.getElementById("hrMonthFilter").value;
+        const rows = document.querySelectorAll(".hr-invoice-row");
+        let count = 0;
+        let totalAmount = 0;
+
+        rows.forEach(row => {
+          const rowMonth = row.getAttribute("data-month");
+          const amount = Number(row.getAttribute("data-amount") || 0);
+
+          if (selectedMonth === "ALL" || rowMonth === selectedMonth) {
+            row.style.display = "";
+            count++;
+            totalAmount += amount;
+          } else {
+            row.style.display = "none";
+          }
+        });
+
+        const countPill = document.getElementById("hrInvoiceCountPill");
+        if (countPill) {
+          countPill.textContent = selectedMonth === "ALL" 
+            ? `${count} Documents` 
+            : `${count} Docs (₹${totalAmount.toLocaleString('en-IN')})`;
+        }
       }
     </script>
       </div>

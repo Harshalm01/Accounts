@@ -1775,8 +1775,18 @@ app.post("/admin/campaigns/:id/delete", requireRole(["HEAD", "SUPER_ADMIN", "ACC
       }
     }
 
-    const invs = await db.all("SELECT id FROM invoices WHERE campaign_id = ?", [campaignId]);
+    const { deleteFromStorage } = require("./services/s3");
+    const invs = await db.all("SELECT id, file_path, pdf_path, signature_value FROM invoices WHERE campaign_id = ?", [campaignId]);
     for (const inv of invs) {
+      if (inv.file_path) {
+        try { await deleteFromStorage(inv.file_path); } catch (e) { console.error("S3 delete error file_path:", e); }
+      }
+      if (inv.pdf_path) {
+        try { await deleteFromStorage(inv.pdf_path); } catch (e) { console.error("S3 delete error pdf_path:", e); }
+      }
+      if (inv.signature_value && inv.signature_value.startsWith("/uploads")) {
+        try { await deleteFromStorage(inv.signature_value); } catch (e) { console.error("S3 delete error signature:", e); }
+      }
       await db.run("DELETE FROM notifications WHERE invoice_id = ?", [inv.id]);
       await db.run("DELETE FROM invoice_items WHERE invoice_id = ?", [inv.id]);
     }
