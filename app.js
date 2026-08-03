@@ -1969,6 +1969,24 @@ app.post("/admin/invoices/:id/status", requireRole(["ACCOUNTS", "SUPER_ADMIN"]),
     [nextStatus, rejectionReason, invoice.id]
   );
 
+  // Send automated email notification to creator's Gmail / Email
+  try {
+    const campaign = await db.get("SELECT campaign_name FROM campaigns WHERE id = ?", [invoice.campaign_id]);
+    const { sendInvoiceStatusEmail } = require("./services/mailer");
+    sendInvoiceStatusEmail({
+      to: invoice.email,
+      status: nextStatus,
+      invoiceNo: invoice.invoice_no,
+      creatorName: invoice.creator_name,
+      campaignName: campaign ? campaign.campaign_name : "3Folks Campaign",
+      amount: invoice.final_amount || invoice.total_amount,
+      rejectionReason: rejectionReason,
+      utr: invoice.utr
+    }).catch(e => console.error("[Mailer Error]:", e));
+  } catch (mailErr) {
+    console.error("[Mailer Error]:", mailErr);
+  }
+
   const io = req.app.get('io');
   if (io) {
     io.emit('invoice-status-updated', {
