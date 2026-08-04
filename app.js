@@ -2258,7 +2258,7 @@ app.post("/hr/invoices/upload", requireRole(["HR", "SUPER_ADMIN"]), upload.singl
       campaign = { id: result.lastID };
     }
 
-    await db.run(
+    const result = await db.run(
       `INSERT INTO invoices (
         campaign_id, creator_mobile, creator_name, full_name, invoice_type, invoice_no, invoice_date,
         other_references, total_amount, final_amount, status, is_hr_upload, hr_invoice_type, file_path, pdf_path
@@ -2274,12 +2274,14 @@ app.post("/hr/invoices/upload", requireRole(["HR", "SUPER_ADMIN"]), upload.singl
         description ? description.trim() : null,
         numAmount,
         numAmount,
-        "ACCEPTED",
+        "SUBMITTED",
         hrLabel,
         filePath,
         filePath
       ]
     );
+
+    await notifyInvoiceSubmission(result.lastID, campaign.id, creatorName.trim(), "HR Department", false);
 
     return res.redirect("/hr/invoices?success=" + encodeURIComponent(`Document for Invoice #${invoiceNo.trim()} uploaded successfully!`));
   } catch (err) {

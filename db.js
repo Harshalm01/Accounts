@@ -509,6 +509,7 @@ async function init() {
     FOREIGN KEY(invoice_id) REFERENCES invoices(id)
   )`);
 
+  await run("UPDATE invoices SET status = 'SUBMITTED' WHERE is_hr_upload = 1 AND status = 'ACCEPTED'");
   await seedDefaultUsers();
 }
 
