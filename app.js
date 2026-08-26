@@ -236,51 +236,94 @@ async function loadCampaignFolderCards(user) {
     );
   }
 
-  const folders = [];
-  for (const campaign of campaigns) {
-    const creators = await loadCampaignCreatorsWithInvoices(campaign.id);
+  // Group campaigns by brand_name (case-insensitive)
+  const brandGroups = new Map();
 
+  for (const campaign of campaigns) {
+    const rawBrand = (campaign.brand_name && campaign.brand_name.trim())
+      ? campaign.brand_name.trim()
+      : (campaign.campaign_name ? campaign.campaign_name.replace(/\s*Phase\s*\d+/gi, '').trim() : 'General');
+    const brandKey = rawBrand.toLowerCase();
+
+    if (!brandGroups.has(brandKey)) {
+      brandGroups.set(brandKey, {
+        brandName: rawBrand,
+        campaigns: []
+      });
+    }
+    brandGroups.get(brandKey).campaigns.push(campaign);
+  }
+
+  const folders = [];
+  for (const [brandKey, group] of brandGroups.entries()) {
+    const groupCampaigns = group.campaigns;
+    const primaryCampaign = groupCampaigns[0];
+
+    let combinedCreators = [];
+    let externalBudget = 0;
+    let internalBudget = 0;
     let paidCreatorsCount = 0;
     let paidPayout = 0;
     let pendingCreatorsCount = 0;
     let pendingPayout = 0;
+    let invoiceCount = 0;
 
-    creators.forEach(cr => {
-      const isPaid = cr.latest_invoice_status === "PAYMENT COMPLETED" ||
-                     cr.latest_invoice_status === "PAID" ||
-                     (cr.latest_invoice_status === "ACCEPTED" && cr.latest_invoice_utr);
-      if (isPaid) {
-        paidCreatorsCount++;
-        paidPayout += Number(cr.amount || 0);
-      } else {
-        pendingCreatorsCount++;
-        pendingPayout += Number(cr.amount || 0);
-      }
-    });
+    for (const camp of groupCampaigns) {
+      externalBudget += Number(camp.external_budget || 0);
+      internalBudget += Number(camp.amount || 0);
+
+      const creators = await loadCampaignCreatorsWithInvoices(camp.id);
+      creators.forEach(cr => {
+        cr.campaign_name = camp.campaign_name;
+        cr.campaign_code = camp.campaign_code;
+        combinedCreators.push(cr);
+
+        const isPaid = cr.latest_invoice_status === "PAYMENT COMPLETED" ||
+                       cr.latest_invoice_status === "PAID" ||
+                       (cr.latest_invoice_status === "ACCEPTED" && cr.latest_invoice_utr);
+        if (isPaid) {
+          paidCreatorsCount++;
+          paidPayout += Number(cr.amount || 0);
+        } else {
+          pendingCreatorsCount++;
+          pendingPayout += Number(cr.amount || 0);
+        }
+      });
+      invoiceCount += creators.filter(c => c.latest_invoice_id).length;
+    }
 
     folders.push({
-      id: campaign.id,
-      campaignName: campaign.campaign_name,
-      campaignCode: campaign.campaign_code,
-      teamName: campaign.team_name,
-      brandName: campaign.brand_name || 'Campaign',
-      externalBudget: Number(campaign.external_budget || 0),
-      internalBudget: Number(campaign.amount || 0),
-      creatorCount: Number(campaign.creator_count || 0),
-      invoiceCount: creators.filter(c => c.latest_invoice_id).length,
-      totalAmount: Number(campaign.amount || 0),
+      id: primaryCampaign.id,
+      brandName: group.brandName,
+      campaignName: groupCampaigns.length === 1 ? primaryCampaign.campaign_name : `${group.brandName}`,
+      campaignCode: groupCampaigns.map(c => c.campaign_code).join(', '),
+      teamName: [...new Set(groupCampaigns.map(c => c.team_name))].join(', '),
+      externalBudget,
+      internalBudget,
+      creatorCount: combinedCreators.length,
+      invoiceCount,
+      totalAmount: internalBudget,
       paidCreatorsCount,
       paidPayout,
       pendingCreatorsCount,
       pendingPayout,
-      latestInvoiceId: creators
+      campaignsCount: groupCampaigns.length,
+      campaigns: groupCampaigns.map(c => ({
+        id: c.id,
+        name: c.campaign_name,
+        code: c.campaign_code,
+        teamName: c.team_name,
+        externalBudget: Number(c.external_budget || 0),
+        internalBudget: Number(c.amount || 0)
+      })),
+      latestInvoiceId: combinedCreators
         .map((creator) => Number(creator.latest_invoice_id || 0))
         .filter((invoiceId) => invoiceId > 0)
         .sort((a, b) => b - a)[0] || null,
-      folderName: campaignFolderName(campaign),
-      generatedPath: `/generated/campaigns/${campaignFolderName(campaign)}`,
-      uploadPath: `/uploads/campaigns/${campaignFolderName(campaign)}`,
-      creators
+      folderName: campaignFolderName(primaryCampaign),
+      generatedPath: `/generated/campaigns/${campaignFolderName(primaryCampaign)}`,
+      uploadPath: `/uploads/campaigns/${campaignFolderName(primaryCampaign)}`,
+      creators: combinedCreators
     });
   }
 
@@ -558,6 +601,24 @@ function normalizeHeader(value) {
     .replace(/[^a-z0-9]+/g, "");
 }
 
+async function generateNextInvoiceNo() {
+  const rows = await db.all("SELECT invoice_no, id FROM invoices");
+  let maxSeq = rows.length;
+  for (const r of rows) {
+    if (r.invoice_no) {
+      const nums = String(r.invoice_no).match(/\d+/g);
+      if (nums && nums.length) {
+        const lastNum = parseInt(nums[nums.length - 1], 10);
+        if (!isNaN(lastNum) && lastNum > maxSeq) {
+          maxSeq = lastNum;
+        }
+      }
+    }
+  }
+  const nextSeq = maxSeq + 1;
+  return `3FM-INV-${String(nextSeq).padStart(2, '0')}`;
+}
+
 function extractCreatorsFromSheet(filePath) {
   const workbook = xlsx.readFile(filePath, { cellDates: false });
   const firstSheetName = workbook.SheetNames[0];
@@ -571,21 +632,86 @@ function extractCreatorsFromSheet(filePath) {
     throw new Error("Uploaded file is empty.");
   }
 
-  return rows.map((row, idx) => {
-    const normalized = Object.keys(row).reduce((acc, key) => {
-      acc[normalizeHeader(key)] = row[key];
-      return acc;
-    }, {});
+  function formatCellValue(val) {
+    if (val === null || val === undefined) return "";
+    if (typeof val === "number") {
+      return val.toLocaleString("fullwide", { useGrouping: false });
+    }
+    return String(val).trim();
+  }
 
-    const name = String(normalized.creatorname || normalized.creator || normalized.name || "").trim();
-    let mob = String(
-      normalized.mobile ||
-      normalized.mobilenumber ||
-      normalized.contact ||
-      normalized.contactnumber ||
+  return rows.map((row, idx) => {
+    const normalized = {};
+    Object.keys(row).forEach((key) => {
+      normalized[normalizeHeader(key)] = row[key];
+    });
+
+    const name = String(
+      normalized.creatorname ||
+      normalized.creator ||
+      normalized.name ||
+      normalized.influencer ||
+      normalized.influencername ||
+      normalized.artist ||
+      normalized.artistname ||
+      normalized.handle ||
+      normalized.username ||
       ""
     ).trim();
 
+    // 1. Check known mobile/phone keys
+    let mobVal =
+      normalized.mobile ||
+      normalized.mobilenumber ||
+      normalized.mobileno ||
+      normalized.mob ||
+      normalized.phone ||
+      normalized.phonenumber ||
+      normalized.phoneno ||
+      normalized.contact ||
+      normalized.contactnumber ||
+      normalized.contactno ||
+      normalized.whatsapp ||
+      normalized.whatsappnumber ||
+      normalized.cell ||
+      normalized.number ||
+      normalized.num ||
+      "";
+
+    let mob = formatCellValue(mobVal);
+
+    // 2. If mob is still empty, scan row keys for any header containing mobile/phone/contact/whatsapp/cell
+    if (!mob) {
+      for (const k of Object.keys(normalized)) {
+        if (
+          k.includes("phone") ||
+          k.includes("mobile") ||
+          k.includes("contact") ||
+          k.includes("whatsapp") ||
+          k.includes("cell")
+        ) {
+          const raw = formatCellValue(normalized[k]);
+          if (raw) {
+            mob = raw;
+            break;
+          }
+        }
+      }
+    }
+
+    // 3. If mob is still empty, scan all values in row for 8 to 15 digits
+    if (!mob) {
+      for (const k of Object.keys(row)) {
+        const strVal = formatCellValue(row[k]);
+        const digits = strVal.replace(/\D/g, "");
+        if (digits.length >= 8 && digits.length <= 15 && !digits.startsWith("0000")) {
+          mob = strVal;
+          break;
+        }
+      }
+    }
+
+    // 4. Only if absolutely no mobile number was found anywhere, fallback to synthetic ID
     if (!mob) {
       const sr = String(normalized.srno || normalized.sno || normalized.sr || idx + 1).replace(/\D/g, "");
       mob = `99${String(sr).padStart(8, '0')}`;
@@ -600,10 +726,22 @@ function extractCreatorsFromSheet(filePath) {
       ""
     ).trim();
 
+    const amtVal =
+      normalized.amount ||
+      normalized.commercials ||
+      normalized.commercial ||
+      normalized.rate ||
+      normalized.price ||
+      normalized.payout ||
+      normalized.budget ||
+      normalized.cost ||
+      normalized.fee ||
+      0;
+
     return {
       creatorName: name,
       mobile: mob,
-      amount: Number(normalized.amount || 0),
+      amount: Number(amtVal) || 0,
       live_link: liveLink || null
     };
   });
@@ -871,15 +1009,7 @@ app.post("/creator/validated_form", async (req, res) => {
   if (existingInvoice && existingInvoice.invoice_no) {
     autoInvoiceNo = existingInvoice.invoice_no;
   } else {
-    const countRow = await db.get(
-      `SELECT COUNT(*) AS cnt FROM invoices 
-       WHERE REPLACE(REPLACE(REPLACE(TRIM(creator_mobile), ' ', ''), '-', ''), '+91', '') = ?
-          OR creator_mobile = ?`,
-      [cleanMobile, mobile.trim()]
-    );
-    const prevCount = countRow ? Number(countRow.cnt || 0) : 0;
-    const seqNumber = String(prevCount + 1).padStart(2, '0');
-    autoInvoiceNo = `3FM-INV-${seqNumber}`;
+    autoInvoiceNo = await generateNextInvoiceNo();
   }
 
   res.render("creator_form", {
@@ -1617,6 +1747,10 @@ app.post("/admin/campaigns", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, r
       ? (user.teamName || "Jhalak Moiz") 
       : (teamName || user.teamName || "Jhalak Moiz");
 
+    const appliedBrand = (brandName && brandName.trim())
+      ? brandName.trim()
+      : (campaignName ? campaignName.replace(/\s*Phase\s*\d+/gi, '').trim() : campaignName.trim());
+
     const result = await db.run(
       "INSERT INTO campaigns (campaign_name, campaign_code, amount, team_name, created_by, external_budget, brand_name) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
@@ -1626,7 +1760,7 @@ app.post("/admin/campaigns", requireRole(["HEAD", "SUPER_ADMIN"]), async (req, r
         appliedTeam,
         user.id,
         Number(externalBudget || 0),
-        (brandName || "").trim()
+        appliedBrand
       ]
     );
     ensureCampaignFolders({ id: result.lastID, campaign_name: campaignName.trim() });

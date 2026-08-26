@@ -510,6 +510,36 @@ async function init() {
   )`);
 
   await run("UPDATE invoices SET status = 'SUBMITTED' WHERE is_hr_upload = 1 AND status = 'ACCEPTED'");
+
+  // Data Migration 1: Populate missing brand_name for existing campaigns
+  try {
+    const campaignsWithoutBrand = await all("SELECT id, campaign_name, brand_name FROM campaigns WHERE brand_name IS NULL OR TRIM(brand_name) = ''");
+    for (const c of campaignsWithoutBrand) {
+      let derivedBrand = c.campaign_name
+        ? c.campaign_name.replace(/\s*Phase\s*\d+/gi, '').trim()
+        : 'General';
+      if (!derivedBrand) derivedBrand = c.campaign_name || 'General';
+      await run("UPDATE campaigns SET brand_name = ? WHERE id = ?", [derivedBrand, c.id]);
+    }
+  } catch (e) {
+    console.warn("Brand name migration note:", e.message);
+  }
+
+  // Data Migration 2: Re-sequence invoice_no sequentially for existing invoices
+  try {
+    const existingInvoices = await all("SELECT id, invoice_no FROM invoices ORDER BY id ASC");
+    if (existingInvoices.length > 0) {
+      let index = 1;
+      for (const inv of existingInvoices) {
+        const seqNo = `3FM-INV-${String(index).padStart(2, '0')}`;
+        await run("UPDATE invoices SET invoice_no = ? WHERE id = ?", [seqNo, inv.id]);
+        index++;
+      }
+    }
+  } catch (e) {
+    console.warn("Invoice re-sequence migration note:", e.message);
+  }
+
   await seedDefaultUsers();
 }
 

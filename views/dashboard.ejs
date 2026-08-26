@@ -758,9 +758,9 @@
                                     yet.</td>
                                 </tr>
                                 <% } %>
-                                  <% invoices.forEach((inv)=> { %>
+                                  <% invoices.forEach((inv, idx)=> { %>
                                     <tr class="context-row">
-                                      <td style="color: #6B7280; font-weight: 600;" data-label="ID">#<%= inv.id %>
+                                      <td style="color: #6B7280; font-weight: 600;" data-label="ID">#<%= idx + 1 %>
                                       </td>
                                       <td class="campaign-cell" data-label="Campaign">
                                         <strong>
@@ -1067,7 +1067,7 @@
               if (data.invoices.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #6b7280; padding: 30px;">No invoices yet.</td></tr>';
               } else {
-                tableBody.innerHTML = data.invoices.map(inv => {
+                tableBody.innerHTML = data.invoices.map((inv, idx) => {
                   const isGstStr = inv.invoice_type === 'gst' ? 'GST' : 'Non-GST';
                   const finalAmt = gstBreakup(inv);
                   const pdfBtn = inv.pdf_path
@@ -1077,7 +1077,7 @@
                   const utrSpan = inv.utr ? '<br/><span class="utr-copy-badge" onclick="copyUtrToClipboard(\'' + inv.utr + '\', this)" style="font-size: 10px; font-weight: 800; color: #059669; background: rgba(16, 185, 129, 0.12); padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; border: 1px solid rgba(16, 185, 129, 0.3); cursor: pointer; transition: all 0.2s ease;" title="Click to copy UTR: ' + inv.utr + '">✨ UTR: ' + inv.utr + ' <span style="font-size: 11px; opacity: 0.8;">📋</span></span>' : '';
 
                   return '<tr class="context-row">' +
-                    '<td style="color: #6B7280; font-weight: 600;" data-label="ID">#' + inv.id + '</td>' +
+                    '<td style="color: #6B7280; font-weight: 600;" data-label="ID">#' + (idx + 1) + '</td>' +
                     '<td class="campaign-cell" data-label="Campaign"><strong>' + (inv.campaign_name || '') + '</strong><br/><span style="font-size: 11px; color: #64748b;">' + (inv.campaign_code || '') + '</span></td>' +
                     '<td data-label="Team Name"><strong style="color: #7c3aed; font-size: 13px;">' + (inv.team_name || '—') + '</strong><br/><span style="font-size: 11px; color: #64748b; font-weight: 600;">Head: ' + (inv.head_username || '—') + '</span></td>' +
                     '<td data-label="Creator"><strong data-creator-hover="' + (inv.creator_name || '') + '" style="cursor: pointer;">' + (inv.creator_name || '') + '</strong><br/><span style="color: #6B7280; font-size: 12px;">' + (inv.creator_mobile || '') + '</span>' + utrSpan + '</td>' +

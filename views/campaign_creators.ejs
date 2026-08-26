@@ -223,9 +223,9 @@
                 </tr>
               </thead>
               <tbody>
-                <% creators.forEach((cr) => { %>
+                <% creators.forEach((cr, idx) => { %>
                   <tr>
-                    <td class="user-id-cell" data-label="ID"><%= cr.id %></td>
+                    <td class="user-id-cell" data-label="ID"><%= idx + 1 %></td>
                     <td data-label="Creator">
                       <div class="user-name-cell">
                         <div class="user-avatar creator-avatar" data-creator-hover="<%= cr.creator_name %>" data-creator-mobile="<%= cr.mobile %>" style="cursor:pointer;"><%= cr.creator_name.charAt(0).toUpperCase() %></div>
