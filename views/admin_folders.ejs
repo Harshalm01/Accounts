@@ -6,6 +6,9 @@
     <title>Folders</title>
     <link rel="stylesheet" href="/public/styles.css?v=45" />
     <style>
+      .folder-card-wrap.hidden-card {
+        display: none !important;
+      }
       .brand-modal-overlay {
         display: none;
         position: fixed;
@@ -102,29 +105,39 @@
             <div class="pill"><%= folders.length %> Brand Folders</div>
           </div>
 
-          <!-- Search Bar -->
-          <div class="folder-search-wrap">
-            <span class="folder-search-icon">🔍</span>
-            <input type="text" id="folderSearch" class="folder-search-input" placeholder="Search brand or campaign name..." autocomplete="off" />
-            <div class="folder-search-kbd" id="searchKbd">/</div>
-            <button type="button" class="folder-search-clear" id="searchClearBtn" style="display: none;">×</button>
-            <span class="folder-search-feedback" id="searchFeedback" style="display: none;"></span>
-          </div>
+          <!-- Search Form & Bar -->
+          <form method="get" action="/admin/folders" id="folderSearchForm" style="display:flex; gap:10px; align-items:center; width:100%; margin-bottom: 20px;">
+            <div class="folder-search-wrap" style="flex:1; margin-bottom:0;">
+              <span class="folder-search-icon">🔍</span>
+              <input type="text" name="search" id="folderSearch" class="folder-search-input" value="<%= typeof search !== 'undefined' ? search : '' %>" placeholder="Search brand name, campaign code, team, or creator..." autocomplete="off" />
+              <div class="folder-search-kbd" id="searchKbd">/</div>
+              <button type="button" class="folder-search-clear" id="searchClearBtn" style="<%= (typeof search !== 'undefined' && search) ? 'display:block' : 'display:none' %>;">×</button>
+              <span class="folder-search-feedback" id="searchFeedback" style="display: none;"></span>
+            </div>
+            <button type="submit" class="btn btn-3d-nav" style="background:#7c3aed; color:#ffffff; font-weight:800; border:none; padding:12px 24px; border-radius:12px; cursor:pointer; min-width:110px; height:46px; display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+              🔍 Search
+            </button>
+            <% if (typeof search !== 'undefined' && search) { %>
+              <a href="/admin/folders" class="btn btn-3d-nav" style="background:#f1f5f9; color:#475569; font-weight:700; border:1px solid #cbd5e1; text-decoration:none; padding:12px 18px; border-radius:12px; height:46px; display:inline-flex; align-items:center; justify-content:center;">
+                Reset
+              </a>
+            <% } %>
+          </form>
 
           <% if (!folders.length) { %>
-            <div class="empty-state">No campaign folders found yet.</div>
+            <div class="empty-state">No campaign folders found matching your search.</div>
           <% } %>
 
-          <div class="folder-grid folder-grid-books">
+          <div class="folder-grid folder-grid-books" id="folderGrid">
             <% folders.forEach((folder, idx) => { %>
               <% 
                 const totalCr = folder.creatorCount || 0;
                 const paidCr = folder.paidCreatorsCount || 0;
                 const pendingCr = folder.pendingCreatorsCount || (totalCr - paidCr);
                 const paidPct = totalCr > 0 ? Math.round((paidCr / totalCr) * 100) : 0;
-                const searchKeys = (folder.brandName + ' ' + folder.campaignName + ' ' + folder.campaignCode).toLowerCase();
+                const searchKeys = (folder.searchableText || (folder.brandName + ' ' + folder.campaignName + ' ' + folder.campaignCode)).toLowerCase();
               %>
-              <div class="folder-card-wrap" data-name="<%= searchKeys %>">
+              <div class="folder-card-wrap" data-name="<%= searchKeys.replace(/"/g, '&quot;') %>">
                 <div class="book" onclick="openBrandModal(<%= idx %>)" style="cursor: pointer;">
 
                   <!-- Inside of Book (creators list) -->
@@ -219,7 +232,7 @@
 
     <script>
       const ALL_FOLDERS = <%- JSON.stringify(folders) %>;
-      const userCanEdit = <%= (user && (user.role === 'HEAD' || user.role === 'SUPER_ADMIN' || user.role === 'ACCOUNTS')) ? 'true' : 'false' %>;
+      const userCanEdit = <%= (typeof user !== 'undefined' && user && (user.role === 'HEAD' || user.role === 'SUPER_ADMIN' || user.role === 'ACCOUNTS')) ? 'true' : 'false' %>;
 
       function openBrandModal(idx) {
         const folder = ALL_FOLDERS[idx];
@@ -269,7 +282,7 @@
                 </a>
 
                 ${userCanEdit ? `
-                  <form method="post" action="/admin/campaigns/${c.id}/delete" onsubmit="return confirm('⚠️ Are you sure you want to delete campaign &quot;${c.name}&quot;? All mapped creators and invoices will be permanently deleted.');" style="margin:0;">
+                  <form method="post" action="/admin/campaigns/${c.id}/delete" onsubmit="return confirm('⚠️ Delete campaign &quot;${c.name}&quot;?');" style="margin:0;">
                     <button type="submit" class="btn btn-3d-sm" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:800; font-size:10px; padding:4px 8px; border-radius:6px; cursor:pointer;">
                       🗑️ Delete Campaign
                     </button>
@@ -309,39 +322,56 @@
         let visibleCount = 0;
 
         cards.forEach((card) => {
-          const name = card.getAttribute("data-name") || "";
-          if (name.includes(term)) {
-            card.style.display = "";
+          const name = (card.getAttribute("data-name") || "").toLowerCase();
+          if (!term || name.includes(term)) {
+            card.classList.remove("hidden-card");
+            card.style.setProperty("display", "block", "important");
             visibleCount++;
           } else {
-            card.style.display = "none";
+            card.classList.add("hidden-card");
+            card.style.setProperty("display", "none", "important");
           }
         });
 
         if (term) {
           clearBtn.style.display = "block";
-          feedback.style.display = "block";
-          feedback.textContent = `${visibleCount} found`;
+          if (feedback) {
+            feedback.style.display = "block";
+            feedback.textContent = `${visibleCount} found`;
+          }
         } else {
           clearBtn.style.display = "none";
-          feedback.style.display = "none";
+          if (feedback) {
+            feedback.style.display = "none";
+          }
         }
       }
 
       if (searchInput) {
         searchInput.addEventListener("input", updateSearch);
+        searchInput.addEventListener("keyup", updateSearch);
+        searchInput.addEventListener("search", updateSearch);
+
         document.addEventListener("keydown", (e) => {
           if (e.key === "/" && document.activeElement !== searchInput) {
             e.preventDefault();
             searchInput.focus();
           }
         });
+
         if (clearBtn) {
           clearBtn.addEventListener("click", () => {
             searchInput.value = "";
             updateSearch();
-            searchInput.focus();
+            if (window.location.search.includes('search=')) {
+              window.location.href = '/admin/folders';
+            }
           });
+        }
+
+        // Run initial filtering if search parameter exists
+        if (searchInput.value.trim()) {
+          updateSearch();
         }
       }
     </script>

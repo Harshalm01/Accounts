@@ -2657,6 +2657,10 @@ tr.context-row:hover .row-hover-overlay {
   display: block !important;
 }
 
+.admin-page .folder-card-wrap.hidden-card {
+  display: none !important;
+}
+
 .admin-page .book {
   position: relative !important;
   width: 100% !important;

@@ -214,7 +214,8 @@ function ensureCampaignFolders(campaign) {
   return folder;
 }
 
-async function loadCampaignFolderCards(user) {
+async function loadCampaignFolderCards(user, search = "") {
+  const queryTerm = String(search || "").trim().toLowerCase();
   let campaigns;
   if (user && (user.role === "TEAM" || user.role === "HEAD") && user.teamName) {
     campaigns = await db.all(
@@ -292,6 +293,19 @@ async function loadCampaignFolderCards(user) {
       invoiceCount += creators.filter(c => c.latest_invoice_id).length;
     }
 
+    const searchableText = [
+      group.brandName,
+      ...groupCampaigns.map(c => c.campaign_name),
+      ...groupCampaigns.map(c => c.campaign_code),
+      ...groupCampaigns.map(c => c.team_name),
+      ...combinedCreators.map(c => c.creator_name),
+      ...combinedCreators.map(c => c.mobile)
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    if (queryTerm && !searchableText.includes(queryTerm)) {
+      continue;
+    }
+
     folders.push({
       id: primaryCampaign.id,
       brandName: group.brandName,
@@ -314,7 +328,8 @@ async function loadCampaignFolderCards(user) {
         code: c.campaign_code,
         teamName: c.team_name,
         externalBudget: Number(c.external_budget || 0),
-        internalBudget: Number(c.amount || 0)
+        internalBudget: Number(c.amount || 0),
+        creatorCount: Number(c.creator_count || 0)
       })),
       latestInvoiceId: combinedCreators
         .map((creator) => Number(creator.latest_invoice_id || 0))
@@ -323,7 +338,8 @@ async function loadCampaignFolderCards(user) {
       folderName: campaignFolderName(primaryCampaign),
       generatedPath: `/generated/campaigns/${campaignFolderName(primaryCampaign)}`,
       uploadPath: `/uploads/campaigns/${campaignFolderName(primaryCampaign)}`,
-      creators: combinedCreators
+      creators: combinedCreators,
+      searchableText
     });
   }
 
@@ -601,22 +617,23 @@ function normalizeHeader(value) {
     .replace(/[^a-z0-9]+/g, "");
 }
 
-async function generateNextInvoiceNo() {
-  const rows = await db.all("SELECT invoice_no, id FROM invoices");
-  let maxSeq = rows.length;
-  for (const r of rows) {
-    if (r.invoice_no) {
-      const nums = String(r.invoice_no).match(/\d+/g);
-      if (nums && nums.length) {
-        const lastNum = parseInt(nums[nums.length - 1], 10);
-        if (!isNaN(lastNum) && lastNum > maxSeq) {
-          maxSeq = lastNum;
-        }
-      }
-    }
+async function generateNextInvoiceNo(creatorMobile = "") {
+  const cleanMobile = String(creatorMobile || "").trim().replace(/\s+|-/g, '').replace(/^\+91/, '');
+  let prevCount = 0;
+  if (cleanMobile) {
+    const countRow = await db.get(
+      `SELECT COUNT(*) AS cnt FROM invoices 
+       WHERE REPLACE(REPLACE(REPLACE(TRIM(creator_mobile), ' ', ''), '-', ''), '+91', '') = ?
+          OR creator_mobile = ?`,
+      [cleanMobile, String(creatorMobile).trim()]
+    );
+    prevCount = countRow ? Number(countRow.cnt || 0) : 0;
+  } else {
+    const countRow = await db.get(`SELECT COUNT(*) AS cnt FROM invoices`);
+    prevCount = countRow ? Number(countRow.cnt || 0) : 0;
   }
-  const nextSeq = maxSeq + 1;
-  return `3FM-INV-${String(nextSeq).padStart(2, '0')}`;
+  const seqNumber = String(prevCount + 1).padStart(2, '0');
+  return `3FM-INV-${seqNumber}`;
 }
 
 function extractCreatorsFromSheet(filePath) {
@@ -1009,7 +1026,7 @@ app.post("/creator/validated_form", async (req, res) => {
   if (existingInvoice && existingInvoice.invoice_no) {
     autoInvoiceNo = existingInvoice.invoice_no;
   } else {
-    autoInvoiceNo = await generateNextInvoiceNo();
+    autoInvoiceNo = await generateNextInvoiceNo(mobile);
   }
 
   res.render("creator_form", {
@@ -1682,8 +1699,9 @@ app.get("/admin/fun", async (req, res) => {
 });
 
 app.get("/admin/folders", requireRole(["ACCOUNTS", "SUPER_ADMIN", "HEAD", "TEAM"]), async (req, res) => {
-  const folders = await loadCampaignFolderCards(req.session.user);
-  res.render("admin_folders", { folders });
+  const search = (req.query.search || "").trim();
+  const folders = await loadCampaignFolderCards(req.session.user, search);
+  res.render("admin_folders", { folders, search });
 });
 
 app.get("/admin/notifications", requireRole(["ACCOUNTS", "SUPER_ADMIN"]), async (req, res) => {

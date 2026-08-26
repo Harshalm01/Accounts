@@ -525,16 +525,15 @@ async function init() {
     console.warn("Brand name migration note:", e.message);
   }
 
-  // Data Migration 2: Re-sequence invoice_no sequentially for existing invoices
+  // Data Migration 2: Re-sequence invoice_no per creator mobile sequentially
   try {
-    const existingInvoices = await all("SELECT id, invoice_no FROM invoices ORDER BY id ASC");
-    if (existingInvoices.length > 0) {
-      let index = 1;
-      for (const inv of existingInvoices) {
-        const seqNo = `3FM-INV-${String(index).padStart(2, '0')}`;
-        await run("UPDATE invoices SET invoice_no = ? WHERE id = ?", [seqNo, inv.id]);
-        index++;
-      }
+    const existingInvoices = await all("SELECT id, creator_mobile FROM invoices ORDER BY id ASC");
+    const mobileCounts = {};
+    for (const inv of existingInvoices) {
+      const mob = (inv.creator_mobile || '').trim().replace(/\s+|-/g, '').replace(/^\+91/, '');
+      mobileCounts[mob] = (mobileCounts[mob] || 0) + 1;
+      const seqNo = `3FM-INV-${String(mobileCounts[mob]).padStart(2, '0')}`;
+      await run("UPDATE invoices SET invoice_no = ? WHERE id = ?", [seqNo, inv.id]);
     }
   } catch (e) {
     console.warn("Invoice re-sequence migration note:", e.message);
