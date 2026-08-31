@@ -1448,7 +1448,7 @@ app.get("/admin", (req, res) => {
   res.render("admin_login", { error: null });
 });
 
-app.get("/admin/login/success", requireAuth, (req, res) => {
+app.all("/admin/login/success", requireAuth, (req, res) => {
   const user = req.session ? req.session.user : null;
   let nextUrl = "/admin/dashboard";
   if (user) {
@@ -1479,7 +1479,7 @@ app.post("/admin/login", async (req, res) => {
   setAuthCookie(res, req, req.session.user);
 
   req.session.save(() => {
-    res.redirect("/admin/login/success");
+    res.redirect(303, "/admin/login/success");
   });
 });
 
