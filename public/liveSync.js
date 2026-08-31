@@ -6,23 +6,29 @@
   let socket = null;
   let lastDataHash = '';
 
-  // 1. Initialize Socket.IO Client safely
+  // 1. Initialize Socket.IO Client safely (skip WebSockets on Vercel Serverless to prevent wss connection errors)
+  const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+
   if (typeof io !== 'undefined') {
     socket = io({
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
+      // Vercel serverless does not support persistent WebSockets (wss://).
+      // On Vercel, use HTTP polling transport only; on custom/VPS servers, allow WebSockets.
+      transports: isVercel ? ['polling'] : ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
       timeout: 10000,
-      autoConnect: true
+      autoConnect: !isVercel // On Vercel, rely on clean REST auto-polling below
     });
 
-    socket.on('connect', () => {
-      console.log('⚡ Socket.IO Live-Sync connected successfully.');
-    });
+    if (socket && !isVercel) {
+      socket.on('connect', () => {
+        console.log('⚡ Socket.IO Live-Sync connected successfully.');
+      });
 
-    socket.on('connect_error', () => {
-      // Soft fallback to HTTP polling engine if socket fails
-    });
+      socket.on('connect_error', () => {
+        // Soft fallback to HTTP polling engine if socket fails
+      });
+    }
   }
 
   // 2. Request Native Browser Desktop Notification Permissions
