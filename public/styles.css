@@ -2524,6 +2524,21 @@ body.login-page .portal-kicker {
   padding: 16px 20px !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
   vertical-align: middle !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  word-wrap: break-word !important;
+}
+
+.admin-page table td strong,
+.admin-page table td span {
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+.admin-page table td[data-label="Creator"],
+.admin-page table td[data-label="Campaign"],
+.admin-page table td[data-label="Team Name"] {
+  max-width: 220px !important;
 }
 
 .admin-page .campaign-cell strong {
