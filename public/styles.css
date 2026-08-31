@@ -2524,21 +2524,42 @@ body.login-page .portal-kicker {
   padding: 16px 20px !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
   vertical-align: middle !important;
-  word-break: break-word !important;
-  overflow-wrap: anywhere !important;
-  word-wrap: break-word !important;
 }
 
-.admin-page table td strong,
-.admin-page table td span {
-  word-break: break-word !important;
-  overflow-wrap: anywhere !important;
+/* Ensure buttons, action cells, and status pills NEVER break vertically */
+.admin-page .btn,
+.admin-page .btn-3d-sm,
+.admin-page .status-pill,
+.admin-page .pill,
+.admin-page .row-hover-overlay,
+.admin-page .row-hover-overlay a,
+.admin-page td.action-cell,
+.admin-page td.type-cell,
+.admin-page td.total-cell {
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  word-wrap: normal !important;
 }
 
+.admin-page td.action-cell {
+  min-width: 140px !important;
+}
+
+/* Scope text wrapping only to text data columns */
 .admin-page table td[data-label="Creator"],
 .admin-page table td[data-label="Campaign"],
-.admin-page table td[data-label="Team Name"] {
+.admin-page table td[data-label="Team Name"],
+.admin-page .campaign-cell {
   max-width: 220px !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+.admin-page table td[data-label="Creator"] strong,
+.admin-page table td[data-label="Campaign"] strong {
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
 .admin-page .campaign-cell strong {
