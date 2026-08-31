@@ -2319,7 +2319,7 @@ app.post("/admin/users/:id/delete", requireRole(["SUPER_ADMIN", "HR"]), async (r
 });
 
 // ── HR INVOICES PORTAL ROUTES (HR & SUPER_ADMIN) ──
-app.get("/hr/invoices", requireRole(["HR", "SUPER_ADMIN"]), async (req, res) => {
+app.all("/hr/invoices", requireRole(["HR", "SUPER_ADMIN"]), async (req, res) => {
   try {
     const hrInvoices = await db.all(
       `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name
@@ -2366,7 +2366,7 @@ app.post("/hr/invoices/create", requireRole(["HR", "SUPER_ADMIN"]), async (req, 
     const numAmount = Number(amount) || 0;
 
     if (!name || !phone || !numAmount) {
-      return res.redirect("/hr/invoices?error=" + encodeURIComponent("Employee Name, Phone Number, and Amount are required."));
+      return res.redirect(303, "/hr/invoices?error=" + encodeURIComponent("Employee Name, Phone Number, and Amount are required."));
     }
 
     const hrCampaignCode = `HR-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -2381,10 +2381,10 @@ app.post("/hr/invoices/create", requireRole(["HR", "SUPER_ADMIN"]), async (req, 
       [campaignResult.lastID, name, phone, numAmount, mode]
     );
 
-    return res.redirect("/hr/invoices?success=" + encodeURIComponent(`Employee ${name} assigned successfully! Campaign Code: ${hrCampaignCode}`));
+    return res.redirect(303, "/hr/invoices?success=" + encodeURIComponent(`Employee ${name} assigned successfully! Campaign Code: ${hrCampaignCode}`));
   } catch (err) {
     console.error("HR Create Invoice Error:", err);
-    return res.redirect("/hr/invoices?error=" + encodeURIComponent("Failed to create HR employee assignment: " + err.message));
+    return res.redirect(303, "/hr/invoices?error=" + encodeURIComponent("Failed to create HR employee assignment: " + err.message));
   }
 });
 
@@ -2392,7 +2392,7 @@ app.post("/hr/invoices/upload", requireRole(["HR", "SUPER_ADMIN"]), upload.singl
   try {
     const { invoiceNo, creatorName, amount, invoiceDate, invoiceType, description } = req.body;
     if (!invoiceNo || !creatorName || !amount || !req.file) {
-      return res.redirect("/hr/invoices?error=" + encodeURIComponent("Invoice No, Creator Name, Amount, and File upload are required."));
+      return res.redirect(303, "/hr/invoices?error=" + encodeURIComponent("Invoice No, Creator Name, Amount, and File upload are required."));
     }
 
     const { uploadToStorage } = require("./services/s3");
@@ -2435,10 +2435,10 @@ app.post("/hr/invoices/upload", requireRole(["HR", "SUPER_ADMIN"]), upload.singl
 
     await notifyInvoiceSubmission(result.lastID, campaign.id, creatorName.trim(), "HR Department", false);
 
-    return res.redirect("/hr/invoices?success=" + encodeURIComponent(`Document for Invoice #${invoiceNo.trim()} uploaded successfully!`));
+    return res.redirect(303, "/hr/invoices?success=" + encodeURIComponent(`Document for Invoice #${invoiceNo.trim()} uploaded successfully!`));
   } catch (err) {
     console.error("HR Upload Invoice Error:", err);
-    return res.redirect("/hr/invoices?error=" + encodeURIComponent("Failed to upload HR document: " + err.message));
+    return res.redirect(303, "/hr/invoices?error=" + encodeURIComponent("Failed to upload HR document: " + err.message));
   }
 });
 
@@ -2447,7 +2447,7 @@ app.post("/hr/invoices/:id/delete", requireRole(["HR", "SUPER_ADMIN"]), async (r
     const invoiceId = req.params.id;
     const invoice = await db.get("SELECT * FROM invoices WHERE id = ?", [invoiceId]);
     if (!invoice) {
-      return res.redirect("/hr/invoices?error=" + encodeURIComponent("Invoice not found."));
+      return res.redirect(303, "/hr/invoices?error=" + encodeURIComponent("Invoice not found."));
     }
 
     const { deleteFromStorage } = require("./services/s3");
@@ -2462,10 +2462,10 @@ app.post("/hr/invoices/:id/delete", requireRole(["HR", "SUPER_ADMIN"]), async (r
     await db.run("DELETE FROM notifications WHERE invoice_id = ?", [invoiceId]);
     await db.run("DELETE FROM invoices WHERE id = ?", [invoiceId]);
 
-    return res.redirect("/hr/invoices?success=" + encodeURIComponent(`Invoice #${invoice.invoice_no} deleted successfully.`));
+    return res.redirect(303, "/hr/invoices?success=" + encodeURIComponent(`Invoice #${invoice.invoice_no} deleted successfully.`));
   } catch (err) {
     console.error("HR Delete Invoice Error:", err);
-    return res.redirect("/hr/invoices?error=" + encodeURIComponent("Failed to delete invoice: " + err.message));
+    return res.redirect(303, "/hr/invoices?error=" + encodeURIComponent("Failed to delete invoice: " + err.message));
   }
 });
 
