@@ -5467,9 +5467,59 @@ body.admin-page .main-content-wrapper {
   }
 }
 
+/* ================= RESPONSIVE LAYOUT & OVERFLOW FIXES ================= */
+/* Prevent right-side clipping on laptop/desktop viewports (993px to 1400px) */
+@media (min-width: 993px) and (max-width: 1400px) {
+  body.admin-page .sidebar-nav {
+    width: 250px;
+    min-width: 250px;
+    padding: 24px 16px;
+  }
 
+  body.admin-page .main-content-wrapper {
+    padding: 24px 20px;
+  }
 
+  body.admin-page .topbar {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
 
+  body.admin-page .header-right {
+    width: auto;
+    max-width: 100%;
+    align-items: flex-end;
+  }
 
+  body.admin-page .header-stats-grid {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
 
+  body.admin-page .header-stat-card {
+    min-width: 125px;
+    padding: 8px 14px;
+  }
 
+  .admin-page .section-head {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+}
+
+/* Universal protection against right edge clipping */
+body.admin-page .header-actions-row {
+  margin-right: 8px; /* Room for bell badge */
+}
+
+body.admin-page .bell-badge {
+  right: -4px;
+  top: -4px;
+}
+
+body.admin-page .topbar.hero-banner,
+body.admin-page .card,
+body.admin-page .glass-panel {
+  box-sizing: border-box;
+  max-width: 100%;
+}
