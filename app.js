@@ -1670,8 +1670,9 @@ app.get("/admin/dashboard", async (req, res) => {
 // JSON API endpoint for live sync polling
 app.get("/admin/api/invoices", async (req, res) => {
   const user = req.session.user;
+  const hasLimit = req.query.limit !== undefined;
   const page = Math.max(1, parseInt(req.query.page || "1", 10));
-  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || "50", 10)));
+  const limit = hasLimit ? Math.min(1000, Math.max(1, parseInt(req.query.limit, 10))) : 0;
   const offset = (page - 1) * limit;
 
   const invoiceCols = `i.id, i.campaign_id, i.creator_mobile, i.creator_name, i.invoice_type, i.full_name, 
@@ -1681,30 +1682,24 @@ app.get("/admin/api/invoices", async (req, res) => {
   let notificationsPromise;
 
   if (user.role === "TEAM" || user.role === "HEAD") {
-    invoicesPromise = db.all(
-      `SELECT ${invoiceCols}, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
+    const sql = `SELECT ${invoiceCols}, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
        FROM invoices i
        LEFT JOIN campaigns c ON c.id = i.campaign_id
        LEFT JOIN users u ON u.id = c.created_by
        WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?))
          AND COALESCE(i.is_hr_upload, 0) = 0
          AND (c.campaign_code IS NULL OR c.campaign_code NOT LIKE 'HR-%')
-       ORDER BY i.id DESC
-       LIMIT ? OFFSET ?`,
-      [user.teamName, limit, offset]
-    );
+       ORDER BY i.id DESC` + (hasLimit ? ` LIMIT ${limit} OFFSET ${offset}` : ``);
+    invoicesPromise = db.all(sql, [user.teamName]);
   } else {
-    invoicesPromise = db.all(
-      `SELECT ${invoiceCols}, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
+    const sql = `SELECT ${invoiceCols}, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
        FROM invoices i
        LEFT JOIN campaigns c ON c.id = i.campaign_id
        LEFT JOIN users u ON u.id = c.created_by
        WHERE COALESCE(i.is_hr_upload, 0) = 0
          AND (c.campaign_code IS NULL OR c.campaign_code NOT LIKE 'HR-%')
-       ORDER BY i.id DESC
-       LIMIT ? OFFSET ?`,
-      [limit, offset]
-    );
+       ORDER BY i.id DESC` + (hasLimit ? ` LIMIT ${limit} OFFSET ${offset}` : ``);
+    invoicesPromise = db.all(sql);
   }
 
   if (user.role === "ACCOUNTS" || user.role === "SUPER_ADMIN") {
