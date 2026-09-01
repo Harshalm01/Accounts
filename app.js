@@ -1538,20 +1538,40 @@ app.get("/admin/utr-template/download", (req, res) => {
   }
 });
 
+app.get("/admin/api/invoices/check-sync", async (req, res) => {
+  try {
+    const row = await db.get(
+      `SELECT MAX(updated_at) AS last_update, COUNT(id) AS total_count FROM invoices`
+    );
+    const clientHash = String(req.query.hash || "");
+    const currentHash = `${row?.last_update || "0"}_${row?.total_count || 0}`;
+
+    if (clientHash === currentHash) {
+      return res.json({ changed: false, hash: currentHash });
+    }
+    return res.json({ changed: true, hash: currentHash });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/admin/dashboard", async (req, res) => {
   const user = req.session.user;
   if (user && user.role === "HR") {
     return res.redirect("/hr/invoices");
   }
   const activeTab = req.query.tab || "invoices";
+  const invoiceCols = `i.id, i.campaign_id, i.creator_mobile, i.creator_name, i.invoice_type, i.full_name, 
+                       i.invoice_no, i.invoice_date, i.total_amount, i.locked_amount, i.final_amount, 
+                       i.status, i.pdf_path, i.created_at, i.updated_at, i.is_hr_upload`;
   let invoicesPromise;
   let notificationsPromise;
 
   if (user.role === "TEAM" || user.role === "HEAD") {
     invoicesPromise = db.all(
-      `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
+      `SELECT ${invoiceCols}, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
        FROM invoices i
-       JOIN campaigns c ON c.id = i.campaign_id
+       LEFT JOIN campaigns c ON c.id = i.campaign_id
        LEFT JOIN users u ON u.id = c.created_by
        WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?))
          AND COALESCE(i.is_hr_upload, 0) = 0
@@ -1561,9 +1581,9 @@ app.get("/admin/dashboard", async (req, res) => {
     );
   } else {
     invoicesPromise = db.all(
-      `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
+      `SELECT ${invoiceCols}, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
        FROM invoices i
-       JOIN campaigns c ON c.id = i.campaign_id
+       LEFT JOIN campaigns c ON c.id = i.campaign_id
        LEFT JOIN users u ON u.id = c.created_by
        WHERE COALESCE(i.is_hr_upload, 0) = 0
          AND (c.campaign_code IS NULL OR c.campaign_code NOT LIKE 'HR-%')
@@ -1573,7 +1593,8 @@ app.get("/admin/dashboard", async (req, res) => {
 
   if (user.role === "ACCOUNTS" || user.role === "SUPER_ADMIN") {
     notificationsPromise = db.all(
-      `SELECT n.*, c.campaign_name, i.creator_name, i.status AS invoice_status
+      `SELECT n.id, n.campaign_id, n.invoice_id, n.message, n.is_read, n.created_at, 
+              c.campaign_name, i.creator_name, i.status AS invoice_status
        FROM notifications n
        LEFT JOIN campaigns c ON c.id = n.campaign_id
        LEFT JOIN invoices i ON i.id = n.invoice_id
@@ -1631,7 +1652,7 @@ app.get("/admin/dashboard", async (req, res) => {
   );
 
   const hrInvoicesPromise = db.all(
-    `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name
+    `SELECT ${invoiceCols}, c.campaign_name, c.campaign_code, c.team_name
      FROM invoices i
      LEFT JOIN campaigns c ON c.id = i.campaign_id
      WHERE i.is_hr_upload = 1 OR c.campaign_code LIKE 'HR-%'
@@ -1649,36 +1670,47 @@ app.get("/admin/dashboard", async (req, res) => {
 // JSON API endpoint for live sync polling
 app.get("/admin/api/invoices", async (req, res) => {
   const user = req.session.user;
+  const page = Math.max(1, parseInt(req.query.page || "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit || "50", 10)));
+  const offset = (page - 1) * limit;
+
+  const invoiceCols = `i.id, i.campaign_id, i.creator_mobile, i.creator_name, i.invoice_type, i.full_name, 
+                       i.invoice_no, i.invoice_date, i.total_amount, i.locked_amount, i.final_amount, 
+                       i.status, i.pdf_path, i.created_at, i.updated_at, i.is_hr_upload`;
   let invoicesPromise;
   let notificationsPromise;
 
   if (user.role === "TEAM" || user.role === "HEAD") {
     invoicesPromise = db.all(
-      `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
+      `SELECT ${invoiceCols}, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
        FROM invoices i
-       JOIN campaigns c ON c.id = i.campaign_id
+       LEFT JOIN campaigns c ON c.id = i.campaign_id
        LEFT JOIN users u ON u.id = c.created_by
        WHERE LOWER(TRIM(c.team_name)) = LOWER(TRIM(?))
          AND COALESCE(i.is_hr_upload, 0) = 0
          AND (c.campaign_code IS NULL OR c.campaign_code NOT LIKE 'HR-%')
-       ORDER BY i.id DESC`,
-      [user.teamName]
+       ORDER BY i.id DESC
+       LIMIT ? OFFSET ?`,
+      [user.teamName, limit, offset]
     );
   } else {
     invoicesPromise = db.all(
-      `SELECT i.*, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
+      `SELECT ${invoiceCols}, c.campaign_name, c.campaign_code, c.team_name, u.username AS head_username
        FROM invoices i
-       JOIN campaigns c ON c.id = i.campaign_id
+       LEFT JOIN campaigns c ON c.id = i.campaign_id
        LEFT JOIN users u ON u.id = c.created_by
        WHERE COALESCE(i.is_hr_upload, 0) = 0
          AND (c.campaign_code IS NULL OR c.campaign_code NOT LIKE 'HR-%')
-       ORDER BY i.id DESC`
+       ORDER BY i.id DESC
+       LIMIT ? OFFSET ?`,
+      [limit, offset]
     );
   }
 
   if (user.role === "ACCOUNTS" || user.role === "SUPER_ADMIN") {
     notificationsPromise = db.all(
-      `SELECT n.*, c.campaign_name, i.creator_name, i.status AS invoice_status
+      `SELECT n.id, n.campaign_id, n.invoice_id, n.message, n.is_read, n.created_at, 
+              c.campaign_name, i.creator_name, i.status AS invoice_status
        FROM notifications n
        LEFT JOIN campaigns c ON c.id = n.campaign_id
        LEFT JOIN invoices i ON i.id = n.invoice_id
@@ -1691,7 +1723,7 @@ app.get("/admin/api/invoices", async (req, res) => {
   }
 
   const [invoices, notifications] = await Promise.all([invoicesPromise, notificationsPromise]);
-  res.json({ invoices, notifications });
+  res.json({ invoices, notifications, page, limit });
 });
 
 app.get("/admin/fun", async (req, res) => {

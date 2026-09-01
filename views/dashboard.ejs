@@ -1020,26 +1020,25 @@
           // ═══════════════════════════════════════
           //   LIVE SYNC POLLING SYSTEM
           // ═══════════════════════════════════════
-          let currentStateHash = '';
-
-          function computeHash(data) {
-            const invHash = data.invoices.map(i => `${i.id}-${i.status}-${i.invoice_type}-${i.total_amount}`).join('|');
-            const noteHash = (data.notifications || []).map(n => `${n.id}-${n.is_read}`).join('|');
-            return `${invHash}#${noteHash}`;
-          }
+          let currentSyncHash = '';
 
           function pollData() {
-            fetch('/admin/api/invoices')
+            if (document.hidden) return; // Pause polling when browser tab is inactive
+
+            fetch('/admin/api/invoices/check-sync?hash=' + encodeURIComponent(currentSyncHash))
               .then(res => res.ok ? res.json() : null)
-              .then(data => {
-                if (!data) return;
-                const newHash = computeHash(data);
-                if (newHash !== currentStateHash) {
-                  currentStateHash = newHash;
-                  updateDashboardUI(data);
+              .then(syncData => {
+                if (!syncData) return;
+                if (syncData.changed) {
+                  currentSyncHash = syncData.hash || '';
+                  return fetch('/admin/api/invoices')
+                    .then(res => res.ok ? res.json() : null)
+                    .then(data => {
+                      if (data) updateDashboardUI(data);
+                    });
                 }
               })
-              .then(null, e => {
+              .catch(e => {
                 console.error("Live sync check failed:", e);
               });
           }
@@ -1164,10 +1163,15 @@
             });
           }
 
-          currentStateHash = computeHash({ invoices: initialInvoices, notifications: initialNotifications });
+          // Start smart polling every 15 seconds
+          setInterval(pollData, 15000);
 
-          // Start polling every 5 seconds
-          setInterval(pollData, 5000);
+          // Resume polling immediately when tab becomes visible
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+              pollData();
+            }
+          });
         });
 
         function handleDashboardReject(event, form) {

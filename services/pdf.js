@@ -96,7 +96,13 @@ function drawSignature(doc, invoice, x, y, w, h) {
 
 async function ensurePdfForInvoice(invoiceId) {
   const invoice = await db.get(
-    `SELECT i.*, c.campaign_name, c.campaign_code
+    `SELECT i.id, i.campaign_id, i.creator_mobile, i.creator_name, i.invoice_type, i.full_name, 
+            i.address, i.pan, i.email, i.invoice_no, i.invoice_date, i.payment_mode, i.poc_name, 
+            i.other_references, i.po_number, i.creator_gstin, i.taxable_amount, i.gst_rate, 
+            i.cgst_rate, i.sgst_rate, i.igst_rate, i.cgst_amount, i.sgst_amount, i.igst_amount, 
+            i.gst_amount, i.final_amount, i.account_name, i.bank_name, i.account_no, i.ifsc_code, 
+            i.branch, i.upi_id, i.signature_type, i.signature_value, i.total_amount, i.locked_amount, 
+            i.status, i.pdf_path, c.campaign_name, c.campaign_code
      FROM invoices i
      JOIN campaigns c ON c.id = i.campaign_id
      WHERE i.id = ?`,
@@ -104,7 +110,7 @@ async function ensurePdfForInvoice(invoiceId) {
   );
   if (!invoice) return null;
 
-  const items = await db.all("SELECT * FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [invoiceId]);
+  const items = await db.all("SELECT id, invoice_id, description, quantity, rate, amount FROM invoice_items WHERE invoice_id = ? ORDER BY id ASC", [invoiceId]);
 
   const folder = campaignFolderName(invoice);
   const campaignGeneratedDir = path.join(generatedDir, "campaigns", folder);
@@ -282,7 +288,12 @@ async function ensurePdfForInvoice(invoiceId) {
 }
 
 async function generateCreatorDossierPdf(creatorName, creatorMobile) {
-  let invQuery = "SELECT i.*, c.campaign_name, c.campaign_code FROM invoices i JOIN campaigns c ON c.id = i.campaign_id WHERE LOWER(TRIM(i.creator_name)) = LOWER(TRIM(?))";
+  let invQuery = `SELECT i.id, i.campaign_id, i.creator_name, i.creator_mobile, i.invoice_no, i.invoice_date, 
+                         i.invoice_type, i.total_amount, i.locked_amount, i.final_amount, i.status, 
+                         i.pdf_path, i.created_at, c.campaign_name, c.campaign_code 
+                  FROM invoices i 
+                  JOIN campaigns c ON c.id = i.campaign_id 
+                  WHERE LOWER(TRIM(i.creator_name)) = LOWER(TRIM(?))`;
   let invParams = [creatorName];
   if (creatorMobile) {
     invQuery += " AND LOWER(TRIM(i.creator_mobile)) = LOWER(TRIM(?))";
@@ -291,7 +302,11 @@ async function generateCreatorDossierPdf(creatorName, creatorMobile) {
   invQuery += " ORDER BY i.id DESC";
   const creatorInvoices = await db.all(invQuery, invParams);
 
-  let mapQuery = "SELECT cc.*, c.campaign_name, c.campaign_code, c.team_name FROM campaign_creators cc JOIN campaigns c ON c.id = cc.campaign_id WHERE LOWER(TRIM(cc.creator_name)) = LOWER(TRIM(?))";
+  let mapQuery = `SELECT cc.id, cc.campaign_id, cc.creator_name, cc.mobile, cc.amount, cc.live_link, 
+                         c.campaign_name, c.campaign_code, c.team_name 
+                  FROM campaign_creators cc 
+                  JOIN campaigns c ON c.id = cc.campaign_id 
+                  WHERE LOWER(TRIM(cc.creator_name)) = LOWER(TRIM(?))`;
   let mapParams = [creatorName];
   if (creatorMobile) {
     mapQuery += " AND LOWER(TRIM(cc.mobile)) = LOWER(TRIM(?))";

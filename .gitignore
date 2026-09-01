@@ -1,3 +1,5 @@
+.env
+.env*.local
 .venv/
 node_modules/
 .vscode/
@@ -8,3 +10,4 @@ portal.db
 *.bak
 scratch_source.js
 *.log
+.vercel

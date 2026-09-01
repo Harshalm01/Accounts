@@ -40,8 +40,10 @@ if (isPostgres) {
       ssl: {
         rejectUnauthorized: false
       },
-      lookup: ipv4Lookup,
-      connectionTimeoutMillis: 5000
+      max: 5,
+      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      lookup: ipv4Lookup
     });
   } catch (err) {
     console.warn("⚠️ Failed to initialize PostgreSQL pool:", err.message);
