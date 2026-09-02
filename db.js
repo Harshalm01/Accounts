@@ -8,7 +8,10 @@ const bcrypt = require("bcryptjs");
 
 function cleanDatabaseUrl(rawUrl) {
   if (!rawUrl) return rawUrl;
-  return String(rawUrl).trim().replace(/:\[([^\]]+)\]@/, (m, p1) => ":" + p1 + "@");
+  let cleaned = String(rawUrl).trim().replace(/:\[([^\]]+)\]@/, (m, p1) => ":" + p1 + "@");
+  cleaned = cleaned.replace(/[?&]sslmode=[^&]*/gi, "");
+  if (cleaned.endsWith("?")) cleaned = cleaned.slice(0, -1);
+  return cleaned;
 }
 
 const rawDbUrl = cleanDatabaseUrl(process.env.DATABASE_URL || process.env.POSTGRES_URL);
